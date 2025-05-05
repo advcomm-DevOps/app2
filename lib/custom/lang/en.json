@@ -1,0 +1,12 @@
+{
+    "dashboard": {
+        "dashboard": "Dashboard",
+        "welcome": "Welcome to Dashboard"
+    },
+    "about": {
+        "about": "About",
+        "welcome": "Welcome to our app!",
+        "current_date": "Current Date",
+        "price": "Price"
+    }
+}
