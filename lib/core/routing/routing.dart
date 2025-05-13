@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_starter/lib/presentation/screens/channels/channel_screen.dart';
 import 'package:go_router/go_router.dart';
 import '../../custom/routing/routing.dart';
 import '../../views/auth/auth_view.dart';
-import '../../views/dashboard/dashboard_view.dart';
+// import '../../views/dashboard/dashboard_view.dart';
 import '../views/select_entity_view.dart';
 import 'route_names.dart';
 
@@ -70,6 +71,7 @@ final GoRouter router = GoRouter(
         context,
         state,
         DashboardView(),
+        // ChannelScreen(),
       ),
       redirect: (context, state) async {
         await checkAuthentication();
@@ -81,7 +83,7 @@ final GoRouter router = GoRouter(
         return null;
       },
     ),
-     ...customRoutes,
+    ...customRoutes,
   ],
 );
 
@@ -98,6 +100,7 @@ Page<void> buildPageWithTransition(
     },
   );
 }
+
 String? handleRedirect() {
   if (!isAuthenticated) return authRoute;
   return null;
