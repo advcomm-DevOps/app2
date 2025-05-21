@@ -1,11 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_starter/views/nav/custom_app_bar.dart';
-
-import 'platform_web.dart' if (dart.library.io) 'platform_non_web.dart';// Import for web and mobile
-
 
 class DashboardView extends StatefulWidget {
   @override
@@ -53,37 +49,8 @@ class _DashboardViewState extends State<DashboardView> {
           Expanded(
             child: InAppWebView(
               initialFile: "lib/html/form.html",
-              onWebViewCreated: (controller) {
-                if (!kIsWeb) {
-                  controller.addJavaScriptHandler(
-                    handlerName: 'ajaxResponse',
-                    callback: (args) {
-                      final data = args.first;
-                      print("🚀 AJAX Response Captured:");
-                      print("URL: ${data['url']}");
-                      print("Method: ${data['method']}");
-                      print("Status: ${data['status']}");
-                      print("Response: ${data['response']}");
-                    },
-                  );
-                } else {
-                  handleWebMessage();
-                  // html.window.onMessage.listen((event) {
-                  //          print("aaaaaaaaaa${event.data}");
-                  //   if (event.data is Map &&
-                  //       event.data['type'] == 'ajaxResponse') {
-                  //     final data = event.data['data'];
-                  //     print("🌐 Web AJAX Response Captured:");
-                  //     print("URL: ${data['url']}");
-                  //     print("Method: ${data['method']}");
-                  //     print("Status: ${data['status']}");
-                  //     print("Response: ${data['response']}");
-                  //   }
-                  // });
-                }
-              },
             ),
-          )
+          ),
         ],
       ),
     );
