@@ -15,7 +15,8 @@ class _DashboardViewState extends State<DashboardView> {
   int? selectedDocIndex;
 
   final dio = Dio();
-  final String token = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1JSUNJIn0.eyJzdWIiOiJtb2hzZW5hbGk0MzQzQGdtYWlsLmNvbSIsInRpZCI6Im1vaHNlbmFsaTQzNDNAZ21haWwuY29tIiwiYXVkIjoiYXV0aC54ZG9jLmFwcCIsImlhdCI6MTc0MTQxNDc5NywiZXhwIjoxNzQxNDE4Mzk3LCJpc3MiOiJhdXRoLnhkb2MuYXBwIn0.BXXBKOuIErz8chjDNXbmFCzYDpKR1HErRTuexZ74Ebw6PRoxFC74GTsTimvipwsIZA6VJWb3Cwd6iI35gmllfKhR1d0NTDZE1_lnlU7KQcd7pX7r5YtiUTC2oic6Wd_6SUaLeiQd51VwYWmBuQH_F8z1EuxLWWde-5pFTUC7yOfn__jeMoDW-esN7XRbAbiE7A6BAz8m57Vk9NWI0rJ0Sj-VKJK_gQtDTfcyBcYMN3e3c6Q99yv6dGMW1hq9jM2CIosunU_jczq5p8fV-7Ykzg3PIJaVl1tga3grVZIRF58v65YmsRqWLti4Bpdc04H00UNugL8M3RlcgBt5C1iKkBSTvdDDv4YKXAE45TYlxAmlE8fNYZNIGJW0d3AuSuvAbZc5aNJrH9T8nK0bx68vP0fk_idwt9XWlNcUWlErUfZ2-LulgH3onKYbthF2JrYFY0u-2QvTE-ljD-dFN4YKflFNg9N-INTMBCGC1y6E-94iHbj87Wy1-v5WQb1ZR7OP7QDs9nSrNo8aGhlvVSmaMvL7NdbUrA4RiWbt4fBmPEQuNXi9FpgYF70wB7ggXX-LU9-CCmOIW5-Y1JYZ73XBVKDIxNdzv2aQRbmDzkFhpm0ckFBMg2iDCyzAQmHR_8kCXSp7WP08HCG8bRQyRGZJ7R7Fr-BJCi8kIj8o2wnyNQ8';
+  final String token =
+      'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1JSUNJIn0.eyJzdWIiOiJtb2hzZW5hbGk0MzQzQGdtYWlsLmNvbSIsInRpZCI6Im1vaHNlbmFsaTQzNDNAZ21haWwuY29tIiwiYXVkIjoiYXV0aC54ZG9jLmFwcCIsImlhdCI6MTc0MTQxNDc5NywiZXhwIjoxNzQxNDE4Mzk3LCJpc3MiOiJhdXRoLnhkb2MuYXBwIn0.BXXBKOuIErz8chjDNXbmFCzYDpKR1HErRTuexZ74Ebw6PRoxFC74GTsTimvipwsIZA6VJWb3Cwd6iI35gmllfKhR1d0NTDZE1_lnlU7KQcd7pX7r5YtiUTC2oic6Wd_6SUaLeiQd51VwYWmBuQH_F8z1EuxLWWde-5pFTUC7yOfn__jeMoDW-esN7XRbAbiE7A6BAz8m57Vk9NWI0rJ0Sj-VKJK_gQtDTfcyBcYMN3e3c6Q99yv6dGMW1hq9jM2CIosunU_jczq5p8fV-7Ykzg3PIJaVl1tga3grVZIRF58v65YmsRqWLti4Bpdc04H00UNugL8M3RlcgBt5C1iKkBSTvdDDv4YKXAE45TYlxAmlE8fNYZNIGJW0d3AuSuvAbZc5aNJrH9T8nK0bx68vP0fk_idwt9XWlNcUWlErUfZ2-LulgH3onKYbthF2JrYFY0u-2QvTE-ljD-dFN4YKflFNg9N-INTMBCGC1y6E-94iHbj87Wy1-v5WQb1ZR7OP7QDs9nSrNo8aGhlvVSmaMvL7NdbUrA4RiWbt4fBmPEQuNXi9FpgYF70wB7ggXX-LU9-CCmOIW5-Y1JYZ73XBVKDIxNdzv2aQRbmDzkFhpm0ckFBMg2iDCyzAQmHR_8kCXSp7WP08HCG8bRQyRGZJ7R7Fr-BJCi8kIj8o2wnyNQ8';
 
   List<Map<String, dynamic>> channels = [];
   List<Map<String, dynamic>> docs = [];
@@ -29,7 +30,7 @@ class _DashboardViewState extends State<DashboardView> {
   final TextEditingController _htmlController = TextEditingController();
 
   // Define chat messages for each document
-  final Map<String, List<Map<String, String>>> documentChats = {
+  final Map<String, List<Map<String, dynamic>>> documentChats = {
     "Invoice-06-Mar-2025": [
       {"sender": "User A", "message": "Hello!"},
       {"sender": "User B", "message": "Hi there! How can I help?"},
@@ -49,7 +50,13 @@ class _DashboardViewState extends State<DashboardView> {
   };
 
   // Current chat messages being displayed
-  List<Map<String, String>> currentChatMessages = [];
+  List<Map<String, dynamic>> currentChatMessages = [];
+
+  bool get isLastFile {
+    if (currentChatMessages.isEmpty) return false;
+    final lastMessage = currentChatMessages.last;
+    return lastMessage["isFile"] == true;
+  }
 
   @override
   void didChangeDependencies() {
@@ -106,10 +113,18 @@ class _DashboardViewState extends State<DashboardView> {
 
   Future<void> uploadFile() async {
     try {
-      // Pick a file
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'png', 'jpg', 'jpeg'],
+        allowedExtensions: [
+          'pdf',
+          'doc',
+          'docx',
+          'xls',
+          'xlsx',
+          'png',
+          'jpg',
+          'jpeg'
+        ],
       );
 
       if (result != null) {
@@ -118,50 +133,14 @@ class _DashboardViewState extends State<DashboardView> {
         });
 
         PlatformFile file = result.files.first;
-          setState(() {
-            currentChatMessages.add({
-              "sender": "You",
-              "message": "Uploaded file: ${file.name} (${(file.size / 1024).toStringAsFixed(1)} KB)"
-            });
+        setState(() {
+          currentChatMessages.add({
+            "sender": "You",
+            "message":
+                "Uploaded file: ${file.name} (${(file.size / 1024).toStringAsFixed(1)} KB)",
+            "isFile": true,
           });
-        
-        // // Create form data
-        // FormData formData = FormData.fromMap({
-        //   "file": await MultipartFile.fromFile(file.path!,
-        //       filename: file.name),
-        //   "channel": channels[selectedChannelIndex!]["ChannelName"],
-        //   "doc": docs[selectedDocIndex!]["DocName"],
-        // });
-
-        // // Set headers
-        // dio.options.headers["Authorization"] = "Bearer $token";
-        // dio.options.headers["Content-Type"] = "multipart/form-data";
-
-        // // Upload file
-        // final response = await dio.post(
-        //   'https://api.xdoc.app/upload',
-        //   data: formData,
-        //   onSendProgress: (int sent, int total) {
-        //     print("Upload progress: ${(sent / total * 100).toStringAsFixed(0)}%");
-        //   },
-        // );
-
-        // if (response.statusCode == 200) {
-        //   // Add a message about the uploaded file
-        //   setState(() {
-        //     currentChatMessages.add({
-        //       "sender": "You",
-        //       "message": "Uploaded file: ${file.name} (${(file.size / 1024).toStringAsFixed(1)} KB)"
-        //     });
-        //   });
-
-        //   ScaffoldMessenger.of(context).showSnackBar(
-        //     SnackBar(
-        //       content: Text('File uploaded successfully!'),
-        //       backgroundColor: Colors.green,
-        //     ),
-        //   );
-        // }
+        });
       }
     } catch (e) {
       print("Error uploading file: $e");
@@ -186,188 +165,298 @@ class _DashboardViewState extends State<DashboardView> {
       currentChatMessages.add({"sender": "You", "message": text});
       messageController.clear();
     });
-
-    // Optionally, send the message to backend here
   }
-  void _showUploadMethodDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Upload Form', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.grey[800],
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Select how you want to upload the form:',
-                style: TextStyle(color: Colors.white70)),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _showUrlInputDialog(context);
-                  },
-                  child: const Text('By URL', style: TextStyle(color: Colors.white)),
+
+  Widget _buildActionButton(String text, Color color, VoidCallback onPressed) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        minimumSize: const Size(0, 30),
+      ),
+      onPressed: onPressed,
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 12, color: Colors.white),
+      ),
+    );
+  }
+
+  void _handleAction(String action, String fileName) {
+    if (action == "Reject") {
+      _showRejectReasonDialog(fileName);
+    } else {
+      setState(() {
+        currentChatMessages.add({
+          "sender": "System",
+          "message": "You $action the file: ${fileName.split(':').last.trim()}",
+        });
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$action action performed'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  void _showRejectReasonDialog(String fileName) {
+    final TextEditingController reasonController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title:
+              const Text('Reject File', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.grey[800],
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Please provide a reason for rejecting the file:',
+                style: TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: reasonController,
+                maxLines: 3,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  hintText: 'Enter reason...',
+                  hintStyle: TextStyle(color: Colors.white54),
+                  border: OutlineInputBorder(),
                 ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _showHtmlInputDialog(context);
-                  },
-                  child: const Text('By HTML', style: TextStyle(color: Colors.white)),
-                ),
-              ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child:
+                  const Text('Cancel', style: TextStyle(color: Colors.white70)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () {
+                final reason = reasonController.text.trim();
+                if (reason.isNotEmpty) {
+                  setState(() {
+                    currentChatMessages.add({
+                      "sender": "System",
+                      "message":
+                          "You rejected the file: ${fileName.split(':').last.trim()} with reason: $reason",
+                    });
+                  });
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('File rejected successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              },
+              child:
+                  const Text('Submit', style: TextStyle(color: Colors.white)),
             ),
           ],
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
-void _showUrlInputDialog(BuildContext context) {
-  _urlController.clear();
-
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Enter Form URL', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.grey[800],
-        content: TextField(
-          controller: _urlController,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-            hintText: 'https://example.com/form',
-            hintStyle: TextStyle(color: Colors.white54),
+  void _showUploadMethodDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title:
+              const Text('Upload Form', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.grey[800],
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Select how you want to upload the form:',
+                  style: TextStyle(color: Colors.white70)),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 15),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showUrlInputDialog(context);
+                    },
+                    child: const Text('By URL',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 15),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showHtmlInputDialog(context);
+                    },
+                    child: const Text('By HTML',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-            onPressed: () {
-              if (_urlController.text.isNotEmpty) {
-                Navigator.pop(context);
-                _showPreviewDialog(context, _urlController.text, isUrl: true);
-              }
-            },
-            child: const Text('Submit', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
-void _showHtmlInputDialog(BuildContext context) {
-  _htmlController.clear();
+  void _showUrlInputDialog(BuildContext context) {
+    _urlController.clear();
 
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Enter HTML Form', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.grey[800],
-        content: SizedBox(
-          width: double.maxFinite,
-          child: TextField(
-            controller: _htmlController,
-            maxLines: 10,
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Enter Form URL',
+              style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.grey[800],
+          content: TextField(
+            controller: _urlController,
             style: const TextStyle(color: Colors.white),
             decoration: const InputDecoration(
-              hintText: '<form>...</form>',
+              hintText: 'https://example.com/form',
               hintStyle: TextStyle(color: Colors.white54),
-              border: OutlineInputBorder(),
             ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            onPressed: () {
-              if (_htmlController.text.isNotEmpty) {
-                Navigator.pop(context);
-                _showPreviewDialog(context, _htmlController.text, isUrl: false);
-              }
-            },
-            child: const Text('Submit', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      );
-    },
-  );
-}
-void _showPreviewDialog(BuildContext context, String content, {required bool isUrl}) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      InAppWebViewController? webViewController;
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child:
+                  const Text('Cancel', style: TextStyle(color: Colors.white70)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+              onPressed: () {
+                if (_urlController.text.isNotEmpty) {
+                  Navigator.pop(context);
+                  _showPreviewDialog(context, _urlController.text, isUrl: true);
+                }
+              },
+              child:
+                  const Text('Submit', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
-      return AlertDialog(
-        title: Text(
-          isUrl ? 'URL Form Preview' : 'HTML Form Preview',
-          style: const TextStyle(color: Colors.white),
-        ),
-        backgroundColor: Colors.grey[800],
-        content: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.8,
-          height: MediaQuery.of(context).size.height * 0.6,
-          child: InAppWebView(
-            initialUrlRequest: isUrl
-                 ? URLRequest(url: WebUri(content))
-                : null,
-            initialData: !isUrl
-                ? InAppWebViewInitialData(data: content)
-                : null,
-            onWebViewCreated: (controller) {
-              webViewController = controller;
-            },
+  void _showHtmlInputDialog(BuildContext context) {
+    _htmlController.clear();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Enter HTML Form',
+              style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.grey[800],
+          content: SizedBox(
+            width: double.maxFinite,
+            child: TextField(
+              controller: _htmlController,
+              maxLines: 10,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                hintText: '<form>...</form>',
+                hintStyle: TextStyle(color: Colors.white54),
+                border: OutlineInputBorder(),
+              ),
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close', style: TextStyle(color: Colors.white70)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child:
+                  const Text('Cancel', style: TextStyle(color: Colors.white70)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              onPressed: () {
+                if (_htmlController.text.isNotEmpty) {
+                  Navigator.pop(context);
+                  _showPreviewDialog(context, _htmlController.text,
+                      isUrl: false);
+                }
+              },
+              child:
+                  const Text('Submit', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showPreviewDialog(BuildContext context, String content,
+      {required bool isUrl}) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            isUrl ? 'URL Form Preview' : 'HTML Form Preview',
+            style: const TextStyle(color: Colors.white),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    isUrl ? 'URL form submitted' : 'HTML form submitted',
+          backgroundColor: Colors.grey[800],
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.8,
+            height: MediaQuery.of(context).size.height * 0.6,
+            child: InAppWebView(
+              initialUrlRequest:
+                  isUrl ? URLRequest(url: WebUri(content)) : null,
+              initialData:
+                  !isUrl ? InAppWebViewInitialData(data: content) : null,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child:
+                  const Text('Close', style: TextStyle(color: Colors.white70)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+              onPressed: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      isUrl ? 'URL form submitted' : 'HTML form submitted',
+                    ),
+                    backgroundColor: Colors.green,
                   ),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            },
-            child: const Text('Confirm Upload', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      );
-    },
-  );
-}
+                );
+              },
+              child: const Text('Confirm Upload',
+                  style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool hasChannels = channels.isNotEmpty;
@@ -438,7 +527,9 @@ void _showPreviewDialog(BuildContext context, String content, {required bool isU
                                 onTap: () {
                                   setState(() {
                                     selectedDocIndex = index;
-                                    currentChatMessages = documentChats[docs[index]["DocName"]] ?? [];
+                                    currentChatMessages =
+                                        documentChats[docs[index]["DocName"]] ??
+                                            [];
                                   });
                                 },
                               );
@@ -489,46 +580,113 @@ void _showPreviewDialog(BuildContext context, String content, {required bool isU
                                         padding: const EdgeInsets.all(8),
                                         itemCount: currentChatMessages.length,
                                         itemBuilder: (context, index) {
-                                          final msg = currentChatMessages[index];
+                                          final msg =
+                                              currentChatMessages[index];
                                           final isUser = msg["sender"] == "You";
-                                          return Align(
-                                            alignment: isUser
-                                                ? Alignment.centerRight
-                                                : Alignment.centerLeft,
-                                            child: Container(
-                                              margin:
-                                                  const EdgeInsets.symmetric(vertical: 4),
-                                              padding: const EdgeInsets.all(10),
-                                              constraints: const BoxConstraints(maxWidth: 300),
-                                              decoration: BoxDecoration(
-                                                color: isUser
-                                                    ? Colors.blueAccent
-                                                    : Colors.grey[700],
-                                                borderRadius: BorderRadius.circular(10),
-                                              ),
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    msg["sender"]!,
-                                                    style: const TextStyle(
-                                                        fontSize: 12,
-                                                        color: Colors.white70),
+                                          final isFile = msg["isFile"] == true;
+                                          final isLastFile = isFile &&
+                                              index ==
+                                                  currentChatMessages.length -
+                                                      1;
+
+                                          return Column(
+                                            crossAxisAlignment: isUser
+                                                ? CrossAxisAlignment.end
+                                                : CrossAxisAlignment.start,
+                                            children: [
+                                              Align(
+                                                alignment: isUser
+                                                    ? Alignment.centerRight
+                                                    : Alignment.centerLeft,
+                                                child: Container(
+                                                  margin: const EdgeInsets
+                                                      .symmetric(vertical: 4),
+                                                  padding:
+                                                      const EdgeInsets.all(10),
+                                                  constraints:
+                                                      const BoxConstraints(
+                                                          maxWidth: 300),
+                                                  decoration: BoxDecoration(
+                                                    color: isUser
+                                                        ? Colors.blueAccent
+                                                        : Colors.grey[700],
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            10),
                                                   ),
-                                                  const SizedBox(height: 4),
-                                                  Text(
-                                                    msg["message"]!,
-                                                    style: const TextStyle(
-                                                        color: Colors.white),
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        msg["sender"]!,
+                                                        style: const TextStyle(
+                                                            fontSize: 12,
+                                                            color:
+                                                                Colors.white70),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      Text(
+                                                        msg["message"]!,
+                                                        style: const TextStyle(
+                                                            color:
+                                                                Colors.white),
+                                                      ),
+                                                    ],
                                                   ),
-                                                ],
+                                                ),
                                               ),
-                                            ),
+                                              if (isLastFile)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          top: 4, bottom: 8),
+                                                  child: Row(
+                                                    mainAxisAlignment: isUser
+                                                        ? MainAxisAlignment.end
+                                                        : MainAxisAlignment
+                                                            .start,
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      _buildActionButton(
+                                                          "Accept",
+                                                          Colors.green, () {
+                                                        _handleAction("Accept",
+                                                            msg["message"]!);
+                                                      }),
+                                                      const SizedBox(width: 4),
+                                                      _buildActionButton(
+                                                          "Reject", Colors.red,
+                                                          () {
+                                                        _handleAction("Reject",
+                                                            msg["message"]!);
+                                                      }),
+                                                      const SizedBox(width: 4),
+                                                      _buildActionButton(
+                                                          "Dispute",
+                                                          Colors.orange, () {
+                                                        _handleAction("Dispute",
+                                                            msg["message"]!);
+                                                      }),
+                                                      const SizedBox(width: 4),
+                                                      _buildActionButton(
+                                                          "Revise", Colors.blue,
+                                                          () {
+                                                        _handleAction("Revise",
+                                                            msg["message"]!);
+                                                      }),
+                                                    ],
+                                                  ),
+                                                ),
+                                            ],
                                           );
                                         },
                                       ),
                                     ),
-                                    const Divider(height: 1, color: Colors.white70),
+                                    const Divider(
+                                        height: 1, color: Colors.white70),
                                     Padding(
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 8.0, vertical: 6),
@@ -537,37 +695,41 @@ void _showPreviewDialog(BuildContext context, String content, {required bool isU
                                           Expanded(
                                             child: TextField(
                                               controller: messageController,
-                                              style:
-                                                  const TextStyle(color: Colors.white),
+                                              style: const TextStyle(
+                                                  color: Colors.white),
                                               decoration: const InputDecoration(
                                                 hintText: 'Type a message...',
-                                                hintStyle:
-                                                    TextStyle(color: Colors.white54),
+                                                hintStyle: TextStyle(
+                                                    color: Colors.white54),
                                                 filled: true,
                                                 fillColor: Colors.black26,
                                                 border: OutlineInputBorder(
-                                                  borderRadius: BorderRadius.all(
-                                                      Radius.circular(8)),
+                                                  borderRadius:
+                                                      BorderRadius.all(
+                                                          Radius.circular(8)),
                                                   borderSide: BorderSide.none,
                                                 ),
                                               ),
+                                              enabled: !isLastFile,
                                             ),
                                           ),
                                           const SizedBox(width: 8),
                                           IconButton(
-                                            icon: const Icon(Icons.upload_file,color: Colors.white),
+                                            icon: const Icon(Icons.upload_file,
+                                                color: Colors.white),
                                             tooltip: 'Upload form',
-                                            onPressed: () => _showUploadMethodDialog(context),
-                                            //onPressed: uploadFile,
+                                            onPressed: isLastFile ? null : () => _showUploadMethodDialog(context),
                                           ),
                                           IconButton(
-                                            icon: const Icon(Icons.attach_file,color: Colors.white),
+                                            icon: const Icon(Icons.attach_file,
+                                                color: Colors.white),
                                             tooltip: 'Attach a file',
-                                            onPressed: uploadFile,
+                                            onPressed: isLastFile ? null : uploadFile,
                                           ),
                                           IconButton(
-                                            icon: const Icon(Icons.send,color: Colors.white),
-                                            onPressed: sendMessage,
+                                            icon: const Icon(Icons.send,
+                                                color: Colors.white),
+                                            onPressed: isLastFile ? null : sendMessage,
                                           ),
                                         ],
                                       ),
@@ -581,7 +743,7 @@ void _showPreviewDialog(BuildContext context, String content, {required bool isU
           if (isUploading)
             Center(
               child: Container(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.7),
                   borderRadius: BorderRadius.circular(10),
@@ -589,9 +751,9 @@ void _showPreviewDialog(BuildContext context, String content, {required bool isU
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text(
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    const Text(
                       'Uploading file...',
                       style: TextStyle(color: Colors.white),
                     ),
@@ -604,62 +766,3 @@ void _showPreviewDialog(BuildContext context, String content, {required bool isU
     );
   }
 }
-
-// import 'package:easy_localization/easy_localization.dart';
-// import 'package:flutter/material.dart';
-// import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-// import 'package:flutter_starter/views/nav/custom_app_bar.dart';
-
-// class DashboardView extends StatefulWidget {
-//   @override
-//   _DashboardViewState createState() => _DashboardViewState();
-// }
-
-// class _DashboardViewState extends State<DashboardView> {
-//   Locale? _currentLocale;
-
-//   @override
-//   void didChangeDependencies() {
-//     super.didChangeDependencies();
-//     final newLocale = EasyLocalization.of(context)!.locale;
-//     if (_currentLocale != newLocale) {
-//       setState(() {
-//         _currentLocale = newLocale;
-//       });
-//     }
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: CustomAppBar(
-//         title: "dashboard.dashboard",
-//         context: context,
-//       ),
-//       body: Column(
-//         children: [
-//           // Row before WebView
-//           Padding(
-//             padding: EdgeInsets.all(16.0),
-//             child: Row(
-//               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//               children: [
-//                 Text(
-//                   "dashboard.welcome".tr(), // Localized welcome text
-//                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-//                 ),
-//               ],
-//             ),
-//           ),
-
-//           // WebView
-//           Expanded(
-//             child: InAppWebView(
-//               initialFile: "lib/html/form.html",
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
