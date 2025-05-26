@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:dio/dio.dart';
@@ -48,6 +50,97 @@ class _DashboardViewState extends State<DashboardView> {
       {"sender": "User B", "message": "Sure, ask me anything."},
     ],
   };
+  final List<Map<String, String>> actionButtons = [
+    {"label": "Accept", "html": "<button>Accept</button>"},
+    {
+      "label": "Reject",
+      "html": """
+        <form style='max-width: 300px; padding: 10px; border: 1px solid #ccc; border-radius: 6px;'>
+          <label for='rejectedReason' style='display: block; margin-bottom: 6px; font-weight: bold;'>
+            Rejected Reason:
+          </label>
+          <input type='text' id='rejectedReason' name='rejectedReason'
+                style='width: 100%; padding: 8px; margin-bottom: 10px;
+                        border: 1px solid #ccc; border-radius: 4px;' required>
+          <button type='submit'
+                  style='background-color: #dc3545; color: white; padding: 8px 16px;
+                        border: none; border-radius: 4px; cursor: pointer;'>
+            Submit
+          </button>
+        </form>
+      """
+    },
+    {
+      "label": "Dispute",
+      "html": """
+        <form style='max-width: 300px; padding: 10px; border: 1px solid #ccc; border-radius: 6px;'>
+          <label for='dispute1' style='display: block; margin-bottom: 6px; font-weight: bold;'>
+            Dispute 1:
+          </label>
+          <input type='text' id='dispute1' name='dispute1'
+                style='width: 100%; padding: 8px; margin-bottom: 10px;
+                        border: 1px solid #ccc; border-radius: 4px;' required>
+          <label for='dispute2' style='display: block; margin-bottom: 6px; font-weight: bold;'>
+            Dispute 2:
+          </label>
+          <input type='text' id='dispute2' name='dispute2'
+                style='width: 100%; padding: 8px; margin-bottom: 10px;
+                        border: 1px solid #ccc; border-radius: 4px;' required>
+          <button type='submit'
+                  style='background-color: #dc3545; color: white; padding: 8px 16px;
+                        border: none; border-radius: 4px; cursor: pointer;'>
+            Submit
+          </button>
+        </form>
+      """
+    },
+    {
+      "label": "Revise",
+      "html": """
+        <form style='max-width: 300px; padding: 10px; border: 1px solid #ccc; border-radius: 6px;'>
+          <label for='Revise' style='display: block; margin-bottom: 6px; font-weight: bold;'>
+            Revise:
+          </label>
+          <input type='text' id='Revise' name='Revise'
+                style='width: 100%; padding: 8px; margin-bottom: 10px;
+                        border: 1px solid #ccc; border-radius: 4px;' required>
+          <label for='Note' style='display: block; margin-bottom: 6px; font-weight: bold;'>
+            Note:
+          </label>
+          <input type='text' id='Note' name='Note'
+                style='width: 100%; padding: 8px; margin-bottom: 10px;
+                        border: 1px solid #ccc; border-radius: 4px;' required>
+          <button type='submit'
+                  style='background-color: #dc3545; color: white; padding: 8px 16px;
+                        border: none; border-radius: 4px; cursor: pointer;'>
+            Submit
+          </button>
+        </form>
+      """
+    },
+  ];
+  final String formHandlingJS = '''
+    document.querySelectorAll('form').forEach(form => {
+      form.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const formData = new FormData(form);
+        const data = {};
+
+        formData.forEach((value, key) => {
+          data[key] = value;
+        });
+
+        const jsonString = JSON.stringify(data);
+
+        if (window.flutter_inappwebview) {
+          window.flutter_inappwebview.callHandler('onFormSubmit', jsonString);
+        } else {
+          window.postMessage({ type: 'form_submit', payload: jsonString }, '*');
+        }
+      });
+    });
+  ''';
 
   // Current chat messages being displayed
   List<Map<String, dynamic>> currentChatMessages = [];
@@ -167,10 +260,10 @@ class _DashboardViewState extends State<DashboardView> {
     });
   }
 
-  Widget _buildActionButton(String text, Color color, VoidCallback onPressed) {
+  Widget _buildActionButton(String text, VoidCallback onPressed) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
-        backgroundColor: color,
+        backgroundColor: Colors.greenAccent,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         minimumSize: const Size(0, 30),
       ),
@@ -182,87 +275,65 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  void _handleAction(String action, String fileName) {
-    if (action == "Reject") {
-      _showRejectReasonDialog(fileName);
-    } else {
-      setState(() {
-        currentChatMessages.add({
-          "sender": "System",
-          "message": "You $action the file: ${fileName.split(':').last.trim()}",
-        });
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$action action performed'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-  }
-
-  void _showRejectReasonDialog(String fileName) {
-    final TextEditingController reasonController = TextEditingController();
-
+  void _handleAction(String action, String fileName, String html) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title:
-              const Text('Reject File', style: TextStyle(color: Colors.white)),
-          backgroundColor: Colors.grey[800],
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Please provide a reason for rejecting the file:',
-                style: TextStyle(color: Colors.white70),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: reasonController,
-                maxLines: 3,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  hintText: 'Enter reason...',
-                  hintStyle: TextStyle(color: Colors.white54),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
+          title: const Text(
+            'Form Preview',
+            style: TextStyle(color: Colors.white),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child:
-                  const Text('Cancel', style: TextStyle(color: Colors.white70)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () {
-                final reason = reasonController.text.trim();
-                if (reason.isNotEmpty) {
-                  setState(() {
-                    currentChatMessages.add({
-                      "sender": "System",
-                      "message":
-                          "You rejected the file: ${fileName.split(':').last.trim()} with reason: $reason",
-                    });
-                  });
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('File rejected successfully'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
+          backgroundColor: Colors.grey[800],
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.8,
+            height: MediaQuery.of(context).size.height * 0.6,
+            child: InAppWebView(
+              initialData: InAppWebViewInitialData(data: html),
+              onWebViewCreated: (controller) {
+                controller.addJavaScriptHandler(
+                  handlerName: 'onFormSubmit',
+                  callback: (args) {
+                    String jsonString = args[0];
+                    print('Received JSON string: $jsonString');
+                    Map<String, dynamic> formData = jsonDecode(jsonString);
+                    print('Received JSON: $formData');
+
+                    // Now you can use any field by its name
+                    // final reason = formFields['rejectedReason'];
+                    // print('Rejected Reason: $reason');
+                    // Handle further logic (e.g., save, show confirmation, send to server, etc.)
+                  },
+                );
               },
-              child:
-                  const Text('Submit', style: TextStyle(color: Colors.white)),
+              onLoadStop: (controller, url) async {
+                await controller.evaluateJavascript(source: formHandlingJS);
+              },
             ),
-          ],
+          ),
+          // actions: [
+          //   ElevatedButton(
+          //     style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          //     onPressed: () {
+          //       setState(() {
+          //         currentChatMessages.add({
+          //           "sender": "System",
+          //           "message":
+          //               "You $action the file: ${fileName.split(':').last.trim()}",
+          //         });
+          //       });
+          //       Navigator.pop(context);
+          //       ScaffoldMessenger.of(context).showSnackBar(
+          //         SnackBar(
+          //           content: const Text('File Submitted successfully'),
+          //           backgroundColor: Colors.green,
+          //         ),
+          //       );
+          //     },
+          //     child:
+          //         const Text('Submit', style: TextStyle(color: Colors.white)),
+          //   ),
+          // ],
         );
       },
     );
@@ -649,35 +720,24 @@ class _DashboardViewState extends State<DashboardView> {
                                                             .start,
                                                     mainAxisSize:
                                                         MainAxisSize.min,
-                                                    children: [
-                                                      _buildActionButton(
-                                                          "Accept",
-                                                          Colors.green, () {
-                                                        _handleAction("Accept",
-                                                            msg["message"]!);
-                                                      }),
-                                                      const SizedBox(width: 4),
-                                                      _buildActionButton(
-                                                          "Reject", Colors.red,
-                                                          () {
-                                                        _handleAction("Reject",
-                                                            msg["message"]!);
-                                                      }),
-                                                      const SizedBox(width: 4),
-                                                      _buildActionButton(
-                                                          "Dispute",
-                                                          Colors.orange, () {
-                                                        _handleAction("Dispute",
-                                                            msg["message"]!);
-                                                      }),
-                                                      const SizedBox(width: 4),
-                                                      _buildActionButton(
-                                                          "Revise", Colors.blue,
-                                                          () {
-                                                        _handleAction("Revise",
-                                                            msg["message"]!);
-                                                      }),
-                                                    ],
+                                                    children: actionButtons
+                                                        .map((button) {
+                                                      return Row(
+                                                        children: [
+                                                          _buildActionButton(
+                                                            button["label"]!,
+                                                            () => _handleAction(
+                                                                button[
+                                                                    "label"]!,
+                                                                msg["message"]!,
+                                                                button[
+                                                                    "html"]!),
+                                                          ),
+                                                          const SizedBox(
+                                                              width: 4),
+                                                        ],
+                                                      );
+                                                    }).toList(),
                                                   ),
                                                 ),
                                             ],
@@ -718,18 +778,23 @@ class _DashboardViewState extends State<DashboardView> {
                                             icon: const Icon(Icons.upload_file,
                                                 color: Colors.white),
                                             tooltip: 'Upload form',
-                                            onPressed: isLastFile ? null : () => _showUploadMethodDialog(context),
+                                            onPressed: isLastFile
+                                                ? null
+                                                : () => _showUploadMethodDialog(
+                                                    context),
                                           ),
                                           IconButton(
                                             icon: const Icon(Icons.attach_file,
                                                 color: Colors.white),
                                             tooltip: 'Attach a file',
-                                            onPressed: isLastFile ? null : uploadFile,
+                                            onPressed:
+                                                isLastFile ? null : uploadFile,
                                           ),
                                           IconButton(
                                             icon: const Icon(Icons.send,
                                                 color: Colors.white),
-                                            onPressed: isLastFile ? null : sendMessage,
+                                            onPressed:
+                                                isLastFile ? null : sendMessage,
                                           ),
                                         ],
                                       ),
