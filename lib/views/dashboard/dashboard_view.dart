@@ -1,11 +1,13 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import '../nav/custom_app_bar.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'platform_web.dart' if (dart.library.io) 'platform_non_web.dart';
 
 class DashboardView extends StatefulWidget {
   @override
@@ -19,7 +21,7 @@ class _DashboardViewState extends State<DashboardView> {
   final dio = Dio();
   final String token =
       'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1JSUNJIn0.eyJzdWIiOiJtb2hzZW5hbGk0MzQzQGdtYWlsLmNvbSIsInRpZCI6Im1vaHNlbmFsaTQzNDNAZ21haWwuY29tIiwiYXVkIjoiYXV0aC54ZG9jLmFwcCIsImlhdCI6MTc0MTQxNDc5NywiZXhwIjoxNzQxNDE4Mzk3LCJpc3MiOiJhdXRoLnhkb2MuYXBwIn0.BXXBKOuIErz8chjDNXbmFCzYDpKR1HErRTuexZ74Ebw6PRoxFC74GTsTimvipwsIZA6VJWb3Cwd6iI35gmllfKhR1d0NTDZE1_lnlU7KQcd7pX7r5YtiUTC2oic6Wd_6SUaLeiQd51VwYWmBuQH_F8z1EuxLWWde-5pFTUC7yOfn__jeMoDW-esN7XRbAbiE7A6BAz8m57Vk9NWI0rJ0Sj-VKJK_gQtDTfcyBcYMN3e3c6Q99yv6dGMW1hq9jM2CIosunU_jczq5p8fV-7Ykzg3PIJaVl1tga3grVZIRF58v65YmsRqWLti4Bpdc04H00UNugL8M3RlcgBt5C1iKkBSTvdDDv4YKXAE45TYlxAmlE8fNYZNIGJW0d3AuSuvAbZc5aNJrH9T8nK0bx68vP0fk_idwt9XWlNcUWlErUfZ2-LulgH3onKYbthF2JrYFY0u-2QvTE-ljD-dFN4YKflFNg9N-INTMBCGC1y6E-94iHbj87Wy1-v5WQb1ZR7OP7QDs9nSrNo8aGhlvVSmaMvL7NdbUrA4RiWbt4fBmPEQuNXi9FpgYF70wB7ggXX-LU9-CCmOIW5-Y1JYZ73XBVKDIxNdzv2aQRbmDzkFhpm0ckFBMg2iDCyzAQmHR_8kCXSp7WP08HCG8bRQyRGZJ7R7Fr-BJCi8kIj8o2wnyNQ8';
-
+  final String token1='eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1JSUNJIn0.eyJzdWIiOiJiYXNpdC5tdW5pcjE5QGdtYWlsLmNvbSIsInRpZCI6ImJhc2l0Lm11bmlyMTlAZ21haWwuY29tIiwiYXVkIjoiYXV0aC54ZG9jLmFwcCIsImlhdCI6MTc0ODM0MjA3OSwiZXhwIjoxNzQ4MzQ1Njc5LCJpc3MiOiJhdXRoLnhkb2MuYXBwIn0.q56H2r76InVHgeL9vmF_wkMCkX1OZ7_kHXArZ5c-isiVGIuId0i37ffytTGTPDIVmypuvSj3ewcu8HNiQM6EVcRLiEq4G9Wc45fvbspwAWqmYEr48JWgtkfIfILVhU3K1xhvPNBg8fteQ7xcgwGJL0SlUqRA4T2D07ViWMFkp5rqHoCmnM4XXib__kEJJ6_nSXgSGNAL-jWIdoVgQrNSIloIZl_1NRt2vPSUKMJmuS0YRrgGWuzw5Xm51Uws4y_GjKmHKQiA0xGzFinyfy8cT1tccfslAGJLqFYgkcT6ZDkNoGWZJjNNEioqC8OOqWkp9nUjpjZ_j1ItGugpRxSx4OSZlAnyJiFaddyYz3XqP44saHHa05ARi09Ts-PCBPI5FlEuhVZuBaGmoQyxKm3iE6eE0dmrQBn0m08DojIV8eaANUSfLaHaqR6bypE2c57epQhu9IsA5tTHjlVAMC11gFjipF_6vIDKiGLDUg17h4qLiX_iwL7eFs70Py3J6RVXEmk0LUKM7L7VS5ebNS6VJGjm6oFPcvX37d_3ulDX5JrU_3e_Voeib_GCk5yIbJbIJGpdNLYPPwMz7r1Yka0EdBYtaUGsijJ58-sjuCpyUcH0HgO38aTa8G6YEsnqtq1jlh6cA7SnoSK5uaznXcAuWRdXAG4DWbRy5lhVYmH3Ces';
   List<Map<String, dynamic>> channels = [];
   List<Map<String, dynamic>> docs = [];
 
@@ -120,6 +122,7 @@ class _DashboardViewState extends State<DashboardView> {
     },
   ];
   final String formHandlingJS = '''
+    console.log("🔥 JavaScript code injected and running");
     document.querySelectorAll('form').forEach(form => {
       form.addEventListener('submit', function(event) {
         event.preventDefault();
@@ -136,7 +139,7 @@ class _DashboardViewState extends State<DashboardView> {
         if (window.flutter_inappwebview) {
           window.flutter_inappwebview.callHandler('onFormSubmit', jsonString);
         } else {
-          window.postMessage({ type: 'form_submit', payload: jsonString }, '*');
+          window.parent.postMessage({ type: 'onFormSubmit', payload: jsonString }, '*');
         }
       });
     });
@@ -203,37 +206,59 @@ class _DashboardViewState extends State<DashboardView> {
       print("Error fetching docs: $e");
     }
   }
-
   Future<void> uploadFile() async {
     try {
+      // Pick a file
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: [
-          'pdf',
-          'doc',
-          'docx',
-          'xls',
-          'xlsx',
-          'png',
-          'jpg',
-          'jpeg'
-        ],
+        allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'png', 'jpg', 'jpeg', 'zip'],
       );
 
       if (result != null) {
+        PlatformFile file = result.files.first;
+
         setState(() {
           isUploading = true;
         });
 
-        PlatformFile file = result.files.first;
-        setState(() {
-          currentChatMessages.add({
-            "sender": "You",
-            "message":
-                "Uploaded file: ${file.name} (${(file.size / 1024).toStringAsFixed(1)} KB)",
-            "isFile": true,
-          });
+        // Create form data
+        FormData formData = FormData.fromMap({
+          "file": await MultipartFile.fromFile(file.path!, filename: file.name),
+          "channelName": channels[selectedChannelIndex!]["ChannelName"],
+          "description": docs[selectedDocIndex!]["DocName"],
         });
+        print("Uploading file: ${file.name} (${(file.size / 1024).toStringAsFixed(1)} KB)");
+        print("Form data: $formData");
+        // Set headers
+        dio.options.headers["Authorization"] = "Bearer $token1";
+        dio.options.headers["Content-Type"] = "multipart/form-data";
+
+        // Upload file
+        final response = await dio.post(
+          'http://192.168.0.87:3000/upload',
+          data: formData,
+          onSendProgress: (int sent, int total) {
+            print("Upload progress: ${(sent / total * 100).toStringAsFixed(0)}%");
+          },
+        );
+
+        if (response.statusCode == 200) {
+          // Add a message about the uploaded file
+          setState(() {
+            currentChatMessages.add({
+              "sender": "You",
+              "isFile": true,
+              "message": "Uploaded file: ${file.name} (${(file.size / 1024).toStringAsFixed(1)} KB)"
+            });
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('File uploaded successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       }
     } catch (e) {
       print("Error uploading file: $e");
@@ -274,7 +299,9 @@ class _DashboardViewState extends State<DashboardView> {
       ),
     );
   }
-
+  String  appendScriptWithHtml(String html) {
+   return html="$html<script>$formHandlingJS</script>";
+  }
   void _handleAction(String action, String fileName, String html) {
     showDialog(
       context: context,
@@ -289,25 +316,28 @@ class _DashboardViewState extends State<DashboardView> {
             width: MediaQuery.of(context).size.width * 0.8,
             height: MediaQuery.of(context).size.height * 0.6,
             child: InAppWebView(
-              initialData: InAppWebViewInitialData(data: html),
+              initialData: InAppWebViewInitialData(data: appendScriptWithHtml(html)),
               onWebViewCreated: (controller) {
-                controller.addJavaScriptHandler(
-                  handlerName: 'onFormSubmit',
-                  callback: (args) {
-                    String jsonString = args[0];
-                    print('Received JSON string: $jsonString');
-                    Map<String, dynamic> formData = jsonDecode(jsonString);
-                    print('Received JSON: $formData');
-
-                    // Now you can use any field by its name
-                    // final reason = formFields['rejectedReason'];
-                    // print('Rejected Reason: $reason');
-                    // Handle further logic (e.g., save, show confirmation, send to server, etc.)
-                  },
-                );
-              },
-              onLoadStop: (controller, url) async {
-                await controller.evaluateJavascript(source: formHandlingJS);
+                if (!kIsWeb) {
+                  controller.addJavaScriptHandler(
+                    handlerName: 'onFormSubmit',
+                    callback: (args) {
+                      String jsonString = args[0];
+                      print('Received JSON string: $jsonString');
+                      Map<String, dynamic> formData = jsonDecode(jsonString);
+                      print('Received JSON: $formData');
+                      setState(() {
+                        currentChatMessages.add({
+                          "sender": "System",
+                          "message":
+                              "You $action the file: ${fileName.split(':').last.trim()}",
+                        });
+                      });
+                    },
+                  );
+                } else {
+                  handleWebMessage();
+                }
               },
             ),
           ),
