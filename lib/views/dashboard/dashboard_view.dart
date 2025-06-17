@@ -7,6 +7,8 @@ import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import '../nav/custom_app_bar.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'platform_web.dart' if (dart.library.io) 'platform_non_web.dart';
 
 class DashboardView extends StatefulWidget {
@@ -19,9 +21,9 @@ class _DashboardViewState extends State<DashboardView> {
   int? selectedDocIndex;
 
   final dio = Dio();
+  final String apiUrl = 'http://localhost:3000';
   final String token =
-      'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1JSUNJIn0.eyJzdWIiOiJtb2hzZW5hbGk0MzQzQGdtYWlsLmNvbSIsInRpZCI6Im1vaHNlbmFsaTQzNDNAZ21haWwuY29tIiwiYXVkIjoiYXV0aC54ZG9jLmFwcCIsImlhdCI6MTc0MTQxNDc5NywiZXhwIjoxNzQxNDE4Mzk3LCJpc3MiOiJhdXRoLnhkb2MuYXBwIn0.BXXBKOuIErz8chjDNXbmFCzYDpKR1HErRTuexZ74Ebw6PRoxFC74GTsTimvipwsIZA6VJWb3Cwd6iI35gmllfKhR1d0NTDZE1_lnlU7KQcd7pX7r5YtiUTC2oic6Wd_6SUaLeiQd51VwYWmBuQH_F8z1EuxLWWde-5pFTUC7yOfn__jeMoDW-esN7XRbAbiE7A6BAz8m57Vk9NWI0rJ0Sj-VKJK_gQtDTfcyBcYMN3e3c6Q99yv6dGMW1hq9jM2CIosunU_jczq5p8fV-7Ykzg3PIJaVl1tga3grVZIRF58v65YmsRqWLti4Bpdc04H00UNugL8M3RlcgBt5C1iKkBSTvdDDv4YKXAE45TYlxAmlE8fNYZNIGJW0d3AuSuvAbZc5aNJrH9T8nK0bx68vP0fk_idwt9XWlNcUWlErUfZ2-LulgH3onKYbthF2JrYFY0u-2QvTE-ljD-dFN4YKflFNg9N-INTMBCGC1y6E-94iHbj87Wy1-v5WQb1ZR7OP7QDs9nSrNo8aGhlvVSmaMvL7NdbUrA4RiWbt4fBmPEQuNXi9FpgYF70wB7ggXX-LU9-CCmOIW5-Y1JYZ73XBVKDIxNdzv2aQRbmDzkFhpm0ckFBMg2iDCyzAQmHR_8kCXSp7WP08HCG8bRQyRGZJ7R7Fr-BJCi8kIj8o2wnyNQ8';
-  final String token1='eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1JSUNJIn0.eyJzdWIiOiJiYXNpdC5tdW5pcjE5QGdtYWlsLmNvbSIsInRpZCI6ImJhc2l0Lm11bmlyMTlAZ21haWwuY29tIiwiYXVkIjoiYXV0aC54ZG9jLmFwcCIsImlhdCI6MTc0ODM0MjA3OSwiZXhwIjoxNzQ4MzQ1Njc5LCJpc3MiOiJhdXRoLnhkb2MuYXBwIn0.q56H2r76InVHgeL9vmF_wkMCkX1OZ7_kHXArZ5c-isiVGIuId0i37ffytTGTPDIVmypuvSj3ewcu8HNiQM6EVcRLiEq4G9Wc45fvbspwAWqmYEr48JWgtkfIfILVhU3K1xhvPNBg8fteQ7xcgwGJL0SlUqRA4T2D07ViWMFkp5rqHoCmnM4XXib__kEJJ6_nSXgSGNAL-jWIdoVgQrNSIloIZl_1NRt2vPSUKMJmuS0YRrgGWuzw5Xm51Uws4y_GjKmHKQiA0xGzFinyfy8cT1tccfslAGJLqFYgkcT6ZDkNoGWZJjNNEioqC8OOqWkp9nUjpjZ_j1ItGugpRxSx4OSZlAnyJiFaddyYz3XqP44saHHa05ARi09Ts-PCBPI5FlEuhVZuBaGmoQyxKm3iE6eE0dmrQBn0m08DojIV8eaANUSfLaHaqR6bypE2c57epQhu9IsA5tTHjlVAMC11gFjipF_6vIDKiGLDUg17h4qLiX_iwL7eFs70Py3J6RVXEmk0LUKM7L7VS5ebNS6VJGjm6oFPcvX37d_3ulDX5JrU_3e_Voeib_GCk5yIbJbIJGpdNLYPPwMz7r1Yka0EdBYtaUGsijJ58-sjuCpyUcH0HgO38aTa8G6YEsnqtq1jlh6cA7SnoSK5uaznXcAuWRdXAG4DWbRy5lhVYmH3Ces';
+      'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1JSUNJIn0.eyJzdWIiOiJiYXNpdC5tdW5pcjE5QGdtYWlsLmNvbSIsInRpZCI6ImJhc2l0Lm11bmlyMTlAZ21haWwuY29tIiwiYXVkIjoiYXV0aC54ZG9jLmFwcCIsImlhdCI6MTc1MDE0OTgxOSwiZXhwIjoxNzUwMTUzNDE5LCJpc3MiOiJhdXRoLnhkb2MuYXBwIn0.mq7z9CB78NibCHRhDqiAB6M3bwoJepb5dF3Jw6-6UW4RqKSjGURHJ_19GPE6hvE7_w0bV47S4OgvHJLd_I-3z9c5EfndwjsgazLE1BA54Qx6aXUujxoPS894SdVS-WX10FekATRMd7yqNOzq2xlZ5ovgF3vHsb8O1sTfnvHIUBu8TCGa6xaTm8xGyqy_25yE6X7ZvnGfuyiUvTXQ17GWpxsS0TvmPYOo8ktKLy6PkOMT5cqXJYkUvRtPhO03ICECWoi-1rM5mJ0tk_A1uf8uCKOP_pXExVZx-cttuU3hAwLsIUgvDaEJJMeQmxbyLLV8JZ4BJFW4kwMP2xu_AgQxsJeQqy7i2KnPQ98vzTHuRyiaLu44eIXz0g3QB2zSjISAUAoS4IbQIpJeiiWmvfxilD5P0LOJXRnveXNLA3h5uDjU9o0mohSQdy-IyvL6w_s9dFJunykrsIpph84DiBARKdXdhhhAW5EqbBsGWw9noR7iJenZjSKhN-z48sHWulcqk9qTOnMyH4iRPIQLEX9_moqVK_w4_eQL56mIj5UkxxfGhhhap8MzQwsRTUoaRbhf7beh7Cq-xfZZWPky_O1511PU19zt5Sm6NWO3UFQ2Jcep7upllYKYq8NQ1TdxwLa7plCgnFW6JnoFy9wnNGYCqTqQgQm04dHjgKImyymhgwM';
   List<Map<String, dynamic>> channels = [];
   List<Map<String, dynamic>> docs = [];
 
@@ -32,6 +34,8 @@ class _DashboardViewState extends State<DashboardView> {
   final TextEditingController messageController = TextEditingController();
   final TextEditingController _urlController = TextEditingController();
   final TextEditingController _htmlController = TextEditingController();
+  final TextEditingController _channelNameController = TextEditingController();
+  final TextEditingController _initialActorIdController = TextEditingController();
 
   // Define chat messages for each document
   final Map<String, List<Map<String, dynamic>>> documentChats = {
@@ -170,17 +174,134 @@ class _DashboardViewState extends State<DashboardView> {
     super.initState();
     fetchChannels();
   }
-
+  Future<String?> getJwt() async {
+    final FlutterSecureStorage secureStorage = FlutterSecureStorage();
+    final String? jwtToken = await secureStorage.read(key: "JWT_Token");
+    return jwtToken;
+  }
   Future<void> fetchChannels() async {
     try {
       dio.options.headers["Authorization"] = "Bearer $token";
-      final response = await dio.get('https://api.xdoc.app/channels');
+      final response = await dio.get('$apiUrl/channels');
       setState(() {
         channels = List<Map<String, dynamic>>.from(response.data);
       });
     } catch (e) {
       print("Error fetching channels: $e");
     }
+  }
+
+  // Add this method to create a channel
+  Future<void> createChannel() async {
+    try {
+      final channelData = {
+        "initialActorID": _initialActorIdController.text.trim(),
+        "channelName": _channelNameController.text.trim(),
+      };
+
+      // Set headers including Content-Type
+      dio.options.headers = {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      };
+
+      final response = await dio.post(
+        '$apiUrl/channel',
+        data: jsonEncode(channelData), // Explicitly encode to JSON
+        options: Options(
+          contentType: 'application/json',
+        ),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Refresh the channels list
+        fetchChannels();
+        // Clear the form
+        _channelNameController.clear();
+        _initialActorIdController.clear();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Channel created successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } on DioException catch (e) {
+      print("Dio error creating channel: ${e.message}");
+      print("Response: ${e.response?.data}");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to create channel: ${e.message}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      print("Error creating channel: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to create channel: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Add this method to show the channel creation dialog
+  void _showCreateChannelDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Create New Channel', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.grey[800],
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _channelNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Channel Name',
+                  labelStyle: TextStyle(color: Colors.white70),
+                  hintText: 'Enter channel name',
+                  hintStyle: TextStyle(color: Colors.white54),
+                ),
+                style: const TextStyle(color: Colors.white),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _initialActorIdController,
+                decoration: const InputDecoration(
+                  labelText: 'Initial Actor ID',
+                  labelStyle: TextStyle(color: Colors.white70),
+                  hintText: 'Enter initial actor ID',
+                  hintStyle: TextStyle(color: Colors.white54),
+                ),
+                style: const TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+              onPressed: () {
+                if (_channelNameController.text.isNotEmpty && 
+                    _initialActorIdController.text.isNotEmpty) {
+                  createChannel();
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Create', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> fetchDocs(String channelName) async {
@@ -193,7 +314,7 @@ class _DashboardViewState extends State<DashboardView> {
       });
 
       dio.options.headers["Authorization"] = "Bearer $token";
-      final response = await dio.get('https://api.xdoc.app/docs/$channelName');
+      final response = await dio.get('$apiUrl/docs/$channelName');
 
       setState(() {
         docs = List<Map<String, dynamic>>.from(response.data);
@@ -224,18 +345,18 @@ class _DashboardViewState extends State<DashboardView> {
         // Create form data
         FormData formData = FormData.fromMap({
           "file": await MultipartFile.fromFile(file.path!, filename: file.name),
-          "channelName": channels[selectedChannelIndex!]["ChannelName"],
-          "description": docs[selectedDocIndex!]["DocName"],
+          "channelName": channels[selectedChannelIndex!]["channelname"],
+          "description": docs[selectedDocIndex!]["docname"],
         });
         print("Uploading file: ${file.name} (${(file.size / 1024).toStringAsFixed(1)} KB)");
         print("Form data: $formData");
         // Set headers
-        dio.options.headers["Authorization"] = "Bearer $token1";
+        dio.options.headers["Authorization"] = "Bearer $token";
         dio.options.headers["Content-Type"] = "multipart/form-data";
 
         // Upload file
         final response = await dio.post(
-          'http://192.168.0.87:3000/upload',
+          '$apiUrl/upload',
           data: formData,
           onSendProgress: (int sent, int total) {
             print("Upload progress: ${(sent / total * 100).toStringAsFixed(0)}%");
@@ -575,38 +696,168 @@ class _DashboardViewState extends State<DashboardView> {
               Container(
                 width: 150,
                 color: Colors.grey[900],
-                child: hasChannels
-                    ? ListView.builder(
-                        itemCount: channels.length,
-                        itemBuilder: (context, index) {
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                selectedChannelIndex = index;
-                                selectedDocIndex = null;
-                                docs = [];
-                                currentChatMessages = [];
-                              });
-                              fetchDocs(channels[index]["ChannelName"]);
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Container(
-                                color: selectedChannelIndex == index
-                                    ? Colors.blue
-                                    : Colors.grey[700],
-                                padding: const EdgeInsets.all(12),
-                                child: Text(
-                                  channels[index]["ChannelName"],
-                                  style: const TextStyle(color: Colors.white),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      )
-                    : const Center(child: CircularProgressIndicator()),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          minimumSize: const Size(double.infinity, 40),
+                        ),
+                        onPressed: () => _showCreateChannelDialog(context),
+                        child: const Text(
+                          '+ Add Channel',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: hasChannels
+                          ? ListView.builder(
+                              itemCount: channels.length,
+                              itemBuilder: (context, index) {
+                                return Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Container(
+                                    color: selectedChannelIndex == index
+                                        ? Colors.blue
+                                        : Colors.grey[700],
+                                    padding: const EdgeInsets.all(8),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                selectedChannelIndex = index;
+                                                selectedDocIndex = null;
+                                                docs = [];
+                                                currentChatMessages = [];
+                                              });
+                                              fetchDocs(channels[index]["channelname"]);
+                                            },
+                                            child: Text(
+                                              channels[index]["channelname"],
+                                              style: const TextStyle(color: Colors.white),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ),
+                                        PopupMenuButton(
+                                          icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
+                                          itemBuilder: (context) => [
+                                            const PopupMenuItem(
+                                              value: 'qr_code',
+                                              child: Text('QR Code'),
+                                            ),
+                                          ],
+                                          onSelected: (value) {
+                                            if (value == 'qr_code') {
+                                              showDialog(
+                                                context: context,
+                                                builder: (context) {
+                                                  return AlertDialog(
+                                                    // title: const Text('Channel Name'),
+                                                    content: SingleChildScrollView( // Add this wrapper
+                                                      child: Column(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Text(channels[index]["channelname"] ?? 'No channel name'),
+                                                          const SizedBox(height: 20),
+                                                          SizedBox( // Constrain the QR code size
+                                                            width: 200,
+                                                            height: 200,
+                                                            child: QrImageView(
+                                                              data: channels[index]["channelname"] ?? 'No data',
+                                                              version: QrVersions.auto,
+                                                              backgroundColor: Colors.white,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () => Navigator.of(context).pop(),
+                                                        child: const Text('Close'),
+                                                      )
+                                                    ],
+                                                  );
+                                                },
+                                              );
+                                            }
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            )
+                          : const Center(child: CircularProgressIndicator()),
+                    ),
+                  ],
+                ),
               ),
+              // Container(
+              //   width: 150,
+              //   color: Colors.grey[900],
+              //   child: Column(
+              //     children: [
+              //       // Add Channel button
+              //       Padding(
+              //         padding: const EdgeInsets.all(8.0),
+              //         child: ElevatedButton(
+              //           style: ElevatedButton.styleFrom(
+              //             backgroundColor: Colors.blue,
+              //             minimumSize: const Size(double.infinity, 40),
+              //           ),
+              //           onPressed: () => _showCreateChannelDialog(context),
+              //           child: const Text(
+              //             '+ Add Channel',
+              //             style: TextStyle(fontSize: 12),
+              //           ),
+              //         ),
+              //       ),
+              //       // Channels list
+              //       Expanded(
+              //         child: hasChannels
+              //             ? ListView.builder(
+              //                 itemCount: channels.length,
+              //                 itemBuilder: (context, index) {
+              //                   return GestureDetector(
+              //                     onTap: () {
+              //                       setState(() {
+              //                         selectedChannelIndex = index;
+              //                         selectedDocIndex = null;
+              //                         docs = [];
+              //                         currentChatMessages = [];
+              //                       });
+              //                       fetchDocs(channels[index]["channelname"]);
+              //                     },
+              //                     child: Padding(
+              //                       padding: const EdgeInsets.all(8.0),
+              //                       child: Container(
+              //                         color: selectedChannelIndex == index
+              //                             ? Colors.blue
+              //                             : Colors.grey[700],
+              //                         padding: const EdgeInsets.all(12),
+              //                         child: Text(
+              //                           channels[index]["channelname"],
+              //                           style: const TextStyle(color: Colors.white),
+              //                         ),
+              //                       ),
+              //                     ),
+              //                   );
+              //                 },
+              //               )
+              //             : const Center(child: CircularProgressIndicator()),
+              //       ),
+              //     ],
+              //   ),
+              // ),
+           
 
               // Middle Panel (Docs)
               Container(
@@ -620,7 +871,7 @@ class _DashboardViewState extends State<DashboardView> {
                             itemBuilder: (context, index) {
                               return ListTile(
                                 title: Text(
-                                  docs[index]["DocName"],
+                                  docs[index]["docname"],
                                   style: const TextStyle(color: Colors.white),
                                 ),
                                 selected: selectedDocIndex == index,
@@ -629,7 +880,7 @@ class _DashboardViewState extends State<DashboardView> {
                                   setState(() {
                                     selectedDocIndex = index;
                                     currentChatMessages =
-                                        documentChats[docs[index]["DocName"]] ??
+                                        documentChats[docs[index]["docname"]] ??
                                             [];
                                   });
                                 },
@@ -670,7 +921,7 @@ class _DashboardViewState extends State<DashboardView> {
                                       padding: const EdgeInsets.all(16.0),
                                       child: Text(
                                         tr("Chat in") +
-                                            " ${docs[selectedDocIndex!]["DocName"]}",
+                                            " ${docs[selectedDocIndex!]["docname"]}",
                                         style: const TextStyle(
                                             color: Colors.white, fontSize: 18),
                                       ),
