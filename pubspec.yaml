@@ -34,6 +34,7 @@ dependencies:
   #================================= Custom Dependencies =================================
   file_picker: ^10.1.9
   desktop_drop: ^0.6.0
+  jwt_decoder: ^2.0.1
 
 dev_dependencies:
   flutter_test:

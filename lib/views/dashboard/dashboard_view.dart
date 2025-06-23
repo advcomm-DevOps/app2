@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_starter/custom/services/sso.dart';
 import '../nav/custom_app_bar.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -12,6 +13,9 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'platform_web.dart' if (dart.library.io) 'platform_non_web.dart';
 
 class DashboardView extends StatefulWidget {
+  final String? entity;
+  final String? section;
+  const DashboardView({super.key, this.entity, this.section});
   @override
   _DashboardViewState createState() => _DashboardViewState();
 }
@@ -19,11 +23,13 @@ class DashboardView extends StatefulWidget {
 class _DashboardViewState extends State<DashboardView> {
   int? selectedChannelIndex;
   int? selectedDocIndex;
+  String selectedEntity = '';
 
   final dio = Dio();
   final String apiUrl = 'http://localhost:3000';
+  final String qrurl = 'https://s.xdoc.app/c/';
   final String token =
-      'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1JSUNJIn0.eyJzdWIiOiJiYXNpdC5tdW5pcjE5QGdtYWlsLmNvbSIsInRpZCI6ImJhc2l0Lm11bmlyMTlAZ21haWwuY29tIiwiYXVkIjoiYXV0aC54ZG9jLmFwcCIsImlhdCI6MTc1MDE0OTgxOSwiZXhwIjoxNzUwMTUzNDE5LCJpc3MiOiJhdXRoLnhkb2MuYXBwIn0.mq7z9CB78NibCHRhDqiAB6M3bwoJepb5dF3Jw6-6UW4RqKSjGURHJ_19GPE6hvE7_w0bV47S4OgvHJLd_I-3z9c5EfndwjsgazLE1BA54Qx6aXUujxoPS894SdVS-WX10FekATRMd7yqNOzq2xlZ5ovgF3vHsb8O1sTfnvHIUBu8TCGa6xaTm8xGyqy_25yE6X7ZvnGfuyiUvTXQ17GWpxsS0TvmPYOo8ktKLy6PkOMT5cqXJYkUvRtPhO03ICECWoi-1rM5mJ0tk_A1uf8uCKOP_pXExVZx-cttuU3hAwLsIUgvDaEJJMeQmxbyLLV8JZ4BJFW4kwMP2xu_AgQxsJeQqy7i2KnPQ98vzTHuRyiaLu44eIXz0g3QB2zSjISAUAoS4IbQIpJeiiWmvfxilD5P0LOJXRnveXNLA3h5uDjU9o0mohSQdy-IyvL6w_s9dFJunykrsIpph84DiBARKdXdhhhAW5EqbBsGWw9noR7iJenZjSKhN-z48sHWulcqk9qTOnMyH4iRPIQLEX9_moqVK_w4_eQL56mIj5UkxxfGhhhap8MzQwsRTUoaRbhf7beh7Cq-xfZZWPky_O1511PU19zt5Sm6NWO3UFQ2Jcep7upllYKYq8NQ1TdxwLa7plCgnFW6JnoFy9wnNGYCqTqQgQm04dHjgKImyymhgwM';
+      'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1JSUNJIn0.eyJzdWIiOiJiYXNpdC5tdW5pcjE5QGdtYWlsLmNvbSIsInRpZCI6ImJhc2l0Lm11bmlyMTlAZ21haWwuY29tIiwiYXVkIjoiYXV0aC54ZG9jLmFwcCIsImlhdCI6MTc1MDQxMjgyMiwiZXhwIjoxNzUwNDE2NDIyLCJpc3MiOiJhdXRoLnhkb2MuYXBwIn0.JbDXyJwIMHQ2CBU4Mi2CgIL2QoaKgKIA74B3_yf3bRzsexuaVgPKcFmaPNWZMWQCbr89VL7qJ_0_mfwVnGhzvOvCSxaKN6H5YUWAxP8KeVNoBhJ4__WNID9HlCnv7mUazfNQffziQZiOTbeX4GzcaQCsDXpyREloT-iEAtaWjKPqWIalV3EaDogNsVbdbjq9Q1IJjgr6GBjZBd36YkGi0-1Q2wyPwePBuUJAJ3CLceZyPkzSslWNdCyNQmHEdfiMSI9VfsKE0vcrrQHlHsvp3dfoY1MG6_kdKDJjvQ8QTo6NNdFHJKz_ECXxMK-kwlpGgqhpjnarUKHri65KFAFsDG2FFZs6UpK6UNO9RAh9SnlA0AXv-7BrYi9dsq_Lh6jLzzBUNYoVzOssUKxxh4f1hTAWoP59ortmcTCRQ8qqA04BAnuqkarwC6iahoud8c0k8oa-PkMaRPG0BPB6sA8kwzD4OfM1_uQu3geJmz7ssa5BQfw0R9hFiM5ZFc8yZQBlqnrZgPM8D1TP1xqg7P30RZYeoXaz7bdGdMYEzXjt1MDz-blmDjdUU7yY2VfwsKh_KpYB0DMGMO_GwF64trwdynsmBj7AtL6gQCOzB1_Xel3ZkZNBH6oyyUEYsJdMqQXGYKA3YjZr8lgVROvgdpRQ2MqtfdjZ7Al_a4qaaa5oCTk';
   List<Map<String, dynamic>> channels = [];
   List<Map<String, dynamic>> docs = [];
 
@@ -35,7 +41,8 @@ class _DashboardViewState extends State<DashboardView> {
   final TextEditingController _urlController = TextEditingController();
   final TextEditingController _htmlController = TextEditingController();
   final TextEditingController _channelNameController = TextEditingController();
-  final TextEditingController _initialActorIdController = TextEditingController();
+  final TextEditingController _initialActorIdController =
+      TextEditingController();
 
   // Define chat messages for each document
   final Map<String, List<Map<String, dynamic>>> documentChats = {
@@ -169,16 +176,30 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
+  Future<void> loadSelectedEntity() async {
+    final ssoService = SSOService();
+    final entity = await ssoService.getSelectedEntity();
+    setState(() {
+      selectedEntity = '${entity ?? ''}/';
+    });
+  }
+
   @override
   void initState() {
+    final entity = widget.entity;
+    final sec = widget.section;
     super.initState();
     fetchChannels();
+    loadSelectedEntity();
+    print("entity................:$entity section...........: $sec");
   }
+
   Future<String?> getJwt() async {
     final FlutterSecureStorage secureStorage = FlutterSecureStorage();
     final String? jwtToken = await secureStorage.read(key: "JWT_Token");
     return jwtToken;
   }
+
   Future<void> fetchChannels() async {
     try {
       dio.options.headers["Authorization"] = "Bearer $token";
@@ -186,9 +207,72 @@ class _DashboardViewState extends State<DashboardView> {
       setState(() {
         channels = List<Map<String, dynamic>>.from(response.data);
       });
+      _validateSection();
     } catch (e) {
       print("Error fetching channels: $e");
     }
+  }
+
+  void _validateSection() {
+    final sec = widget.section;
+
+    if (sec == null || sec.isEmpty) return;
+
+    final exists = channels.any((channel) => channel['channelname'] == sec);
+    final index = channels.indexWhere((channel) => channel['channelname'] == sec);
+
+    if (!exists) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Channel Not Found'),
+            content: Text(
+                'Channel "$sec" does not exist in the available channels. Do you want to add it?'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  // User chose not to add
+                },
+                child: const Text('No'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _addNewChannel(sec);
+                },
+                child: const Text('Yes'),
+              ),
+            ],
+          ),
+        );
+      });
+    }else{
+       setState(() {
+        selectedChannelIndex = index;
+        selectedDocIndex = null;
+        docs = [];
+        currentChatMessages = [];
+      });
+      fetchDocs(channels[index]["channelname"]);
+    }
+  }
+
+  void _addNewChannel(String sectionName) {
+    setState(() {
+      channels.add({
+        "channelname": sectionName,
+        "channeldescription": "Manually added section",
+        "entityroles": "all",
+        "initialactorid": "",
+        "otheractorid": ""
+      });
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Section "$sectionName" added to channels.')),
+    );
   }
 
   // Add this method to create a channel
@@ -220,7 +304,7 @@ class _DashboardViewState extends State<DashboardView> {
         // Clear the form
         _channelNameController.clear();
         _initialActorIdController.clear();
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Channel created successfully!'),
@@ -254,7 +338,8 @@ class _DashboardViewState extends State<DashboardView> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Create New Channel', style: TextStyle(color: Colors.white)),
+          title: const Text('Create New Channel',
+              style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.grey[800],
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -285,18 +370,20 @@ class _DashboardViewState extends State<DashboardView> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+              child:
+                  const Text('Cancel', style: TextStyle(color: Colors.white70)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
               onPressed: () {
-                if (_channelNameController.text.isNotEmpty && 
+                if (_channelNameController.text.isNotEmpty &&
                     _initialActorIdController.text.isNotEmpty) {
                   createChannel();
                   Navigator.pop(context);
                 }
               },
-              child: const Text('Create', style: TextStyle(color: Colors.white)),
+              child:
+                  const Text('Create', style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -327,12 +414,23 @@ class _DashboardViewState extends State<DashboardView> {
       print("Error fetching docs: $e");
     }
   }
+
   Future<void> uploadFile() async {
     try {
       // Pick a file
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'png', 'jpg', 'jpeg', 'zip'],
+        allowedExtensions: [
+          'pdf',
+          'doc',
+          'docx',
+          'xls',
+          'xlsx',
+          'png',
+          'jpg',
+          'jpeg',
+          'zip'
+        ],
       );
 
       if (result != null) {
@@ -348,7 +446,8 @@ class _DashboardViewState extends State<DashboardView> {
           "channelName": channels[selectedChannelIndex!]["channelname"],
           "description": docs[selectedDocIndex!]["docname"],
         });
-        print("Uploading file: ${file.name} (${(file.size / 1024).toStringAsFixed(1)} KB)");
+        print(
+            "Uploading file: ${file.name} (${(file.size / 1024).toStringAsFixed(1)} KB)");
         print("Form data: $formData");
         // Set headers
         dio.options.headers["Authorization"] = "Bearer $token";
@@ -359,7 +458,8 @@ class _DashboardViewState extends State<DashboardView> {
           '$apiUrl/upload',
           data: formData,
           onSendProgress: (int sent, int total) {
-            print("Upload progress: ${(sent / total * 100).toStringAsFixed(0)}%");
+            print(
+                "Upload progress: ${(sent / total * 100).toStringAsFixed(0)}%");
           },
         );
 
@@ -369,7 +469,8 @@ class _DashboardViewState extends State<DashboardView> {
             currentChatMessages.add({
               "sender": "You",
               "isFile": true,
-              "message": "Uploaded file: ${file.name} (${(file.size / 1024).toStringAsFixed(1)} KB)"
+              "message":
+                  "Uploaded file: ${file.name} (${(file.size / 1024).toStringAsFixed(1)} KB)"
             });
           });
 
@@ -420,9 +521,11 @@ class _DashboardViewState extends State<DashboardView> {
       ),
     );
   }
-  String  appendScriptWithHtml(String html) {
-   return html="$html<script>$formHandlingJS</script>";
+
+  String appendScriptWithHtml(String html) {
+    return html = "$html<script>$formHandlingJS</script>";
   }
+
   void _handleAction(String action, String fileName, String html) {
     showDialog(
       context: context,
@@ -437,7 +540,8 @@ class _DashboardViewState extends State<DashboardView> {
             width: MediaQuery.of(context).size.width * 0.8,
             height: MediaQuery.of(context).size.height * 0.6,
             child: InAppWebView(
-              initialData: InAppWebViewInitialData(data: appendScriptWithHtml(html)),
+              initialData:
+                  InAppWebViewInitialData(data: appendScriptWithHtml(html)),
               onWebViewCreated: (controller) {
                 if (!kIsWeb) {
                   controller.addJavaScriptHandler(
@@ -735,17 +839,20 @@ class _DashboardViewState extends State<DashboardView> {
                                                 docs = [];
                                                 currentChatMessages = [];
                                               });
-                                              fetchDocs(channels[index]["channelname"]);
+                                              fetchDocs(channels[index]
+                                                  ["channelname"]);
                                             },
                                             child: Text(
                                               channels[index]["channelname"],
-                                              style: const TextStyle(color: Colors.white),
+                                              style: const TextStyle(
+                                                  color: Colors.white),
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
                                         ),
                                         PopupMenuButton(
-                                          icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
+                                          icon: const Icon(Icons.more_vert,
+                                              color: Colors.white, size: 20),
                                           itemBuilder: (context) => [
                                             const PopupMenuItem(
                                               value: 'qr_code',
@@ -759,19 +866,35 @@ class _DashboardViewState extends State<DashboardView> {
                                                 builder: (context) {
                                                   return AlertDialog(
                                                     // title: const Text('Channel Name'),
-                                                    content: SingleChildScrollView( // Add this wrapper
+                                                    content:
+                                                        SingleChildScrollView(
+                                                      // Add this wrapper
                                                       child: Column(
-                                                        mainAxisSize: MainAxisSize.min,
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
                                                         children: [
-                                                          Text(channels[index]["channelname"] ?? 'No channel name'),
-                                                          const SizedBox(height: 20),
-                                                          SizedBox( // Constrain the QR code size
-                                                            width: 200,
-                                                            height: 200,
+                                                          Text(qrurl +
+                                                              selectedEntity +
+                                                              channels[index][
+                                                                  "channelname"]),
+                                                          const SizedBox(
+                                                              height: 20),
+                                                          SizedBox(
+                                                            // Constrain the QR code size
+                                                            width: 300,
+                                                            height: 300,
                                                             child: QrImageView(
-                                                              data: channels[index]["channelname"] ?? 'No data',
-                                                              version: QrVersions.auto,
-                                                              backgroundColor: Colors.white,
+                                                              data: qrurl +
+                                                                  selectedEntity +
+                                                                  channels[
+                                                                          index]
+                                                                      [
+                                                                      "channelname"],
+                                                              version:
+                                                                  QrVersions
+                                                                      .auto,
+                                                              backgroundColor:
+                                                                  Colors.white,
                                                             ),
                                                           ),
                                                         ],
@@ -779,8 +902,12 @@ class _DashboardViewState extends State<DashboardView> {
                                                     ),
                                                     actions: [
                                                       TextButton(
-                                                        onPressed: () => Navigator.of(context).pop(),
-                                                        child: const Text('Close'),
+                                                        onPressed: () =>
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pop(),
+                                                        child:
+                                                            const Text('Close'),
                                                       )
                                                     ],
                                                   );
@@ -857,7 +984,6 @@ class _DashboardViewState extends State<DashboardView> {
               //     ],
               //   ),
               // ),
-           
 
               // Middle Panel (Docs)
               Container(

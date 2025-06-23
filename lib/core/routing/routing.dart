@@ -16,6 +16,7 @@ Future<void> checkAuthentication() async {
   final FlutterSecureStorage secureStorage = FlutterSecureStorage();
   final String? entities = await secureStorage.read(key: "Entities_List");
   final String? jwtToken = await secureStorage.read(key: "JWT_Token");
+  print('token.........: $jwtToken');
   isAuthenticated = entities != null && entities.isNotEmpty;
   isEntitySelected = jwtToken != null && jwtToken.isNotEmpty;
 }
