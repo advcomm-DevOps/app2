@@ -23,4 +23,17 @@ class SSOService {
       return null;
     }
   }
+  Future<String?> getToken() async {
+  try {
+    final String? jwtToken = await secureStorage.read(key: "JWT_Token");
+    if (jwtToken == null || jwtToken.isEmpty) {
+      return null;
+    }
+    return jwtToken;
+  } catch (e) {
+    // Handle errors if needed (e.g., logging)
+    return null;
+  }
+}
+
 }

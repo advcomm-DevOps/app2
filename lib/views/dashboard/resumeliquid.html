@@ -1,0 +1,1779 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Resume for {{ basics.name }}</title>
+    <meta http-equiv="Generator" content="jsonresume-theme-rickosborne">
+    <script src="https://cdn.jsdelivr.net/npm/liquidjs@9.39.0/dist/liquid.browser.umd.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@200;400&display=swap');
+
+        body {
+            font-family: 'Roboto Slab', 'Gentium Book Basic', 'Gentium Plus', 'Gentium Basic', 'Times New Roman', 'Times', ui-serif, serif;
+        }
+    </style>
+    <style>
+        :root {
+            --text: 1.92vw;
+            --cadence-quarter: calc(var(--text) * 0.45);
+            --cadence-half: calc(var(--text) * 0.9);
+            --cadence-one: calc(var(--text) * 1.8);
+            --cadence-two: calc(var(--text) * 3.6);
+            --text-color: #222;
+            --light: #444;
+            --lighter: #666;
+            --ghostly: #eee;
+        }
+
+        html {
+            width: 100%;
+            height: 100%;
+            background: #555;
+            margin: 0;
+            padding: 0;
+            font-size: var(--text);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            outline: none;
+            text-indent: 0;
+            list-style: none;
+            font-weight: 200;
+            font-style: normal;
+            text-decoration: none;
+        }
+
+        body,
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-size: var(--text);
+        }
+
+        body {
+            width: 100%;
+            min-height: 100%;
+            overflow-y: auto;
+            background: white;
+            color: var(--text-color);
+            max-width: calc(var(--text) * 50.0);
+            margin: var(--cadence-half) auto;
+            padding: 0;
+            box-shadow: 0 0 var(--cadence-half) black;
+            line-height: var(--cadence-one);
+        }
+
+        a,
+        a:visited,
+        a:focus,
+        a:hover {
+            color: #248 !important;
+            text-decoration: none;
+        }
+
+        a:focus,
+        a:hover {
+            color: #36c !important;
+            text-decoration: underline;
+        }
+
+        #resume {
+            padding: var(--cadence-one);
+            align-content: start;
+            align-items: start;
+            display: flex;
+            flex-wrap: wrap;
+            flex-direction: row;
+        }
+
+        #basics {
+            display: grid;
+            grid-template-areas:
+                "name label"
+                "summary summary";
+            grid-template-columns: 1fr auto;
+            align-items: baseline;
+            gap: 0;
+        }
+
+        #person-name {
+            font-size: 200%;
+            line-height: var(--cadence-two);
+            grid-area: name;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            flex-grow: 1;
+        }
+
+        #person-label {
+            font-size: 150%;
+            line-height: var(--cadence-two);
+            grid-area: label;
+            color: var(--light);
+        }
+
+        #person-summary {
+            grid-area: summary;
+            color: var(--lighter);
+            font-style: italic;
+        }
+
+        .has-image #top {
+            display: flex;
+            flex-direction: row;
+        }
+
+        .has-image #basics {
+            display: block;
+        }
+
+        .has-image #person-name {
+            line-height: inherit;
+            margin-bottom: var(--cadence-quarter);
+        }
+
+        .has-image #person-label {
+            line-height: inherit;
+            font-size: 120%;
+            margin-bottom: var(--cadence-quarter);
+        }
+
+        .has-image #person-summary {
+            line-height: 120%;
+        }
+
+        .person-location-parts {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 0 var(--cadence-quarter);
+        }
+
+        #avatar {
+            max-width: 70%;
+            aspect-ratio: 1 / 1;
+            width: auto;
+            height: auto;
+            padding: 5% 5%;
+            border-radius: 50%;
+            margin-bottom: var(--cadence-half);
+            object-fit: cover;
+            display: block;
+        }
+
+        #top {
+            flex-basis: 100%;
+            order: 1;
+        }
+
+        #left {
+            padding-right: var(--cadence-one);
+            grid-area: left;
+            min-width: 60%;
+            flex-basis: 60%;
+            order: 2;
+            flex-grow: 1;
+            flex-shrink: 0;
+        }
+
+        #right {
+            padding-left: var(--cadence-one);
+            grid-area: right;
+            min-width: 30%;
+            flex-basis: 30%;
+            order: 3;
+            flex-grow: 0;
+            flex-shrink: 0;
+        }
+
+        #right,
+        #right h1,
+        #right h2,
+        #right h3,
+        #right h4,
+        #right h5,
+        #right h6 {
+            font-size: 90%;
+        }
+
+        .list h1 {
+            font-weight: 400;
+            text-transform: uppercase;
+            color: var(--lighter);
+            line-height: var(--cadence-two);
+        }
+
+        .list {
+            margin-bottom: 0;
+        }
+
+        .list header {
+            color: var(--lighter);
+        }
+
+        .list header>*:first-child {
+            color: var(--text-color);
+        }
+
+        .list header>* {
+            display: inline;
+        }
+
+        .list header .between:after,
+        .language-item .between:after,
+        .person-location-parts .between:after {
+            content: ",\20";
+            color: var(--lighter);
+        }
+
+        #right .list header>*:first-child,
+        .list header>*:first-child {
+            padding-left: 0;
+            border-left: none;
+            margin-left: 0;
+        }
+
+        #right .list header>*:last-child:after,
+        .list header>*:last-child:after {
+            content: none;
+            padding-right: unset;
+        }
+
+        .list header>*:first-child {
+            font-weight: 400;
+        }
+
+        .dates {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+        }
+
+        .date-delimiter::before {
+            content: "-";
+        }
+
+        .dates {
+            break-inside: avoid;
+            white-space: nowrap;
+        }
+
+        .dates.same-dates .date-start,
+        .dates.same-dates .date-delimiter,
+        .dates.no-start .date-delimiter,
+        .dates.no-end .date-delimiter {
+            display: none;
+        }
+
+        .education-summary,
+        .work-summary,
+        .project-description {
+            font-style: italic;
+        }
+
+        .work-domain,
+        .work-location,
+        .work-employer {
+            letter-spacing: -0.05em;
+            color: var(--lighter);
+        }
+
+        .work-item {
+            margin-bottom: var(--cadence-half);
+        }
+
+        .work-highlights-list {
+            margin-left: var(--cadence-one);
+        }
+
+        .work-highlights-item {
+            list-style-type: square;
+        }
+
+        .work-highlights-item ::marker {
+            color: var(--light);
+        }
+
+        .work-highlights-item .first-word {
+            font-style: italic;
+        }
+
+        .skill-item,
+        .interest-item {
+            margin: var(--cadence-quarter) 0;
+        }
+
+        .skill-item header,
+        .interest-item header {
+            line-height: 120%;
+        }
+
+        .skill-item:first-of-type,
+        .interest-item:first-of-type {
+            margin-top: 0;
+        }
+
+        .skill-keyword-list,
+        .interest-keyword-list {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: calc(var(--cadence-quarter) * 0.5);
+        }
+
+        .skill-keyword-item,
+        .interest-keyword-item {
+            background-color: var(--ghostly);
+            color: var(--light);
+            border-radius: var(--cadence-quarter);
+            padding: calc(var(--cadence-quarter) * 0.5) var(--cadence-quarter);
+            font-size: 90%;
+            line-height: 90%;
+            text-wrap: avoid;
+            white-space: nowrap;
+        }
+
+        .skill-level {
+            color: var(--lighter);
+            font-size: 90%;
+            margin: var(--cadence-quarter);
+        }
+
+        #top {
+            grid-area: top;
+        }
+
+        #bottom {
+            grid-area: bottom;
+        }
+
+        #person-url,
+        #person-email,
+        #person-phone,
+        #person-location {
+            display: flex;
+            flex-direction: row;
+            gap: var(--cadence-quarter);
+            align-items: start;
+            align-content: start;
+        }
+
+        .profile-url {
+            /* display: flex; */
+            flex-direction: row;
+            gap: var(--cadence-quarter);
+            align-items: start;
+            align-content: start;
+        }
+
+        .icon {
+            width: calc(var(--cadence-one) * 0.8);
+            height: calc(var(--cadence-one) * 0.8);
+            opacity: 25%;
+            flex-shrink: 0;
+            flex-grow: 0;
+            padding: calc(var(--cadence-one) * 0.1);
+            padding-left: 0;
+        }
+
+        #basics-contact,
+        #basics-url,
+        #basics-email,
+        #basics-location {
+            display: none;
+        }
+
+        #person-location .between {
+            width: 0;
+            margin-left: calc(var(--cadence-quarter) * -1.0);
+        }
+
+        .project-item header {
+            line-height: 120%;
+        }
+
+        .project-url-a,
+        .project-description {
+            font-size: 90%;
+            line-height: 120%;
+        }
+
+        .project-description {
+            margin-top: var(--cadence-quarter);
+        }
+
+        .project-item {
+            margin-bottom: var(--cadence-quarter);
+        }
+
+        @media print {
+            :root {
+                --text: 8.75pt;
+                --cadence-quarter: calc(var(--text) * 0.4);
+                --cadence-half: calc(var(--text) * 0.8);
+                --cadence-one: calc(var(--text) * 1.6);
+                --cadence-two: calc(var(--text) * 3.2);
+            }
+
+            html {
+                background-color: transparent;
+            }
+
+            body {
+                box-shadow: none;
+                width: 100%;
+                max-width: 100%;
+                padding: 0;
+                margin: 0 auto;
+                line-height: 130%;
+                break-inside: auto;
+                page-break-inside: auto;
+            }
+
+            a,
+            a:visited,
+            a:focus,
+            a:hover {
+                color: var(--text-color) !important;
+            }
+
+            .no-print {
+                display: none;
+            }
+
+            #resume {
+                padding: 0;
+                margin: 0;
+            }
+
+            #top {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+
+            #left,
+            #right,
+            #resume {
+                break-before: avoid;
+                page-break-before: avoid;
+                break-inside: auto;
+                page-break-inside: auto;
+            }
+
+            #bottom {
+                page-break-before: avoid;
+                break-before: avoid;
+            }
+
+            #right {
+                padding-top: var(--cadence-half);
+            }
+
+            #left>section,
+            #right>section {
+                break-before: avoid;
+                break-inside: auto;
+                page-break-before: avoid;
+                page-break-inside: auto;
+            }
+
+            .work-highlights-item {
+                font-size: 90%;
+                line-height: 120%;
+            }
+
+            #person-summary,
+            .list h1 {
+                color: var(--light);
+            }
+        }
+
+        @media print and (-webkit-min-device-pixel-ratio:0) {
+
+            /* Safari */
+            .work-item {
+                margin-bottom: var(--cadence-quarter);
+            }
+
+            #resume {
+                padding-top: var(--cadence-quarter);
+            }
+        }
+
+        @media screen {
+            #how-to-print {
+                position: fixed;
+                bottom: 0;
+                right: 0;
+                width: calc(var(--cadence-half) + 30%);
+                background-color: hsla(60, 100%, 80%, 95%);
+                padding: var(--cadence-quarter);
+                font-size: 80%;
+                border-top: thin solid hsla(60, 100%, 40%, 95%);
+                border-left: thin solid hsla(60, 100%, 40%, 95%);
+                line-height: 120%;
+            }
+        }
+
+        .xdoc-editable:focus {
+            outline: 2px solid blue;
+        }
+
+        button:focus {
+            outline: 2px solid blue;
+        }
+
+        button {
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+            margin: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button.plus {
+            background-color: #28a745;
+            /* green */
+            color: white;
+        }
+
+        button.minus {
+            background-color: #dc3545;
+            /* red */
+            color: white;
+        }
+    </style>
+</head>
+
+<body class="has-image" id="json-display">
+    <article id="resume">
+
+        <section id="left" class=" ">
+            <header id="basics">
+                <h1 id="person-name" class="xdoc-editable xdoc-label-name">{{ basics.name }}</h1>
+                {% if basics.label %}
+                <span class="between"></span>
+                <h2 id="person-label"
+                    class="xdoc-editable xdoc-label-label>{{ basics.label
+                    }}</h2>
+                {% endif %}
+                {% if basics.summary %}
+                <span class="between"></span>
+                <p id="person-summary" class="xdoc-editable xdoc-textarea xdoc-label-summary">{{ basics.summary }}</p>
+                {% endif %}
+            </header>
+
+            {% if education %}
+            <section class="education-list list">
+                <h1>Education</h1>
+                {% for edu in education %}
+                <div class="education-item item-{{ forloop.index }}">
+                    <button class="plus">+</button>
+                    <header>
+                        {% if edu.area %}<h2 class="education-area xdoc-editable xdoc-label-education">{{ edu.area }}
+                        </h2>{% endif %}
+                        {% if edu.startDate or edu.endDate %}
+                        <span class="between"></span>
+                        <span class="dates education-dates">
+                            {% if edu.startDate and edu.endDate %}
+                            <span class="has-start has-end">
+                                {% else %}
+                                {% if edu.startDate %}
+                                <span class="has-start no-end">
+                                    {% else %}
+                                    {% if edu.endDate %}
+                                    <span class="no-start has-end">
+                                        {% else %}
+                                        <span class="">
+                                            {% endif %}
+                                            {% endif %}
+                                            {% endif %}
+                                            {% if edu.startDate %}<span
+                                                class="date-start xdoc-editable xdoc-label-from">{{ edu.startDate
+                                                }}</span>{% endif %}
+                                            <span class="date-delimiter"></span>
+                                            {% if edu.endDate %}<span class="date-end xdoc-editable xdoc-label-to">{{
+                                                edu.endDate }}</span>{% endif %}
+                                        </span>
+                                    </span>
+                                    {% endif %}
+                                    {% if edu.studyType %}
+                                    <span class="between"></span>
+                                    <span class="education-studyType xdoc-editable xdoc-label-degree">{{ edu.studyType
+                                        }}</span>
+                                    {% endif %}
+                                    <span class="between"></span>
+                                    <span class="has-url">
+                                        {% if edu.url %}<span class="xdoc-editable xdoc-label-Institute">{{
+                                            edu.institution }}</span>{% endif %}
+                                    </span>
+                    </header>
+                    <main>
+                        {% if edu.summary %}<p class="education-summary xdoc-editable xdoc-textarea xdoc-label-summary">
+                            {{ edu.summary }}</p>{% endif %}
+                    </main>
+                </div>
+                {% endfor %}
+            </section>
+            {% endif %}
+
+            {% if work %}
+            <section class="work-list list">
+                <h1>Employment</h1>
+                {% for job in work %}
+                <div class="work-item item-{{ forloop.index }}">
+                    <button class="plus">+</button>
+                    <header>
+                        {% if job.position %}<h2 class="work-position xdoc-editable xdoc-label-employment">{{
+                            job.position }}</h2>{% endif %}
+                        {% if job.startDate or job.endDate %}
+                        <span class="between"></span>
+                        <span class="dates work-dates">
+                            {% if job.startDate and job.endDate %}
+                            <span class="has-start has-end">
+                                {% else %}
+                                {% if job.startDate %}
+                                <span class="has-start no-end">
+                                    {% else %}
+                                    {% if job.endDate %}
+                                    <span class="no-start has-end">
+                                        {% else %}
+                                        <span class="">
+                                            {% endif %}
+                                            {% endif %}
+                                            {% endif %}
+                                            {% if job.startDate %}<span
+                                                class="date-start xdoc-editable xdoc-label-from">{{ job.startDate
+                                                }}</span>{% endif %}
+                                            <span class="date-delimiter"></span>
+                                            {% if job.endDate %}<span class="date-end xdoc-editable xdoc-label-to">{{
+                                                job.endDate }}</span>{% endif %}
+                                        </span>
+                                    </span>
+                                    {% endif %}
+                                    {% if job.name %}
+                                    <span class="between"></span>
+                                    <span class="has-url">
+                                        {% if job.url %}<span class="xdoc-editable xdoc-label-company">{{ job.name
+                                            }}</span>{% endif %}
+                                    </span>
+                                    {% endif %}
+                                    {% if job.location %}
+                                    <span class="between"></span>
+                                    <span class="work-location xdoc-editable xdoc-label-location">{{ job.location
+                                        }}</span>
+                                    {% endif %}
+                    </header>
+                    <main>
+                        {% if job.summary %}<p class="work-summary xdoc-editable xdoc-textarea xdoc-label-summary">{{
+                            job.summary }}</p>{% endif %}
+                        {% if job.highlights %}
+                        <ul class="work-highlights-list list">
+                            {% for highlight in job.highlights %}
+                            <button class="plus">+</button>
+                            <li
+                                class="work-highlights-item item-{{ forloop.index }}  xdoc-editable xdoc-label-highlights">
+                                {{ highlight }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </main>
+                </div>
+                {% endfor %}
+            </section>
+            {% endif %}
+
+            {% if references %}
+            <section class="reference-list list">
+                <h1>References</h1>
+                {% for ref in references %}
+                <div class="reference-item item-{{ forloop.index }}">
+                    <button class="plus">+</button>
+                    <h2 class="reference-name xdoc-editable xdoc-label-name">{{ ref.name }}</h2>
+                    {% if ref.reference %}<p
+                        class="reference-reference xdoc-editable xdoc-textarea xdoc-label-reference">{{ ref.reference }}
+                    </p>{% endif %}
+                </div>
+                {% endfor %}
+            </section>
+            {% endif %}
+        </section>
+
+        <section id="right" class=" ">
+            {% if basics.image %}
+            <img class="xdoc-editable xdoc-upload" src="{{ basics.image }}" id="avatar" alt="{{ basics.name }}">
+            {% endif %}
+
+            <section id="contact" class="list">
+                <h1 id="basics-contact" class=" ">Contact</h1>
+
+                {% if basics.url %}
+                <section id="person-url">
+                    <h2 id="basics-url" class=" ">URL</h2>
+                    <img id="img-url"
+                        src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pg0KPHN2ZyB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCAwIDMwMCAzMDAiPg0KCQk8Zz4NCgkJCTxwYXRoIGQ9Ik0xNDkuOTk2LDBDNjcuMTU3LDAsMC4wMDEsNjcuMTYxLDAuMDAxLDE0OS45OTdTNjcuMTU3LDMwMCwxNDkuOTk2LDMwMHMxNTAuMDAzLTY3LjE2MywxNTAuMDAzLTE1MC4wMDMNCgkJCQlTMjMyLjgzNSwwLDE0OS45OTYsMHogTTIyNS4zNjMsMTIzLjMwMmwtMzYuNjg2LDM2LjY4NmMtMy45NzksMy45NzktOS4yNjksNi4xNy0xNC44OTUsNi4xN2MtNS42MjUsMC0xMC45MTYtMi4xOTItMTQuODk1LTYuMTY4DQoJCQkJbC0xLjQzNy0xLjQzN2wtMy45MDYsMy45MDZsMS40MzQsMS40MzRjOC4yMTQsOC4yMTQsOC4yMTQsMjEuNTc5LDAsMjkuNzkzbC0zNi42ODEsMzYuNjg2Yy0zLjk3OSwzLjk3OS05LjI2OSw2LjE3LTE0Ljg5OCw2LjE3DQoJCQkJYy01LjYyOCwwLTEwLjkxOS0yLjE5Mi0xNC45LTYuMTczTDc0LjYzNCwyMTYuNWMtOC4yMTQtOC4yMDktOC4yMTQtMjEuNTczLTAuMDAzLTI5Ljc5bDM2LjY4OS0zNi42ODQNCgkJCQljMy45NzktMy45NzksOS4yNjktNi4xNywxNC44OTgtNi4xN3MxMC45MTYsMi4xOTIsMTQuODk4LDYuMTdsMS40MzIsMS40MzJsMy45MDYtMy45MDZsLTEuNDMyLTEuNDMyDQoJCQkJYy04LjIxNC04LjIxMS04LjIxNC0yMS41NzYtMC4wMDUtMjkuNzlsMzYuNjg5LTM2LjY4NmMzLjk4MS0zLjk4MSw5LjI3Mi02LjE3MywxNC44OTgtNi4xNzNzMTAuOTE2LDIuMTkyLDE0Ljg5OCw2LjE3DQoJCQkJbDEzLjg2OCwxMy44NzNDMjMzLjU3NywxMDEuNzIzLDIzMy41NzcsMTE1LjA5LDIyNS4zNjMsMTIzLjMwMnoiLz4NCiAgICAgICAgICAgIDxwYXRoIGQ9Ik0xNDIuNTM5LDE3My40NTlsLTcuMDkzLDcuMDkzbC0xMS4wMDItMTAuOTk5bDcuMDkzLTcuMDkzbC0xLjQzMi0xLjQzMmMtMS4wNC0xLjAzNy0yLjQyMi0xLjYxMS0zLjg5LTEuNjExDQoJCQkJYy0xLjQ3MSwwLTIuODUzLDAuNTczLTMuODkzLDEuNjExbC0zNi42ODYsMzYuNjgxYy0yLjE0NSwyLjE0Ny0yLjE0NSw1LjYzOCwwLDcuNzgzbDEzLjg3LDEzLjg3Mw0KCQkJCWMyLjA4MywyLjA4Myw1LjcwOCwyLjA4LDcuNzg2LDAuMDAzbDM2LjY4MS0zNi42ODZjMi4xNDgtMi4xNDcsMi4xNDgtNS42NDEsMC03Ljc4OUwxNDIuNTM5LDE3My40NTl6Ii8+DQogICAgICAgICAgICA8cGF0aCBkPSJNMjAwLjQ5Myw5MC42NDNjLTEuMDQtMS4wNC0yLjQyNS0xLjYxMy0zLjg5Ni0xLjYxM2MtMS40NzEsMC0yLjg1NiwwLjU3My0zLjg5NiwxLjYxNmwtMzYuNjg2LDM2LjY4NA0KCQkJCWMtMi4xNDIsMi4xNDctMi4xNDIsNS42MzgsMC4wMDMsNy43ODZsMS40MzQsMS40MzJsMTAuODgtMTAuODgzbDExLjAwMiwxMS4wMDJsLTEwLjg4LDEwLjg4M2wxLjQzNCwxLjQzNA0KCQkJCWMyLjA4MywyLjA3Nyw1LjcwMywyLjA4LDcuNzg2LTAuMDAzbDM2LjY4NC0zNi42ODFjMi4xNDUtMi4xNDcsMi4xNDUtNS42MzgsMC03Ljc4NkwyMDAuNDkzLDkwLjY0M3oiLz4NCgkJPC9nPg0KPC9zdmc+DQo="
+                        alt="URL" class="icon">
+                    <p class="xdoc-editable xdoc-label-url">{{ basics.url }}</p>
+                </section>
+                {% endif %}
+
+                {% if basics.email %}
+                <section id="person-email">
+                    <h2 id="basics-email" class=" ">E-mail</h2>
+                    <img id="img-email"
+                        src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iaXNvLTg4NTktMSI/Pgo8c3ZnIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgICA8Zz4KICAgICAgICA8cGF0aCBkPSJNMjU2LDBDMTE0LjYxNSwwLDAsMTE0LjYxNSwwLDI1NnMxMTQuNjE1LDI1NiwyNTYsMjU2czI1Ni0xMTQuNjE1LDI1Ni0yNTZTMzk3LjM4NSwwLDI1NiwweiBNNDEyLDM1My41ICAgYzAsMjAuMTkzLTE2LjM3LDM2LjU2Mi0zNi41NjIsMzYuNTYySDEzNi41NjJjLTIwLjE5MywwLTM2LjU2Mi0xNi4zNy0zNi41NjItMzYuNTYydi0xOTVjMC0yMC4xOTMsMTYuMzctMzYuNTYyLDM2LjU2Mi0zNi41NjIgICBoMjM4Ljg3NWMyMC4xOTMsMCwzNi41NjIsMTYuMzcsMzYuNTYyLDM2LjU2MlYzNTMuNXoiLz4KICAgICAgICA8cGF0aCBkPSJNMzM0LjQ2MywxNjYuNzAzTDI1NiwyMTIuMDA0bC03OC40NjMtNDUuMzAxYy04Ljc0NC01LjA0OC0xOS45MjQtMi4wNTItMjQuOTczLDYuNjkxICAgYy01LjA0OCw4Ljc0NC0yLjA1MiwxOS45MjQsNi42OTEsMjQuOTczbDg3LjYwNCw1MC41NzhsMC4wMDEtMC4wMDJjMi43NzcsMS42LDUuOTM2LDIuNDQzLDkuMTM5LDIuNDQ4ICAgYzMuMjA0LTAuMDA0LDYuMzYzLTAuODQ4LDkuMTM5LTIuNDQ4bDAuMDAxLDAuMDAybDg3LjYwNC01MC41NzhjOC43NDQtNS4wNDgsMTEuNzQtMTYuMjI5LDYuNjkxLTI0Ljk3MyAgIEMzNTQuMzg4LDE2NC42NTEsMzQzLjIwNywxNjEuNjU1LDMzNC40NjMsMTY2LjcwM3oiLz4KICAgIDwvZz4KPC9zdmc+Cg=="
+                        alt="E-mail" class="icon">
+                    <p class="xdoc-editable xdoc-label-email">{{ basics.email }}</p>
+                </section>
+                {% endif %}
+
+                {% if basics.phone %}
+                <section id="person-phone">
+                    <img id="img-phone"
+                        src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iY3VycmVudENvbG9yIj48cGF0aCBkPSJNNi42MiAxMC43OWExNS4wNTMgMTUuMDUzIDAgMDA2LjU5IDYuNTlsMi4yLTIuMmExIDEgMCAwMTEuMTEtLjIxYzEuMi40OCAyLjUzLjczIDMuODguNzNhMSAxIDAgMDExIDF2My41YTEgMSAwIDAxLTEgMUMxMC4wNyAyMiAyIDEzLjkzIDIgNGExIDEgMCAwMTEtMWgzLjVhMSAxIDAgMDExIDFjMCAxLjM1LjI1IDIuNjguNzMgMy44OGExIDEgMCAwMS0uMjEgMS4xMWwtMi4yIDIuMnoiLz48L3N2Zz4="
+                        alt="E-mail" class="icon">
+                    <p class="xdoc-editable xdoc-label-phone">{{ basics.phone }}</p>
+                </section>
+                {% endif %}
+
+                {% if basics.location %}
+                <section id="person-location">
+                    <h2 id="basics-location" class=" ">Location</h2>
+                    <span class="between"></span>
+                    <img id="img-location"
+                        src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHN2ZyB2aWV3Qm94PSIwIDAgMTYgMTYiIHZlcnNpb249IjEuMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICAgIDxwYXRoIGZpbGw9IiMwMDAiIGQ9Ik04IDBjLTQuNCAwLTggMy42LTggOHMzLjYgOCA4IDggOC0zLjYgOC04LTMuNi04LTgtOHpNNyAxNHYtNWgtNWwxMC01LTUgMTB6Ii8+Cjwvc3ZnPgo="
+                        alt="Location" class="icon">
+                    <span class="between"></span>
+                    <main class="person-location-parts">
+                        {% if basics.location.city %}<span
+                            class="person-location-city xdoc-editable xdoc-label-address">{{ basics.location.city
+                            }}</span><span class="between"></span>{% endif %}
+                        {% if basics.location.countryCode %}<span
+                            class="person-location-countryCode xdoc-editable xdoc-label-countryCode">{{
+                            basics.location.countryCode }}</span>{% endif %}
+                    </main>
+                </section>
+                {% endif %}
+
+                {% if basics.profiles %}
+                <section class="profile-list list">
+                    <h1 id="basics-profiles" class=" ">Profiles</h1>
+                    {% for profile in basics.profiles %}
+                    <div class="profile-item item-{{ forloop.index }}">
+                        <button class="plus">+</button>
+                        <span class="profile-url">
+                            <span class="profile-network profile-network-github xdoc-editable xdoc-label-network">{{
+                                profile.network }}</span>
+                            :<span class="profile-username xdoc-editable xdoc-label-username">{{ profile.username
+                                }}</span>
+                            {% if profile.url %}
+                            <p class="xdoc-editable xdoc-label-url">{{ profile.url }}</p>
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </section>
+                {% endif %}
+            </section>
+
+            {% if awards %}
+            <section class="award-list list">
+                <h1>Awards</h1>
+                {% for award in awards %}
+                <div class="award-item item-{{ forloop.index }}">
+                    <button class="plus">+</button>
+                    <header>
+                        <h2 class="award-title xdoc-editable xdoc-label-title">{{ award.title }}</h2>
+                        {% if award.date %}
+                        <span class="between"></span>
+                        <span class="award-date xdoc-editable xdoc-label-date">{{ award.date }}</span>
+                        {% endif %}
+                        {% if award.awarder %}
+                        <span class="between"></span>
+                        <span class="award-awarder xdoc-editable xdoc-label-awarder">{{ award.awarder }}</span>
+                        {% endif %}
+                    </header>
+                    <main>
+                        {% if award.summary %}<p class="award-summary xdoc-editable xdoc-textarea xdoc-label-summary">{{
+                            award.summary }}</p>{% endif %}
+                    </main>
+                </div>
+                {% endfor %}
+            </section>
+            {% endif %}
+
+            {% if projects %}
+            <section class="project-list list">
+                <h1>Projects</h1>
+                {% for project in projects %}
+                <div class="project-no-type project-item item-{{ forloop.index }}">
+                    <button class="plus">+</button>
+                    <header>
+                        <h2 class="project-name xdoc-editable xdoc-label-name">{{ project.name }}</h2>
+                        {% if project.startDate or project.endDate %}
+                        <span class="between"></span>
+                        <span class="dates project-dates">
+                            {% if project.startDate and project.endDate %}
+                            <span class="has-start has-end">
+                                {% else %}
+                                {% if project.startDate %}
+                                <span class="has-start no-end">
+                                    {% else %}
+                                    {% if project.endDate %}
+                                    <span class="no-start has-end">
+                                        {% else %}
+                                        <span class="">
+                                            {% endif %}
+                                            {% endif %}
+                                            {% endif %}
+                                            {% if project.startDate %}<span
+                                                class="date-start xdoc-editable xdoc-label-from">{{ project.startDate
+                                                }}</span>{% endif %}
+                                            <span class="date-delimiter"></span>
+                                            {% if project.endDate %}<span
+                                                class="date-end xdoc-editable xdoc-label-to">{{ project.endDate
+                                                }}</span>{% endif %}
+                                        </span>
+                                    </span>
+                                    {% endif %}
+                    </header>
+                    <main>
+                        {% if project.description %}<p
+                            class="project-description xdoc-editable xdoc-textarea xdoc-label-description">{{
+                            project.description }}</p>{% endif %}
+                        {% if project.highlights %}
+                        <ul class="project-highlights-list list">
+                            {% for highlight in project.highlights %}
+                            <li class="project-highlights-item item-{{ forloop.index }}">
+                                <button class="plus">+</button>
+                                <span class="xdoc-editable xdoc-label-highlights"> {{ highlight }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </main>
+                    <footer>
+                        {% if project.url %}<span class="project-url-a xdoc-editable xdoc-label-url">{{ project.url
+                            }}</span>{% endif %}
+                    </footer>
+                </div>
+                {% endfor %}
+            </section>
+            {% endif %}
+
+            {% if skills %}
+            <section class="skill-list list">
+                <h1>Skills</h1>
+                {% for skill in skills %}
+                <div class="skill-no-level skill-item item-{{ forloop.index }}">
+                    <button class="plus">+</button>
+                    <header>
+                        <h2 class="skill-name xdoc-editable xdoc-label-name">{{ skill.name }}</h2>
+                        {% if skill.level %}
+                        <span class="between"></span>
+                        <span
+                            class="skill-level xdoc-editable xdoc-label-level xdoc-radio-[{{ skill.levelValues | join:',' | replace: ' ', '-'}}]">{{
+                            skill.level }}</span>
+                        {% endif %}
+                    </header>
+                    {% if skill.keywords %}
+                    <ul class="skill-keyword-list list">
+                        {% for keyword in skill.keywords %}
+                        <li class="skill-keyword-item item-{{ forloop.index }}">
+                            <button class="plus">+</button>
+                            <span class="xdoc-editable xdoc-label-keywords"> {{ keyword }} </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </section>
+            {% endif %}
+
+            {% if interests %}
+            <section class="interest-list list">
+                <h1>Interests</h1>
+                {% for interest in interests %}
+                <div class="interest-item item-{{ forloop.index }}">
+                    <button class="plus">+</button>
+                    <header>
+                        <h2 class="interest-name xdoc-editable xdoc-label-name">{{ interest.name }}</h2>
+                    </header>
+                    {% if interest.keywords %}
+                    <ul class="interest-keyword-list list">
+                        {% for keyword in interest.keywords %}
+                        <li class="interest-keyword-item item-1 ">
+                            <button class="plus">+</button>
+                            <spsn class="xdoc-editable xdoc-label-keywords">{{ keyword }}</spsn>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </section>
+            {% endif %}
+        </section>
+    </article>
+    <button onclick="hideAllButtons()">Submit </button>
+</body>
+<script>
+    const engine = new liquidjs.Liquid();
+
+    const data = {
+        "basics": {
+            "name": "full name",
+            "label": "label",
+            "summary": "summary summary summary summary summary summary summary summary summary summary summary summary.",
+            "image": "https://avatars0.githubusercontent.com/u/416209?s=460&amp;u=38f220a2c9c658141804f881c334c594eb1642ac&amp;v=4",
+            "url": "https://your_website.com",
+            "email": "your_email@email.com",
+            "phone": "0333-3333333",
+            "location": {
+                "city": "city",
+                "countryCode": "country"
+            },
+            "profiles": [
+                {
+                    "network": "GitHub",
+                    "username": "basitmunir",
+                    "url": "https://github.com/basitmunir"
+                }
+            ]
+        },
+        "education": [
+            {
+                "area": "Computer Science",
+                "studyType": "BS",
+                "institution": "University of Islamabad",
+                "startDate": "2015-09-01",
+                "endDate": "2019-06-30",
+                "url": "https://uon.edu.pk",
+                "summary": "Focused on software engineering and data structures."
+            }
+        ],
+        "work": [
+            {
+                "position": "Senior Software Engineer",
+                "name": "Tech Solutions Pvt Ltd",
+                "url": "https://techsolutions.com",
+                "startDate": "2021-01-01",
+                "endDate": "Present",
+                "location": "Lahore, Pakistan",
+                "summary": "Leading backend development in Node.js and scalable cloud services.",
+                "highlights": [
+                    "highlights"
+                ]
+            }
+        ],
+        "references": [
+            {
+                "name": "Ali Khan",
+                "reference": "Basit is an outstanding engineer with strong problem solving skills."
+            }
+        ],
+        "awards": [
+            {
+                "title": "Employee of the Year",
+                "date": "2022-12-10",
+                "awarder": "Tech Solutions Pvt Ltd",
+                "summary": "Awarded for exceptional performance and project delivery."
+            }
+        ],
+        "projects": [
+            {
+                "name": "Smart HR Management System",
+                "startDate": "2022-03-01",
+                "endDate": "2022-08-30",
+                "description": "Developed a complete HR system with payroll, leave, and appraisal modules.",
+                "highlights": [
+                    "highlights"
+                ],
+                "url": "https://github.com/basitmunir/hrms"
+            }
+        ],
+        "skills": [
+            {
+                "name": "JavaScript",
+                "level": "Expert",
+                "levelValues": ["Beginner", "Intermediate level", "Expert 2"],
+                "keywords": ["ES6"]
+            }
+        ],
+        "interests": [
+            {
+                "name": "Open Source Contributions",
+                "keywords": ["GitHub"]
+            }
+        ]
+    };
+    const temp = document.getElementById('json-display').innerHTML;
+    engine.parseAndRender(temp, data).then(html => {
+        document.getElementById('json-display').innerHTML = html;
+    });
+</script>
+
+<script>
+    function hideAllButtons() {
+        document.querySelectorAll('button').forEach(btn => {
+            btn.style.display = 'none';
+        });
+    }
+
+    // Function to make elements editable
+    function makeEditable(element) {
+        element.setAttribute('tabindex', '0'); // Make focusable by tab
+
+        // Double click event
+        element.addEventListener("dblclick", async function () {
+            currentElement = this;
+            const currentValue = this.classList.contains('xdoc-upload') ? this.src : this.innerText;
+            const newValue = await showPopup(currentValue, this);
+            if (newValue !== null) {
+                if (this.classList.contains('xdoc-upload')) {
+                    this.src = newValue;
+                } else {
+                    this.innerText = newValue;
+                }
+            }
+        });
+
+        // Enter key event
+        element.addEventListener('keydown', async function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Prevent default Enter behaviour
+                currentElement = this;
+                const currentValue = this.classList.contains('xdoc-upload') ? this.src : this.innerText;
+                const newValue = await showPopup(currentValue, this);
+                if (newValue !== null) {
+                    if (this.classList.contains('xdoc-upload')) {
+                        this.src = newValue;
+                    } else {
+                        this.innerText = newValue;
+                    }
+                }
+            }
+        });
+    }
+
+    // Variables to track current element and callback
+    let currentElement = null;
+    let resolveCallback = null;
+    let currentBase64 = null;
+    let lastFocusedElement = null; // Track last focused element
+
+    document.addEventListener("DOMContentLoaded", function () {
+        // Create popup elements
+        const popup = document.createElement('div');
+        popup.style.position = 'fixed';
+        popup.style.top = '50%';
+        popup.style.left = '50%';
+        popup.style.transform = 'translate(-50%, -50%)';
+        popup.style.backgroundColor = 'white';
+        popup.style.padding = '20px';
+        popup.style.border = '1px solid #ccc';
+        popup.style.borderRadius = '5px';
+        popup.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+        popup.style.zIndex = '1000';
+        popup.style.display = 'none';
+        popup.style.minWidth = '300px';
+        popup.style.maxWidth = '80vw';
+
+        // Create label element
+        const popupLabel = document.createElement('div');
+        popupLabel.style.marginBottom = '10px';
+        popupLabel.style.fontWeight = 'bold';
+        popupLabel.style.fontSize = '16px';
+        popupLabel.textContent = 'EDIT VALUE'; // Default label text
+
+        // Create input element
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.style.width = '100%';
+        input.style.marginBottom = '10px';
+        input.style.padding = '5px';
+        input.style.outline = 'none';
+        input.style.border = '1px solid #ccc';
+        input.style.borderRadius = '3px';
+        input.style.display = 'none'; // Initially hidden
+
+        // Create textarea element
+        const textarea = document.createElement('textarea');
+        textarea.style.width = '100%';
+        textarea.style.marginBottom = '10px';
+        textarea.style.padding = '5px';
+        textarea.style.outline = 'none';
+        textarea.style.border = '1px solid #ccc';
+        textarea.style.borderRadius = '3px';
+        textarea.style.display = 'none'; // Initially hidden
+        textarea.style.minHeight = '100px';
+        textarea.style.resize = 'vertical';
+
+        // Create select element
+        const select = document.createElement('select');
+        select.style.width = '100%';
+        select.style.marginBottom = '10px';
+        select.style.padding = '5px';
+        select.style.outline = 'none';
+        select.style.border = '1px solid #ccc';
+        select.style.borderRadius = '3px';
+        select.style.display = 'none'; // Initially hidden
+
+        // Create radio container
+        const radioContainer = document.createElement('div');
+        radioContainer.style.display = 'flex';
+        radioContainer.style.flexDirection = 'column';
+        radioContainer.style.gap = '8px';
+        radioContainer.style.marginBottom = '10px';
+        radioContainer.style.display = 'none';
+
+        // Create checkbox container
+        const checkboxContainer = document.createElement('div');
+        checkboxContainer.style.display = 'flex';
+        checkboxContainer.style.flexDirection = 'column';
+        checkboxContainer.style.gap = '8px';
+        checkboxContainer.style.marginBottom = '10px';
+        checkboxContainer.style.display = 'none';
+
+        // Create upload container
+        const uploadContainer = document.createElement('div');
+        uploadContainer.style.display = 'none';
+        uploadContainer.style.flexDirection = 'column';
+        uploadContainer.style.gap = '10px';
+        uploadContainer.style.marginBottom = '10px';
+
+        // Create drop zone
+        const dropZone = document.createElement('div');
+        dropZone.style.border = '2px dashed #ccc';
+        dropZone.style.borderRadius = '5px';
+        dropZone.style.padding = '20px';
+        dropZone.style.textAlign = 'center';
+        dropZone.style.cursor = 'pointer';
+        dropZone.style.marginBottom = '10px';
+        dropZone.innerHTML = `
+            <p>Drag & drop image here</p>
+            <p>or</p>
+            <button id="file-upload-btn" style="padding: 5px 15px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px;">
+              Choose File
+            </button>
+            <p>or paste (Ctrl+V)</p>
+        `;
+
+        // Create file input (hidden)
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.style.display = 'none';
+
+        // Create image preview
+        const imagePreview = document.createElement('img');
+        imagePreview.style.maxWidth = '100%';
+        imagePreview.style.maxHeight = '200px';
+        imagePreview.style.display = 'none';
+        imagePreview.style.margin = '0 auto';
+
+        uploadContainer.appendChild(dropZone);
+        uploadContainer.appendChild(fileInput);
+        uploadContainer.appendChild(imagePreview);
+
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.display = 'flex';
+        buttonContainer.style.justifyContent = 'flex-end';
+        buttonContainer.style.gap = '10px';
+
+        const okButton = document.createElement('button');
+        okButton.textContent = 'OK';
+        okButton.style.padding = '5px 15px';
+        okButton.style.outline = 'none';
+        okButton.style.borderRadius = '3px';
+        okButton.style.border = '1px solid #ccc';
+        okButton.style.backgroundColor = '#f0f0f0';
+
+        const cancelButton = document.createElement('button');
+        cancelButton.textContent = 'Cancel';
+        cancelButton.style.padding = '5px 15px';
+        cancelButton.style.outline = 'none';
+        cancelButton.style.borderRadius = '3px';
+        cancelButton.style.border = '1px solid #ccc';
+        cancelButton.style.backgroundColor = '#f0f0f0';
+
+        // Focus styles
+        const setFocusStyle = (element) => {
+            element.addEventListener('focus', function () {
+                // For radio/checkbox, we'll style their parent container
+                if (element.type === 'radio' || element.type === 'checkbox') {
+                    const parent = element.parentElement;
+                    if (parent) {
+                        parent.style.border = '2px solid blue';
+                        parent.style.borderRadius = '3px';
+                        parent.style.padding = '2px';
+                        parent.style.margin = '-2px';
+                    }
+                } else {
+                    element.style.border = '2px solid blue';
+                }
+            });
+
+            element.addEventListener('blur', function () {
+                // For radio/checkbox, remove style from parent
+                if (element.type === 'radio' || element.type === 'checkbox') {
+                    const parent = element.parentElement;
+                    if (parent) {
+                        parent.style.border = 'none';
+                        parent.style.padding = '0';
+                        parent.style.margin = '0';
+                    }
+                } else {
+                    element.style.border = '1px solid #ccc';
+                }
+            });
+        };
+
+        setFocusStyle(input);
+        setFocusStyle(textarea);
+        setFocusStyle(select);
+        setFocusStyle(okButton);
+        setFocusStyle(cancelButton);
+
+        buttonContainer.appendChild(okButton);
+        buttonContainer.appendChild(cancelButton);
+
+        // Append label first, then all input types, then buttons
+        popup.appendChild(popupLabel);
+        popup.appendChild(input);
+        popup.appendChild(textarea);
+        popup.appendChild(select);
+        popup.appendChild(radioContainer);
+        popup.appendChild(checkboxContainer);
+        popup.appendChild(uploadContainer);
+        popup.appendChild(buttonContainer);
+        document.body.appendChild(popup);
+
+        // Add style for radio/checkbox labels
+        const style = document.createElement('style');
+        style.textContent = `
+            input[type="radio"] + label,
+            input[type="checkbox"] + label {
+              cursor: pointer;
+              user-select: none;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Function to set popup label based on class names
+        function setPopupLabel(element) {
+            // Find the first class that starts with xdoc-label-
+            const labelClass = Array.from(element.classList).find(className =>
+                className.startsWith('xdoc-label-')
+            );
+
+            if (labelClass) {
+                // Split by hyphens and get the third part
+                const parts = labelClass.split('-');
+                if (parts.length >= 3) {
+                    // Use the third part as uppercase label
+                    popupLabel.textContent = parts[2].toUpperCase();
+                    return;
+                }
+            }
+            // Default label if no matching class found
+            popupLabel.textContent = element.classList.contains('xdoc-upload') ? 'UPLOAD IMAGE' : 'EDIT VALUE';
+        }
+
+        // Function to get select options from class
+        function getSelectOptions(element) {
+            const selectClass = Array.from(element.classList).find(className =>
+                className.startsWith('xdoc-select-')
+            );
+
+            if (selectClass) {
+                // Extract the options between the square brackets
+                const optionsMatch = selectClass.match(/\[(.*?)\]/);
+                if (optionsMatch && optionsMatch[1]) {
+                    return {
+                        type: 'select',
+                        options: optionsMatch[1].split(',').map(option => 
+                        option.trim().replace(/-/g, ' ')
+                        )
+                    };
+                }
+            }
+            return null;
+        }
+
+        // Function to get radio options from class
+        function getRadioOptions(element) {
+            const radioClass = Array.from(element.classList).find(className =>
+                className.startsWith('xdoc-radio-')
+            );
+
+            if (radioClass) {
+                // Extract the options between the square brackets
+                const optionsMatch = radioClass.match(/\[(.*?)\]/);
+                if (optionsMatch && optionsMatch[1]) {
+                    return {
+                        type: 'radio',
+                        options: optionsMatch[1].split(',').map(option => 
+                        option.trim().replace(/-/g, ' ')
+                        )
+                    };
+                }
+            }
+            return null;
+        }
+
+        // Function to get checkbox options from class
+        function getCheckboxOptions(element) {
+            const checkboxClass = Array.from(element.classList).find(className =>
+                className.startsWith('xdoc-checkbox-')
+            );
+
+            if (checkboxClass) {
+                // Extract the options between the square brackets
+                const optionsMatch = checkboxClass.match(/\[(.*?)\]/);
+                if (optionsMatch && optionsMatch[1]) {
+                    return {
+                        type: 'checkbox',
+                        options: optionsMatch[1].split(',').map(option => 
+                        option.trim().replace(/-/g, ' ')
+                        )
+                    };
+                }
+            }
+            return null;
+        }
+
+        // Function to handle file and convert to base64
+        function handleFile(file) {
+            if (!file.type.match('image.*')) {
+                alert('Please select an image file');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                currentBase64 = e.target.result;
+                imagePreview.src = currentBase64;
+                imagePreview.style.display = 'block';
+                dropZone.style.borderColor = '#4CAF50'; // Green border on success
+                setTimeout(() => dropZone.style.borderColor = '#ccc', 1000);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Set up file input click
+        const fileUploadBtn = dropZone.querySelector('#file-upload-btn');
+        fileUploadBtn.addEventListener('click', () => fileInput.click());
+
+        // Handle file selection
+        fileInput.addEventListener('change', function (e) {
+            if (e.target.files.length) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Handle drag and drop
+        dropZone.addEventListener('dragover', function (e) {
+            if (uploadContainer.style.display !== 'flex') return;
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.style.borderColor = '#2196F3'; // Blue border on dragover
+            dropZone.style.backgroundColor = '#f5f5f5';
+        });
+
+        dropZone.addEventListener('dragleave', function (e) {
+            if (uploadContainer.style.display !== 'flex') return;
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.style.borderColor = '#ccc';
+            dropZone.style.backgroundColor = '';
+        });
+
+        dropZone.addEventListener('drop', function (e) {
+            if (uploadContainer.style.display !== 'flex') return;
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.style.borderColor = '#ccc';
+            dropZone.style.backgroundColor = '';
+
+            if (e.dataTransfer.files.length) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        // Handle paste event
+        document.addEventListener('paste', function (e) {
+            if (uploadContainer.style.display !== 'flex') return;
+
+            const items = e.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const blob = items[i].getAsFile();
+                    handleFile(blob);
+                    break;
+                }
+            }
+        });
+
+        // Function to show popup with appropriate input type
+        window.showPopup = function (text, element) {
+            // Store the element that triggered the popup
+            lastFocusedElement = element;
+
+            // Hide all inputs first
+            input.style.display = 'none';
+            textarea.style.display = 'none';
+            select.style.display = 'none';
+            radioContainer.style.display = 'none';
+            checkboxContainer.style.display = 'none';
+            uploadContainer.style.display = 'none';
+
+            // Set popup label based on element's classes
+            setPopupLabel(element);
+
+            // Check if this is an upload element
+            const isUpload = element.classList.contains('xdoc-upload');
+
+            if (isUpload) {
+                // Set up upload interface
+                uploadContainer.style.display = 'flex';
+                currentBase64 = element.src || '';
+
+                // Show current image if it exists
+                if (element.src) {
+                    imagePreview.src = element.src;
+                    imagePreview.style.display = 'block';
+                } else {
+                    imagePreview.style.display = 'none';
+                }
+
+                // Focus on the file input button
+                setTimeout(() => fileUploadBtn.focus(), 0);
+            }
+            else {
+                // Check for other input types based on classes
+                const selectOptions = getSelectOptions(element);
+                const radioOptions = getRadioOptions(element);
+                const checkboxOptions = getCheckboxOptions(element);
+                const isTextarea = element.classList.contains('xdoc-textarea');
+
+                if (checkboxOptions) {
+                    // Clear any existing checkboxes
+                    checkboxContainer.innerHTML = '';
+
+                    // Split current text by comma to get selected values
+                    const selectedValues = text ? text.split(',').map(item => item.trim()) : [];
+
+                    // Add new checkboxes
+                    checkboxOptions.options.forEach(option => {
+                        const checkboxWrapper = document.createElement('div');
+                        checkboxWrapper.style.display = 'flex';
+                        checkboxWrapper.style.alignItems = 'center';
+                        checkboxWrapper.style.gap = '8px';
+
+                        const checkboxInput = document.createElement('input');
+                        checkboxInput.type = 'checkbox';
+                        checkboxInput.name = 'xdoc-checkbox-group';
+                        checkboxInput.value = option;
+                        checkboxInput.id = `checkbox-${option}`;
+
+                        // Check if this option is in the selected values
+                        if (selectedValues.includes(option)) {
+                            checkboxInput.checked = true;
+                        }
+
+                        const checkboxLabel = document.createElement('label');
+                        checkboxLabel.htmlFor = `checkbox-${option}`;
+                        checkboxLabel.textContent = option;
+
+                        checkboxWrapper.appendChild(checkboxInput);
+                        checkboxWrapper.appendChild(checkboxLabel);
+                        checkboxContainer.appendChild(checkboxWrapper);
+
+                        // Apply focus style to the checkbox
+                        setFocusStyle(checkboxInput);
+                    });
+
+                    checkboxContainer.style.display = 'flex';
+
+                    // Focus on first checkbox if any
+                    setTimeout(() => {
+                        const firstCheckbox = checkboxContainer.querySelector('input[type="checkbox"]');
+                        if (firstCheckbox) firstCheckbox.focus();
+                    }, 0);
+                }
+                else if (radioOptions) {
+                    // Clear any existing radio buttons
+                    radioContainer.innerHTML = '';
+
+                    // Add new radio buttons
+                    radioOptions.options.forEach(option => {
+                        const radioWrapper = document.createElement('div');
+                        radioWrapper.style.display = 'flex';
+                        radioWrapper.style.alignItems = 'center';
+                        radioWrapper.style.gap = '8px';
+
+                        const radioInput = document.createElement('input');
+                        radioInput.type = 'radio';
+                        radioInput.name = 'xdoc-radio-group';
+                        radioInput.value = option;
+                        radioInput.id = `radio-${option}`;
+
+                        const radioLabel = document.createElement('label');
+                        radioLabel.htmlFor = `radio-${option}`;
+                        radioLabel.textContent = option;
+
+                        // Check if this option matches the current text
+                        if (option === text) {
+                            radioInput.checked = true;
+                        }
+
+                        radioWrapper.appendChild(radioInput);
+                        radioWrapper.appendChild(radioLabel);
+                        radioContainer.appendChild(radioWrapper);
+
+                        // Apply focus style to the radio input
+                        setFocusStyle(radioInput);
+                    });
+
+                    radioContainer.style.display = 'flex';
+
+                    // Focus on first radio button if any
+                    setTimeout(() => {
+                        const firstRadio = radioContainer.querySelector('input[type="radio"]');
+                        if (firstRadio) firstRadio.focus();
+                    }, 0);
+                }
+                else if (selectOptions) {
+                    // Clear any existing options
+                    select.innerHTML = '';
+
+                    // Add new options
+                    selectOptions.options.forEach(option => {
+                        const optionElement = document.createElement('option');
+                        optionElement.value = option;
+                        optionElement.textContent = option;
+                        select.appendChild(optionElement);
+                    });
+
+                    // Set the current value
+                    select.value = text;
+                    select.style.display = 'block';
+                    setTimeout(() => select.focus(), 0);
+                }
+                else if (isTextarea) {
+                    textarea.value = text;
+                    textarea.style.display = 'block';
+                    setTimeout(() => {
+                        textarea.focus();
+                        textarea.select();
+                    }, 0);
+                }
+                else {
+                    input.value = text;
+                    input.style.display = 'block';
+                    setTimeout(() => {
+                        input.focus();
+                        input.select();
+                    }, 0);
+                }
+            }
+
+            popup.style.display = 'block';
+
+            return new Promise((resolve) => {
+                resolveCallback = resolve;
+            });
+        }
+
+        // Button event handlers
+        okButton.addEventListener('click', function () {
+            popup.style.display = 'none';
+            if (resolveCallback) {
+                let value;
+                if (uploadContainer.style.display === 'flex') {
+                    value = currentBase64;
+                } else if (checkboxContainer.style.display === 'flex') {
+                    const selectedCheckboxes = Array.from(
+                        document.querySelectorAll('input[name="xdoc-checkbox-group"]:checked')
+                    ).map(checkbox => checkbox.value);
+                    value = selectedCheckboxes.join(', ');
+                } else if (radioContainer.style.display === 'flex') {
+                    const selectedRadio = document.querySelector('input[name="xdoc-radio-group"]:checked');
+                    value = selectedRadio ? selectedRadio.value : null;
+                } else if (select.style.display === 'block') {
+                    value = select.value;
+                } else if (textarea.style.display === 'block') {
+                    value = textarea.value;
+                } else {
+                    value = input.value;
+                }
+                resolveCallback(value);
+                resolveCallback = null;
+
+                // Focus on the last focused element
+                if (lastFocusedElement) {
+                    lastFocusedElement.focus();
+                }
+            }
+        });
+
+        cancelButton.addEventListener('click', function () {
+            popup.style.display = 'none';
+            if (resolveCallback) {
+                resolveCallback(null);
+                resolveCallback = null;
+
+                // Focus on the last focused element
+                if (lastFocusedElement) {
+                    lastFocusedElement.focus();
+                }
+            }
+        });
+
+        // Close popup when clicking outside
+        popup.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+
+        document.addEventListener('click', function () {
+            if (popup.style.display === 'block') {
+                popup.style.display = 'none';
+                if (resolveCallback) {
+                    resolveCallback(null);
+                    resolveCallback = null;
+
+                    // Focus on the last focused element
+                    if (lastFocusedElement) {
+                        lastFocusedElement.focus();
+                    }
+                }
+            }
+        });
+
+        // Handle Enter/Escape keys in popup
+        const handlePopupKeydown = (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                popup.style.display = 'none';
+                if (resolveCallback) {
+                    let value;
+                    if (uploadContainer.style.display === 'flex') {
+                        value = currentBase64;
+                    } else if (checkboxContainer.style.display === 'flex') {
+                        const selectedCheckboxes = Array.from(
+                            document.querySelectorAll('input[name="xdoc-checkbox-group"]:checked')
+                        ).map(checkbox => checkbox.value);
+                        value = selectedCheckboxes.join(', ');
+                    } else if (radioContainer.style.display === 'flex') {
+                        const selectedRadio = document.querySelector('input[name="xdoc-radio-group"]:checked');
+                        value = selectedRadio ? selectedRadio.value : null;
+                    } else if (select.style.display === 'block') {
+                        value = select.value;
+                    } else if (textarea.style.display === 'block') {
+                        value = textarea.value;
+                    } else {
+                        value = input.value;
+                    }
+                    resolveCallback(value);
+                    resolveCallback = null;
+
+                    // Focus on the last focused element
+                    if (lastFocusedElement) {
+                        lastFocusedElement.focus();
+                    }
+                }
+            } else if (e.key === 'Escape') {
+                popup.style.display = 'none';
+                if (resolveCallback) {
+                    resolveCallback(null);
+                    resolveCallback = null;
+
+                    // Focus on the last focused element
+                    if (lastFocusedElement) {
+                        lastFocusedElement.focus();
+                    }
+                }
+            }
+        };
+
+        input.addEventListener('keydown', handlePopupKeydown);
+        textarea.addEventListener('keydown', handlePopupKeydown);
+        select.addEventListener('keydown', handlePopupKeydown);
+
+        // Make all existing editable elements editable
+        document.querySelectorAll(".xdoc-editable").forEach(makeEditable);
+    });
+
+
+    // Function to handle cloning
+    function addClone(event) {
+        const btn = event.target;
+        const divToClone = btn.parentNode;
+        const clone = divToClone.cloneNode(true);
+
+        // Remove only the top-level plus button in clone
+        const topPlusBtn = clone.querySelector(':scope > button.plus');
+        if (topPlusBtn) topPlusBtn.remove();
+
+        // Create minus button for clone
+        const minusBtn = document.createElement('button');
+        minusBtn.textContent = '-';
+        minusBtn.className = 'minus';
+
+        // Insert minus button at the top of clone
+        clone.insertBefore(minusBtn, clone.firstChild);
+
+        // Insert clone after the current div
+        divToClone.parentNode.insertBefore(clone, divToClone.nextSibling);
+
+        // Re-attach all event listeners after DOM change
+        attachListeners();
+        clone.querySelectorAll('.xdoc-editable').forEach(makeEditable);
+    }
+
+    // Function to handle removal
+    function removeDiv(event) {
+        const btn = event.target;
+        const divToRemove = btn.parentNode;
+        divToRemove.remove();
+
+        // Re-attach listeners in case DOM structure changes
+        attachListeners();
+    }
+
+    // Function to attach plus and minus button listeners globally
+    function attachListeners() {
+        // Attach to all plus buttons
+        document.querySelectorAll('button.plus').forEach(function (btn) {
+            btn.removeEventListener('click', addClone);
+            btn.addEventListener('click', addClone);
+        });
+
+        // Attach to all minus buttons
+        document.querySelectorAll('button.minus').forEach(function (btn) {
+            btn.removeEventListener('click', removeDiv);
+            btn.addEventListener('click', removeDiv);
+        });
+    }
+
+    // Initial attachment
+    attachListeners();
+</script>
+
+</html>'

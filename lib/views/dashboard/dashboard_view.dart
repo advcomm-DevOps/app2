@@ -6,11 +6,13 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_starter/custom/services/sso.dart';
+import 'package:flutter_starter/views/dashboard/form_resume.dart';
 import '../nav/custom_app_bar.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'platform_web.dart' if (dart.library.io) 'platform_non_web.dart';
+import 'package:liquid_engine/liquid_engine.dart';
 
 class DashboardView extends StatefulWidget {
   final String? entity;
@@ -28,8 +30,6 @@ class _DashboardViewState extends State<DashboardView> {
   final dio = Dio();
   final String apiUrl = 'http://localhost:3000';
   final String qrurl = 'https://s.xdoc.app/c/';
-  final String token =
-      'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1JSUNJIn0.eyJzdWIiOiJiYXNpdC5tdW5pcjE5QGdtYWlsLmNvbSIsInRpZCI6ImJhc2l0Lm11bmlyMTlAZ21haWwuY29tIiwiYXVkIjoiYXV0aC54ZG9jLmFwcCIsImlhdCI6MTc1MDQxMjgyMiwiZXhwIjoxNzUwNDE2NDIyLCJpc3MiOiJhdXRoLnhkb2MuYXBwIn0.JbDXyJwIMHQ2CBU4Mi2CgIL2QoaKgKIA74B3_yf3bRzsexuaVgPKcFmaPNWZMWQCbr89VL7qJ_0_mfwVnGhzvOvCSxaKN6H5YUWAxP8KeVNoBhJ4__WNID9HlCnv7mUazfNQffziQZiOTbeX4GzcaQCsDXpyREloT-iEAtaWjKPqWIalV3EaDogNsVbdbjq9Q1IJjgr6GBjZBd36YkGi0-1Q2wyPwePBuUJAJ3CLceZyPkzSslWNdCyNQmHEdfiMSI9VfsKE0vcrrQHlHsvp3dfoY1MG6_kdKDJjvQ8QTo6NNdFHJKz_ECXxMK-kwlpGgqhpjnarUKHri65KFAFsDG2FFZs6UpK6UNO9RAh9SnlA0AXv-7BrYi9dsq_Lh6jLzzBUNYoVzOssUKxxh4f1hTAWoP59ortmcTCRQ8qqA04BAnuqkarwC6iahoud8c0k8oa-PkMaRPG0BPB6sA8kwzD4OfM1_uQu3geJmz7ssa5BQfw0R9hFiM5ZFc8yZQBlqnrZgPM8D1TP1xqg7P30RZYeoXaz7bdGdMYEzXjt1MDz-blmDjdUU7yY2VfwsKh_KpYB0DMGMO_GwF64trwdynsmBj7AtL6gQCOzB1_Xel3ZkZNBH6oyyUEYsJdMqQXGYKA3YjZr8lgVROvgdpRQ2MqtfdjZ7Al_a4qaaa5oCTk';
   List<Map<String, dynamic>> channels = [];
   List<Map<String, dynamic>> docs = [];
 
@@ -44,6 +44,9 @@ class _DashboardViewState extends State<DashboardView> {
   final TextEditingController _initialActorIdController =
       TextEditingController();
 
+  final String htmlForm = getResumeForm();
+  final String htmlResume = getResumeHtml();
+  final String htmlResume1 = getResumeHtml1();
   // Define chat messages for each document
   final Map<String, List<Map<String, dynamic>>> documentChats = {
     "Invoice-06-Mar-2025": [
@@ -132,29 +135,85 @@ class _DashboardViewState extends State<DashboardView> {
       """
     },
   ];
+
   final String formHandlingJS = '''
-    console.log("🔥 JavaScript code injected and running");
-    document.querySelectorAll('form').forEach(form => {
-      form.addEventListener('submit', function(event) {
-        event.preventDefault();
-
-        const formData = new FormData(form);
-        const data = {};
-
-        formData.forEach((value, key) => {
-          data[key] = value;
-        });
-
-        const jsonString = JSON.stringify(data);
-
-        if (window.flutter_inappwebview) {
-          window.flutter_inappwebview.callHandler('onFormSubmit', jsonString);
+  console.log("🔥 JavaScript code injected and running");
+  
+  function processFormData(form) {
+    const formData = new FormData(form);
+    const data = {};
+    
+    // Convert FormData to nested object
+    for (let [key, value] of formData.entries()) {
+      const keys = key.match(/(\\w+)/g); // Split by brackets and dots
+      let current = data;
+      
+      for (let i = 0; i < keys.length; i++) {
+        const k = keys[i];
+        
+        // If this is the last key, set the value
+        if (i === keys.length - 1) {
+          current[k] = value;
         } else {
-          window.parent.postMessage({ type: 'onFormSubmit', payload: jsonString }, '*');
+          // If the next key is a number, ensure current[k] is an array
+          if (!isNaN(keys[i+1])) {
+            if (!current[k]) {
+              current[k] = [];
+            }
+          } else {
+            // Otherwise ensure it's an object
+            if (!current[k]) {
+              current[k] = {};
+            }
+          }
+          current = current[k];
         }
-      });
+      }
+    }
+    
+    // Remove the clean function to keep all fields
+    return data;
+  }
+
+  document.querySelectorAll('form').forEach(form => {
+    form.addEventListener('submit', function(event) {
+      event.preventDefault();
+      
+      const nestedData = processFormData(form);
+      const jsonString = JSON.stringify(nestedData, null, 2);
+      
+      if (window.flutter_inappwebview) {
+        window.flutter_inappwebview.callHandler('onFormSubmit', jsonString);
+      } else {
+        window.parent.postMessage({ type: 'onFormSubmit', payload: jsonString }, '*');
+      }
     });
-  ''';
+  });
+''';
+
+  // final String formHandlingJS = '''
+  //   console.log("🔥 JavaScript code injected and running");
+  //   document.querySelectorAll('form').forEach(form => {
+  //     form.addEventListener('submit', function(event) {
+  //       event.preventDefault();
+
+  //       const formData = new FormData(form);
+  //       const data = {};
+
+  //       formData.forEach((value, key) => {
+  //         data[key] = value;
+  //       });
+
+  //       const jsonString = JSON.stringify(data);
+
+  //       if (window.flutter_inappwebview) {
+  //         window.flutter_inappwebview.callHandler('onFormSubmit', jsonString);
+  //       } else {
+  //         window.parent.postMessage({ type: 'onFormSubmit', payload: jsonString }, '*');
+  //       }
+  //     });
+  //   });
+  // ''';
 
   // Current chat messages being displayed
   List<Map<String, dynamic>> currentChatMessages = [];
@@ -194,14 +253,15 @@ class _DashboardViewState extends State<DashboardView> {
     print("entity................:$entity section...........: $sec");
   }
 
-  Future<String?> getJwt() async {
+  Future<String> getJwt() async {
     final FlutterSecureStorage secureStorage = FlutterSecureStorage();
     final String? jwtToken = await secureStorage.read(key: "JWT_Token");
-    return jwtToken;
+    return jwtToken ?? '';
   }
 
   Future<void> fetchChannels() async {
     try {
+      String token = await getJwt();
       dio.options.headers["Authorization"] = "Bearer $token";
       final response = await dio.get('$apiUrl/channels');
       setState(() {
@@ -219,7 +279,8 @@ class _DashboardViewState extends State<DashboardView> {
     if (sec == null || sec.isEmpty) return;
 
     final exists = channels.any((channel) => channel['channelname'] == sec);
-    final index = channels.indexWhere((channel) => channel['channelname'] == sec);
+    final index =
+        channels.indexWhere((channel) => channel['channelname'] == sec);
 
     if (!exists) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -248,8 +309,8 @@ class _DashboardViewState extends State<DashboardView> {
           ),
         );
       });
-    }else{
-       setState(() {
+    } else {
+      setState(() {
         selectedChannelIndex = index;
         selectedDocIndex = null;
         docs = [];
@@ -268,6 +329,11 @@ class _DashboardViewState extends State<DashboardView> {
         "initialactorid": "",
         "otheractorid": ""
       });
+      docs.add({
+        "docname": sectionName + " Document",
+        "starttime": DateTime.now().toIso8601String(),
+        "completiontime": null
+      });
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -277,6 +343,7 @@ class _DashboardViewState extends State<DashboardView> {
 
   // Add this method to create a channel
   Future<void> createChannel() async {
+    String token = await getJwt();
     try {
       final channelData = {
         "initialActorID": _initialActorIdController.text.trim(),
@@ -391,7 +458,135 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
+  void _showCreateDocDialog(BuildContext context) {
+    final TextEditingController toController = TextEditingController();
+    final TextEditingController subjectController = TextEditingController();
+    final TextEditingController bodyController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Stack(
+              children: [
+                Container(
+                  padding: EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    top: 16,
+                    bottom: MediaQuery.of(context).viewInsets.bottom +
+                        60, // Leave space for buttons
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[600],
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: ListView(
+                    controller: scrollController,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'New Document',
+                            style: TextStyle(color: Colors.white, fontSize: 18),
+                          ),
+                          IconButton(
+                            icon:
+                                const Icon(Icons.close, color: Colors.white70),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: toController,
+                        decoration: const InputDecoration(
+                          labelText: 'To',
+                          labelStyle: TextStyle(color: Colors.white70),
+                          hintText: 'Enter recipient',
+                          hintStyle: TextStyle(color: Colors.white54),
+                          border: UnderlineInputBorder(),
+                        ),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: subjectController,
+                        decoration: const InputDecoration(
+                          labelText: 'Subject',
+                          labelStyle: TextStyle(color: Colors.white70),
+                          hintText: 'Enter subject',
+                          hintStyle: TextStyle(color: Colors.white54),
+                          border: UnderlineInputBorder(),
+                        ),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: bodyController,
+                        decoration: const InputDecoration(
+                          labelText: 'Body',
+                          labelStyle: TextStyle(color: Colors.white70),
+                          hintText: 'Enter message',
+                          hintStyle: TextStyle(color: Colors.white54),
+                          border: InputBorder.none,
+                        ),
+                        style: const TextStyle(color: Colors.white),
+                        keyboardType: TextInputType.multiline,
+                        maxLines: null,
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  right: 8,
+                  bottom: 8,
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon:
+                            const Icon(Icons.upload_file, color: Colors.white),
+                        tooltip: 'Upload form',
+                        onPressed: () => _showUploadMethodDialog(context),
+                      ),
+                      IconButton(
+                        icon:
+                            const Icon(Icons.attach_file, color: Colors.white),
+                        tooltip: 'Attach a file',
+                        onPressed: uploadFile,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.send, color: Colors.white),
+                        tooltip: 'Send',
+                        onPressed: () {
+                          if (toController.text.isNotEmpty &&
+                              bodyController.text.isNotEmpty) {
+                            sendMessage();
+                            Navigator.pop(context);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> fetchDocs(String channelName) async {
+    String token = await getJwt();
     try {
       setState(() {
         isDocsLoading = true;
@@ -416,6 +611,7 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   Future<void> uploadFile() async {
+    String token = await getJwt();
     try {
       // Pick a file
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -783,6 +979,81 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
+  Future<String> renderResume(String jsonContent) async {
+    final raw = htmlResume1;
+
+    final context = Context.create();
+
+    // context.variables['basics'] = jsonDecode(jsonContent)["basics"];
+    context.variables = jsonDecode(jsonContent);
+
+    final template = Template.parse(context, Source.fromString(raw));
+    final result = await template.render(context);
+    return result;
+  }
+
+
+  void showHtmlPopup(BuildContext context, String jsonContent) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(16),
+          child: SizedBox(
+            width: double.infinity,
+            height: 800,
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  color: Colors.blueGrey,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Resume Preview",
+                          style: TextStyle(color: Colors.white)),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: FutureBuilder<String>(
+                    future: renderResume(jsonContent), // ✅ call async function
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      } else if (snapshot.hasError) {
+                        return Center(
+                          child: Text('Error: ${snapshot.error}'),
+                        );
+                      } else {
+                        return InAppWebView(
+                          initialData: InAppWebViewInitialData(
+                            data: snapshot.data!,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
+                // Expanded(
+                //   child: InAppWebView(
+                //     initialData: InAppWebViewInitialData(
+                //       data: renderResume(jsonContent,
+                //     ),
+                //   ),
+                // ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool hasChannels = channels.isNotEmpty;
@@ -927,98 +1198,63 @@ class _DashboardViewState extends State<DashboardView> {
                   ],
                 ),
               ),
-              // Container(
-              //   width: 150,
-              //   color: Colors.grey[900],
-              //   child: Column(
-              //     children: [
-              //       // Add Channel button
-              //       Padding(
-              //         padding: const EdgeInsets.all(8.0),
-              //         child: ElevatedButton(
-              //           style: ElevatedButton.styleFrom(
-              //             backgroundColor: Colors.blue,
-              //             minimumSize: const Size(double.infinity, 40),
-              //           ),
-              //           onPressed: () => _showCreateChannelDialog(context),
-              //           child: const Text(
-              //             '+ Add Channel',
-              //             style: TextStyle(fontSize: 12),
-              //           ),
-              //         ),
-              //       ),
-              //       // Channels list
-              //       Expanded(
-              //         child: hasChannels
-              //             ? ListView.builder(
-              //                 itemCount: channels.length,
-              //                 itemBuilder: (context, index) {
-              //                   return GestureDetector(
-              //                     onTap: () {
-              //                       setState(() {
-              //                         selectedChannelIndex = index;
-              //                         selectedDocIndex = null;
-              //                         docs = [];
-              //                         currentChatMessages = [];
-              //                       });
-              //                       fetchDocs(channels[index]["channelname"]);
-              //                     },
-              //                     child: Padding(
-              //                       padding: const EdgeInsets.all(8.0),
-              //                       child: Container(
-              //                         color: selectedChannelIndex == index
-              //                             ? Colors.blue
-              //                             : Colors.grey[700],
-              //                         padding: const EdgeInsets.all(12),
-              //                         child: Text(
-              //                           channels[index]["channelname"],
-              //                           style: const TextStyle(color: Colors.white),
-              //                         ),
-              //                       ),
-              //                     ),
-              //                   );
-              //                 },
-              //               )
-              //             : const Center(child: CircularProgressIndicator()),
-              //       ),
-              //     ],
-              //   ),
-              // ),
 
               // Middle Panel (Docs)
               Container(
                 width: 250,
                 color: Colors.grey[850],
-                child: isDocsLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : docs.isNotEmpty
-                        ? ListView.builder(
-                            itemCount: docs.length,
-                            itemBuilder: (context, index) {
-                              return ListTile(
-                                title: Text(
-                                  docs[index]["docname"],
-                                  style: const TextStyle(color: Colors.white),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          minimumSize: const Size(double.infinity, 40),
+                        ),
+                        onPressed: () => _showCreateDocDialog(
+                            context), // You'll define this method
+                        child: const Text(
+                          '+ Compose',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: isDocsLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : docs.isNotEmpty
+                              ? ListView.builder(
+                                  itemCount: docs.length,
+                                  itemBuilder: (context, index) {
+                                    return ListTile(
+                                      title: Text(
+                                        docs[index]["docname"],
+                                        style: const TextStyle(
+                                            color: Colors.white),
+                                      ),
+                                      selected: selectedDocIndex == index,
+                                      selectedTileColor: Colors.grey[700],
+                                      onTap: () {
+                                        setState(() {
+                                          selectedDocIndex = index;
+                                          currentChatMessages = documentChats[
+                                                  docs[index]["docname"]] ??
+                                              [];
+                                        });
+                                      },
+                                    );
+                                  },
+                                )
+                              : const Center(
+                                  child: Text(
+                                    "No Docs Available",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                                 ),
-                                selected: selectedDocIndex == index,
-                                selectedTileColor: Colors.grey[700],
-                                onTap: () {
-                                  setState(() {
-                                    selectedDocIndex = index;
-                                    currentChatMessages =
-                                        documentChats[docs[index]["docname"]] ??
-                                            [];
-                                  });
-                                },
-                              );
-                            },
-                          )
-                        : const Center(
-                            child: Text(
-                              "No Docs Available",
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
+                    ),
+                  ],
+                ),
               ),
 
               // Right Panel (Chat Panel)
@@ -1054,102 +1290,142 @@ class _DashboardViewState extends State<DashboardView> {
                                     ),
                                     const Divider(color: Colors.white70),
                                     Expanded(
-                                      child: ListView.builder(
+                                      child: ListView(
                                         padding: const EdgeInsets.all(8),
-                                        itemCount: currentChatMessages.length,
-                                        itemBuilder: (context, index) {
-                                          final msg =
-                                              currentChatMessages[index];
-                                          final isUser = msg["sender"] == "You";
-                                          final isFile = msg["isFile"] == true;
-                                          final isLastFile = isFile &&
-                                              index ==
-                                                  currentChatMessages.length -
-                                                      1;
-
-                                          return Column(
-                                            crossAxisAlignment: isUser
-                                                ? CrossAxisAlignment.end
-                                                : CrossAxisAlignment.start,
-                                            children: [
-                                              Align(
-                                                alignment: isUser
-                                                    ? Alignment.centerRight
-                                                    : Alignment.centerLeft,
-                                                child: Container(
-                                                  margin: const EdgeInsets
-                                                      .symmetric(vertical: 4),
-                                                  padding:
-                                                      const EdgeInsets.all(10),
-                                                  constraints:
-                                                      const BoxConstraints(
-                                                          maxWidth: 300),
-                                                  decoration: BoxDecoration(
-                                                    color: isUser
-                                                        ? Colors.blueAccent
-                                                        : Colors.grey[700],
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            10),
-                                                  ),
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Text(
-                                                        msg["sender"]!,
-                                                        style: const TextStyle(
-                                                            fontSize: 12,
-                                                            color:
-                                                                Colors.white70),
-                                                      ),
-                                                      const SizedBox(height: 4),
-                                                      Text(
-                                                        msg["message"]!,
-                                                        style: const TextStyle(
-                                                            color:
-                                                                Colors.white),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
+                                        children: [
+                                          // InAppWebView at the top
+                                          SizedBox(
+                                            height: 600,
+                                            child: InAppWebView(
+                                              initialData:
+                                                  InAppWebViewInitialData(
+                                                data: appendScriptWithHtml(
+                                                    htmlForm),
                                               ),
-                                              if (isLastFile)
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                          top: 4, bottom: 8),
-                                                  child: Row(
-                                                    mainAxisAlignment: isUser
-                                                        ? MainAxisAlignment.end
-                                                        : MainAxisAlignment
-                                                            .start,
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: actionButtons
-                                                        .map((button) {
-                                                      return Row(
-                                                        children: [
-                                                          _buildActionButton(
-                                                            button["label"]!,
-                                                            () => _handleAction(
-                                                                button[
-                                                                    "label"]!,
-                                                                msg["message"]!,
-                                                                button[
-                                                                    "html"]!),
-                                                          ),
-                                                          const SizedBox(
-                                                              width: 4),
-                                                        ],
-                                                      );
-                                                    }).toList(),
+                                              onWebViewCreated: (controller) {
+                                                if (!kIsWeb) {
+                                                  controller
+                                                      .addJavaScriptHandler(
+                                                    handlerName: 'onFormSubmit',
+                                                    callback: (args) {
+                                                      String jsonString =
+                                                          args[0];
+                                                      print(
+                                                          'Received JSON string..................: $jsonString');
+                                                      showHtmlPopup(
+                                                          context, jsonString);
+                                                      // Map<String, dynamic>
+                                                      //     formData = jsonDecode(
+                                                      //         jsonString);
+                                                      // print('Received JSON.........................: $formData');
+                                                    },
+                                                  );
+                                                } else {
+                                                  handleWebMessage();
+                                                }
+                                              },
+                                            ),
+                                          ),
+
+                                          // Chat messages (manually add each as a widget)
+                                          ...currentChatMessages.map((msg) {
+                                            final isUser =
+                                                msg["sender"] == "You";
+                                            final isFile =
+                                                msg["isFile"] == true;
+                                            final isLastFile = isFile &&
+                                                msg == currentChatMessages.last;
+
+                                            return Column(
+                                              crossAxisAlignment: isUser
+                                                  ? CrossAxisAlignment.end
+                                                  : CrossAxisAlignment.start,
+                                              children: [
+                                                Align(
+                                                  alignment: isUser
+                                                      ? Alignment.centerRight
+                                                      : Alignment.centerLeft,
+                                                  child: Container(
+                                                    margin: const EdgeInsets
+                                                        .symmetric(vertical: 4),
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            10),
+                                                    constraints:
+                                                        const BoxConstraints(
+                                                            maxWidth: 300),
+                                                    decoration: BoxDecoration(
+                                                      color: isUser
+                                                          ? Colors.blueAccent
+                                                          : Colors.grey[700],
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              10),
+                                                    ),
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          msg["sender"]!,
+                                                          style:
+                                                              const TextStyle(
+                                                                  fontSize: 12,
+                                                                  color: Colors
+                                                                      .white70),
+                                                        ),
+                                                        const SizedBox(
+                                                            height: 4),
+                                                        Text(
+                                                          msg["message"]!,
+                                                          style:
+                                                              const TextStyle(
+                                                                  color: Colors
+                                                                      .white),
+                                                        ),
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
-                                            ],
-                                          );
-                                        },
+                                                if (isLastFile)
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            top: 4, bottom: 8),
+                                                    child: Row(
+                                                      mainAxisAlignment: isUser
+                                                          ? MainAxisAlignment
+                                                              .end
+                                                          : MainAxisAlignment
+                                                              .start,
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: actionButtons
+                                                          .map((button) {
+                                                        return Row(
+                                                          children: [
+                                                            _buildActionButton(
+                                                              button["label"]!,
+                                                              () => _handleAction(
+                                                                  button[
+                                                                      "label"]!,
+                                                                  msg[
+                                                                      "message"]!,
+                                                                  button[
+                                                                      "html"]!),
+                                                            ),
+                                                            const SizedBox(
+                                                                width: 4),
+                                                          ],
+                                                        );
+                                                      }).toList(),
+                                                    ),
+                                                  ),
+                                              ],
+                                            );
+                                          }).toList(),
+                                        ],
                                       ),
                                     ),
                                     const Divider(
