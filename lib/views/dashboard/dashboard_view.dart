@@ -28,7 +28,7 @@ class _DashboardViewState extends State<DashboardView> {
   String selectedEntity = '';
 
   final dio = Dio();
-  final String apiUrl = 'http://localhost:3000';
+  final String apiUrl = 'http://192.168.0.87:3000';
   final String qrurl = 'https://s.xdoc.app/c/';
   List<Map<String, dynamic>> channels = [];
   List<Map<String, dynamic>> docs = [];
@@ -190,30 +190,6 @@ class _DashboardViewState extends State<DashboardView> {
     });
   });
 ''';
-
-  // final String formHandlingJS = '''
-  //   console.log("🔥 JavaScript code injected and running");
-  //   document.querySelectorAll('form').forEach(form => {
-  //     form.addEventListener('submit', function(event) {
-  //       event.preventDefault();
-
-  //       const formData = new FormData(form);
-  //       const data = {};
-
-  //       formData.forEach((value, key) => {
-  //         data[key] = value;
-  //       });
-
-  //       const jsonString = JSON.stringify(data);
-
-  //       if (window.flutter_inappwebview) {
-  //         window.flutter_inappwebview.callHandler('onFormSubmit', jsonString);
-  //       } else {
-  //         window.parent.postMessage({ type: 'onFormSubmit', payload: jsonString }, '*');
-  //       }
-  //     });
-  //   });
-  // ''';
 
   // Current chat messages being displayed
   List<Map<String, dynamic>> currentChatMessages = [];
