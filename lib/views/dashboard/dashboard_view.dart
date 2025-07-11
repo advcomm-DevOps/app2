@@ -9,10 +9,10 @@ import 'package:flutter_starter/custom/services/sso.dart';
 import 'package:flutter_starter/views/dashboard/form_resume.dart';
 import '../nav/custom_app_bar.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'platform_web.dart' if (dart.library.io) 'platform_non_web.dart';
 import 'package:liquid_engine/liquid_engine.dart';
+import 'dashboard_controller.dart';
 
 class DashboardView extends StatefulWidget {
   final String? entity;
@@ -32,166 +32,26 @@ class _DashboardViewState extends State<DashboardView> {
   final String qrurl = 'https://s.xdoc.app/c/';
   List<Map<String, dynamic>> channels = [];
   List<Map<String, dynamic>> docs = [];
+  DashboardController dashboardController =
+      DashboardController(); // Initialize the controller
 
   bool isDocsLoading = false;
   bool isUploading = false;
   Locale? _currentLocale;
 
+  List<dynamic> publicInterconnects = [];
+  String? selectedInterconnectId;
+  List<dynamic> respondentActors = [];
+  String? selectedActorId;
+
   final TextEditingController messageController = TextEditingController();
   final TextEditingController _urlController = TextEditingController();
   final TextEditingController _htmlController = TextEditingController();
   final TextEditingController _channelNameController = TextEditingController();
-  final TextEditingController _initialActorIdController =
-      TextEditingController();
 
   final String htmlForm = getResumeForm();
   final String htmlResume = getResumeHtml();
   final String htmlResume1 = getResumeHtml1();
-  // Define chat messages for each document
-  final Map<String, List<Map<String, dynamic>>> documentChats = {
-    "Invoice-06-Mar-2025": [
-      {"sender": "User A", "message": "Hello!"},
-      {"sender": "User B", "message": "Hi there! How can I help?"},
-      {"sender": "User A", "message": "I have a question about the document."},
-      {"sender": "User B", "message": "Sure, ask me anything."},
-      {"sender": "User A", "message": "Can you explain the payment terms?"},
-      {"sender": "User B", "message": "The payment is due within 30 days."},
-      {"sender": "User A", "message": "Thanks for the info!"},
-      {"sender": "User B", "message": "You're welcome!"},
-    ],
-    "Invoice-08-Mar-2025": [
-      {"sender": "User A", "message": "Hello!"},
-      {"sender": "User B", "message": "Hi there! How can I help?"},
-      {"sender": "User A", "message": "I have a question about the document."},
-      {"sender": "User B", "message": "Sure, ask me anything."},
-    ],
-  };
-  final List<Map<String, String>> actionButtons = [
-    {"label": "Accept", "html": "<button>Accept</button>"},
-    {
-      "label": "Reject",
-      "html": """
-        <form style='max-width: 300px; padding: 10px; border: 1px solid #ccc; border-radius: 6px;'>
-          <label for='rejectedReason' style='display: block; margin-bottom: 6px; font-weight: bold;'>
-            Rejected Reason:
-          </label>
-          <input type='text' id='rejectedReason' name='rejectedReason'
-                style='width: 100%; padding: 8px; margin-bottom: 10px;
-                        border: 1px solid #ccc; border-radius: 4px;' required>
-          <button type='submit'
-                  style='background-color: #dc3545; color: white; padding: 8px 16px;
-                        border: none; border-radius: 4px; cursor: pointer;'>
-            Submit
-          </button>
-        </form>
-      """
-    },
-    {
-      "label": "Dispute",
-      "html": """
-        <form style='max-width: 300px; padding: 10px; border: 1px solid #ccc; border-radius: 6px;'>
-          <label for='dispute1' style='display: block; margin-bottom: 6px; font-weight: bold;'>
-            Dispute 1:
-          </label>
-          <input type='text' id='dispute1' name='dispute1'
-                style='width: 100%; padding: 8px; margin-bottom: 10px;
-                        border: 1px solid #ccc; border-radius: 4px;' required>
-          <label for='dispute2' style='display: block; margin-bottom: 6px; font-weight: bold;'>
-            Dispute 2:
-          </label>
-          <input type='text' id='dispute2' name='dispute2'
-                style='width: 100%; padding: 8px; margin-bottom: 10px;
-                        border: 1px solid #ccc; border-radius: 4px;' required>
-          <button type='submit'
-                  style='background-color: #dc3545; color: white; padding: 8px 16px;
-                        border: none; border-radius: 4px; cursor: pointer;'>
-            Submit
-          </button>
-        </form>
-      """
-    },
-    {
-      "label": "Revise",
-      "html": """
-        <form style='max-width: 300px; padding: 10px; border: 1px solid #ccc; border-radius: 6px;'>
-          <label for='Revise' style='display: block; margin-bottom: 6px; font-weight: bold;'>
-            Revise:
-          </label>
-          <input type='text' id='Revise' name='Revise'
-                style='width: 100%; padding: 8px; margin-bottom: 10px;
-                        border: 1px solid #ccc; border-radius: 4px;' required>
-          <label for='Note' style='display: block; margin-bottom: 6px; font-weight: bold;'>
-            Note:
-          </label>
-          <input type='text' id='Note' name='Note'
-                style='width: 100%; padding: 8px; margin-bottom: 10px;
-                        border: 1px solid #ccc; border-radius: 4px;' required>
-          <button type='submit'
-                  style='background-color: #dc3545; color: white; padding: 8px 16px;
-                        border: none; border-radius: 4px; cursor: pointer;'>
-            Submit
-          </button>
-        </form>
-      """
-    },
-  ];
-
-  final String formHandlingJS = '''
-  console.log("🔥 JavaScript code injected and running");
-  
-  function processFormData(form) {
-    const formData = new FormData(form);
-    const data = {};
-    
-    // Convert FormData to nested object
-    for (let [key, value] of formData.entries()) {
-      const keys = key.match(/(\\w+)/g); // Split by brackets and dots
-      let current = data;
-      
-      for (let i = 0; i < keys.length; i++) {
-        const k = keys[i];
-        
-        // If this is the last key, set the value
-        if (i === keys.length - 1) {
-          current[k] = value;
-        } else {
-          // If the next key is a number, ensure current[k] is an array
-          if (!isNaN(keys[i+1])) {
-            if (!current[k]) {
-              current[k] = [];
-            }
-          } else {
-            // Otherwise ensure it's an object
-            if (!current[k]) {
-              current[k] = {};
-            }
-          }
-          current = current[k];
-        }
-      }
-    }
-    
-    // Remove the clean function to keep all fields
-    return data;
-  }
-
-  document.querySelectorAll('form').forEach(form => {
-    form.addEventListener('submit', function(event) {
-      event.preventDefault();
-      
-      const nestedData = processFormData(form);
-      const jsonString = JSON.stringify(nestedData, null, 2);
-      
-      if (window.flutter_inappwebview) {
-        window.flutter_inappwebview.callHandler('onFormSubmit', jsonString);
-      } else {
-        window.parent.postMessage({ type: 'onFormSubmit', payload: jsonString }, '*');
-      }
-    });
-  });
-''';
-
-  // Current chat messages being displayed
   List<Map<String, dynamic>> currentChatMessages = [];
 
   bool get isLastFile {
@@ -221,70 +81,105 @@ class _DashboardViewState extends State<DashboardView> {
 
   @override
   void initState() {
-    final entity = widget.entity;
-    final sec = widget.section;
     super.initState();
-    fetchChannels();
+    dashboardController.onboardEntity().then((result) {
+      if (result) {
+        fetchChannels(); 
+      }
+    });
     loadSelectedEntity();
-    print("entity................:$entity section...........: $sec");
-  }
-
-  Future<String> getJwt() async {
-    final FlutterSecureStorage secureStorage = FlutterSecureStorage();
-    final String? jwtToken = await secureStorage.read(key: "JWT_Token");
-    return jwtToken ?? '';
+    dashboardController.getPublicInterconnects().then((result) {
+      publicInterconnects = result;
+    });
   }
 
   Future<void> fetchChannels() async {
     try {
-      String token = await getJwt();
+      String token = await dashboardController.getJwt();
       dio.options.headers["Authorization"] = "Bearer $token";
       final response = await dio.get('$apiUrl/channels');
-      setState(() {
-        channels = List<Map<String, dynamic>>.from(response.data);
-      });
-      _validateSection();
+      if (response.data != null &&
+          response.data is List &&
+          (response.data as List).isNotEmpty) {
+            print("Fetched channels: ${response.data}");
+        setState(() {
+          channels = List<Map<String, dynamic>>.from(response.data);
+        });
+      } else {
+        print("No channels found.");
+      }
+      validateSection();
     } catch (e) {
       print("Error fetching channels: $e");
     }
   }
 
-  void _validateSection() {
-    final sec = widget.section;
+  void validateSection() {
+    final secQr = widget.section;
+    final entityQr = widget.entity;
 
-    if (sec == null || sec.isEmpty) return;
+    if (secQr == null || secQr.isEmpty) return;
 
-    final exists = channels.any((channel) => channel['channelname'] == sec);
+    final exists = channels.any((channel) => channel['channelname'] == secQr);
     final index =
-        channels.indexWhere((channel) => channel['channelname'] == sec);
-
+        channels.indexWhere((channel) => channel['channelname'] == secQr);
     if (!exists) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Channel Not Found'),
-            content: Text(
-                'Channel "$sec" does not exist in the available channels. Do you want to add it?'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  // User chose not to add
-                },
-                child: const Text('No'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  _addNewChannel(sec);
-                },
-                child: const Text('Yes'),
-              ),
-            ],
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: Colors.grey[900],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-        );
-      });
+          title: const Text(
+            'Channel Not Found',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            'Channel "$secQr" does not exist in the available channels. Do you want to add it?',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+            ),
+          ),
+          actionsPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // User chose not to add
+              },
+              child: const Text(
+                'No',
+                style: TextStyle(color: Colors.white70),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              onPressed: () {
+                addNewChannel(secQr,entityQr!);
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                'Yes',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      );
     } else {
       setState(() {
         selectedChannelIndex = index;
@@ -296,143 +191,358 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
-  void _addNewChannel(String sectionName) {
-    setState(() {
-      channels.add({
-        "channelname": sectionName,
-        "channeldescription": "Manually added section",
-        "entityroles": "all",
-        "initialactorid": "",
-        "otheractorid": ""
-      });
-      docs.add({
-        "docname": sectionName + " Document",
-        "starttime": DateTime.now().toIso8601String(),
-        "completiontime": null
-      });
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Section "$sectionName" added to channels.')),
-    );
-  }
-
-  // Add this method to create a channel
-  Future<void> createChannel() async {
-    String token = await getJwt();
-    try {
-      final channelData = {
-        "initialActorID": _initialActorIdController.text.trim(),
-        "channelName": _channelNameController.text.trim(),
-      };
-
-      // Set headers including Content-Type
-      dio.options.headers = {
-        "Authorization": "Bearer $token",
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      };
-
-      final response = await dio.post(
-        '$apiUrl/channel',
-        data: jsonEncode(channelData), // Explicitly encode to JSON
-        options: Options(
-          contentType: 'application/json',
-        ),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        // Refresh the channels list
+  void addNewChannel(String sectionName,String entityName) {
+    dashboardController.joinChannel(entityName, sectionName).then((joined) {
+      if (joined) {
         fetchChannels();
-        // Clear the form
-        _channelNameController.clear();
-        _initialActorIdController.clear();
-
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Channel created successfully!'),
-            backgroundColor: Colors.green,
-          ),
+          SnackBar(content: Text('Section "$sectionName" added to channels.')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Channel joining failed')),
         );
       }
-    } on DioException catch (e) {
-      print("Dio error creating channel: ${e.message}");
-      print("Response: ${e.response?.data}");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to create channel: ${e.message}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } catch (e) {
-      print("Error creating channel: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to create channel: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+    });
   }
 
   // Add this method to show the channel creation dialog
+
   void _showCreateChannelDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Create New Channel',
-              style: TextStyle(color: Colors.white)),
-          backgroundColor: Colors.grey[800],
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _channelNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Channel Name',
-                  labelStyle: TextStyle(color: Colors.white70),
-                  hintText: 'Enter channel name',
-                  hintStyle: TextStyle(color: Colors.white54),
-                ),
-                style: const TextStyle(color: Colors.white),
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              backgroundColor: Colors.grey[900],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _initialActorIdController,
-                decoration: const InputDecoration(
-                  labelText: 'Initial Actor ID',
-                  labelStyle: TextStyle(color: Colors.white70),
-                  hintText: 'Enter initial actor ID',
-                  hintStyle: TextStyle(color: Colors.white54),
+              title: const Text(
+                'Create New Channel',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
-                style: const TextStyle(color: Colors.white),
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child:
-                  const Text('Cancel', style: TextStyle(color: Colors.white70)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-              onPressed: () {
-                if (_channelNameController.text.isNotEmpty &&
-                    _initialActorIdController.text.isNotEmpty) {
-                  createChannel();
-                  Navigator.pop(context);
-                }
-              },
-              child:
-                  const Text('Create', style: TextStyle(color: Colors.white)),
-            ),
-          ],
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Interconnects section
+                    if (publicInterconnects.isNotEmpty) ...[
+                      const Text(
+                        'Select Interconnect',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children:
+                            publicInterconnects.map<Widget>((interconnect) {
+                          return ChoiceChip(
+                            label: Text(
+                              interconnect['interconnectname'],
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            labelStyle: TextStyle(
+                              color: selectedInterconnectId ==
+                                      interconnect['interconnectid']
+                                  ? Colors.white
+                                  : Colors.white70,
+                            ),
+                            selected: selectedInterconnectId ==
+                                interconnect['interconnectid'],
+                            selectedColor: Colors.blueAccent,
+                            backgroundColor: Colors.grey[700],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            onSelected: (bool selected) async {
+                              setState(() {
+                                selectedInterconnectId = selected
+                                    ? interconnect['interconnectid']
+                                    : null;
+                                respondentActors = [];
+                                selectedActorId = null;
+                              });
+
+                              if (selected) {
+                                respondentActors = await dashboardController
+                                    .getRespondentActors(
+                                        selectedInterconnectId!);
+                                setState(() {});
+                              }
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ],
+
+                    const SizedBox(height: 20),
+
+                    // Respondent actors section
+                    if (respondentActors.isNotEmpty) ...[
+                      const Text(
+                        'Select Respondent Actor',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: respondentActors.map<Widget>((actor) {
+                          return ChoiceChip(
+                            label: Text(
+                              actor['actorname'] ?? 'Unnamed',
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            labelStyle: TextStyle(
+                              color:
+                                  selectedActorId == actor['actorid'].toString()
+                                      ? Colors.white
+                                      : Colors.white70,
+                            ),
+                            selected:
+                                selectedActorId == actor['actorid'].toString(),
+                            selectedColor: Colors.green,
+                            backgroundColor: Colors.grey[700],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            onSelected: (bool selected) {
+                              setState(() {
+                                selectedActorId = selected
+                                    ? actor['actorid'].toString()
+                                    : null;
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ],
+
+                    const SizedBox(height: 20),
+
+                    // Channel name input
+                    if (selectedActorId != null)
+                      TextField(
+                        controller: _channelNameController,
+                        decoration: InputDecoration(
+                          labelText: 'Channel Name',
+                          labelStyle: const TextStyle(color: Colors.white70),
+                          hintText: 'Enter channel name',
+                          hintStyle: const TextStyle(color: Colors.white54),
+                          filled: true,
+                          fillColor: Colors.grey[800],
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Colors.grey),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Colors.blue),
+                          ),
+                        ),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                  ],
+                ),
+              ),
+              actionsPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              actionsAlignment: MainAxisAlignment.spaceBetween,
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                  ),
+                  onPressed: () {
+                    if (_channelNameController.text.isNotEmpty &&
+                        selectedInterconnectId != null &&
+                        selectedActorId != null) {
+                      dashboardController
+                          .createChannel(
+                        _channelNameController.text.trim(),
+                        selectedActorId!,
+                      )
+                          .then((created) {
+                        if (created) {
+                          fetchChannels();
+                          Navigator.pop(context);
+                        } else {
+                          print("Channel creation failed.");
+                        }
+                      });
+                    }
+                  },
+                  child: const Text(
+                    'Create',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
   }
+
+  // void _showCreateChannelDialog(BuildContext context) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       return StatefulBuilder(
+  //         builder: (BuildContext context, StateSetter setState) {
+  //           return AlertDialog(
+  //             title: const Text('Create New Channel',
+  //                 style: TextStyle(color: Colors.white)),
+  //             backgroundColor: Colors.grey[800],
+  //             content: SingleChildScrollView(
+  //               child: Column(
+  //                 mainAxisSize: MainAxisSize.min,
+  //                 children: [
+  //                   // Interconnects section
+  //                   if (publicInterconnects.isNotEmpty)
+  //                     Column(
+  //                       crossAxisAlignment: CrossAxisAlignment.start,
+  //                       children: [
+  //                         const Text('Select Interconnect',
+  //                             style: TextStyle(color: Colors.white70)),
+  //                         const SizedBox(height: 8),
+  //                         Wrap(
+  //                           spacing: 8,
+  //                           children:
+  //                               publicInterconnects.map<Widget>((interconnect) {
+  //                             return ChoiceChip(
+  //                               label: Text(interconnect['interconnectname'],
+  //                                   style:
+  //                                       const TextStyle(color: Colors.white)),
+  //                               selected: selectedInterconnectId ==
+  //                                   interconnect['interconnectid'],
+  //                               selectedColor: Colors.blue,
+  //                               backgroundColor: Colors.grey[700],
+  //                               onSelected: (bool selected) async {
+  //                                 setState(() {
+  //                                   selectedInterconnectId = selected
+  //                                       ? interconnect['interconnectid']
+  //                                       : null;
+  //                                   respondentActors = []; // reset before fetch
+  //                                   selectedActorId = null;
+  //                                 });
+
+  //                                 if (selected) {
+  //                                   // Fetch respondent actors for selected interconnect
+  //                                   respondentActors = await dashboardController
+  //                                       .getRespondentActors(
+  //                                           selectedInterconnectId!);
+  //                                   setState(() {});
+  //                                 }
+  //                               },
+  //                             );
+  //                           }).toList(),
+  //                         ),
+  //                       ],
+  //                     ),
+  //                   const SizedBox(height: 16),
+  //                   // Respondent actors section
+  //                   if (respondentActors.isNotEmpty)
+  //                     Column(
+  //                       crossAxisAlignment: CrossAxisAlignment.start,
+  //                       children: [
+  //                         const Text('Select Respondent Actor',
+  //                             style: TextStyle(color: Colors.white70)),
+  //                         const SizedBox(height: 8),
+  //                         Wrap(
+  //                           spacing: 8,
+  //                           children: respondentActors.map<Widget>((actor) {
+  //                             return ChoiceChip(
+  //                               label: Text(actor['actorname'] ?? 'Unnamed',
+  //                                   style:
+  //                                       const TextStyle(color: Colors.white)),
+  //                               selected: selectedActorId ==
+  //                                   actor['actorid'].toString(),
+  //                               selectedColor: Colors.green,
+  //                               backgroundColor: Colors.grey[700],
+  //                               onSelected: (bool selected) {
+  //                                 setState(() {
+  //                                   selectedActorId = selected
+  //                                       ? actor['actorid'].toString()
+  //                                       : null;
+  //                                 });
+  //                               },
+  //                             );
+  //                           }).toList(),
+  //                         ),
+  //                       ],
+  //                     ),
+  //                   const SizedBox(height: 16),
+  //                   if (selectedActorId != null)
+  //                     TextField(
+  //                       controller: _channelNameController,
+  //                       decoration: const InputDecoration(
+  //                         labelText: 'Channel Name',
+  //                         labelStyle: TextStyle(color: Colors.white70),
+  //                         hintText: 'Enter channel name',
+  //                         hintStyle: TextStyle(color: Colors.white54),
+  //                       ),
+  //                       style: const TextStyle(color: Colors.white),
+  //                     ),
+  //                 ],
+  //               ),
+  //             ),
+  //             actions: [
+  //               TextButton(
+  //                 onPressed: () => Navigator.pop(context),
+  //                 child: const Text('Cancel',
+  //                     style: TextStyle(color: Colors.white70)),
+  //               ),
+  //               ElevatedButton(
+  //                 style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+  //                 onPressed: () {
+  //                   if (_channelNameController.text.isNotEmpty &&
+  //                       selectedInterconnectId != null &&
+  //                       selectedActorId != null) {
+  //                     dashboardController.createChannel(
+  //                         _channelNameController.text.trim(),
+  //                         selectedActorId!); // handle selectedActorId in this method
+  //                     Navigator.pop(context);
+  //                   }
+  //                 },
+  //                 child: const Text('Create',
+  //                     style: TextStyle(color: Colors.white)),
+  //               ),
+  //             ],
+  //           );
+  //         },
+  //       );
+  //     },
+  //   );
+  // }
 
   void _showCreateDocDialog(BuildContext context) {
     final TextEditingController toController = TextEditingController();
@@ -562,7 +672,7 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   Future<void> fetchDocs(String channelName) async {
-    String token = await getJwt();
+    String token = await dashboardController.getJwt();
     try {
       setState(() {
         isDocsLoading = true;
@@ -587,7 +697,7 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   Future<void> uploadFile() async {
-    String token = await getJwt();
+    String token = await dashboardController.getJwt();
     try {
       // Pick a file
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -695,7 +805,7 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   String appendScriptWithHtml(String html) {
-    return html = "$html<script>$formHandlingJS</script>";
+    return html = "$html<script>${dashboardController.formHandlingJS}</script>";
   }
 
   void _handleAction(String action, String fileName, String html) {
@@ -968,7 +1078,6 @@ class _DashboardViewState extends State<DashboardView> {
     return result;
   }
 
-
   void showHtmlPopup(BuildContext context, String jsonContent) {
     showDialog(
       context: context,
@@ -1043,137 +1152,402 @@ class _DashboardViewState extends State<DashboardView> {
         children: [
           Row(
             children: [
-              // Left Sidebar (Channels)
+              // Left Sidebar (Channels with Long Press Options)
               Container(
-                width: 150,
+                width: 80,
                 color: Colors.grey[900],
                 child: Column(
                   children: [
+                    // Logo or App Icon at top (optional)
                     Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          minimumSize: const Size(double.infinity, 40),
-                        ),
-                        onPressed: () => _showCreateChannelDialog(context),
-                        child: const Text(
-                          '+ Add Channel',
-                          style: TextStyle(fontSize: 12),
-                        ),
+                      child: CircleAvatar(
+                        radius: 24,
+                        backgroundColor: Colors.transparent, // optional if your logo has its own background
+                        backgroundImage: AssetImage('assets/images/logo.png'), // replace with your actual path
                       ),
                     ),
+                    const SizedBox(height: 10),
+                    // Channels List
                     Expanded(
                       child: hasChannels
                           ? ListView.builder(
                               itemCount: channels.length,
                               itemBuilder: (context, index) {
+                                bool isSelected = selectedChannelIndex == index;
                                 return Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Container(
-                                    color: selectedChannelIndex == index
-                                        ? Colors.blue
-                                        : Colors.grey[700],
-                                    padding: const EdgeInsets.all(8),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              setState(() {
-                                                selectedChannelIndex = index;
-                                                selectedDocIndex = null;
-                                                docs = [];
-                                                currentChatMessages = [];
-                                              });
-                                              fetchDocs(channels[index]
-                                                  ["channelname"]);
-                                            },
-                                            child: Text(
-                                              channels[index]["channelname"],
-                                              style: const TextStyle(
-                                                  color: Colors.white),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 6.0),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        selectedChannelIndex = index;
+                                        selectedDocIndex = null;
+                                        docs = [];
+                                        currentChatMessages = [];
+                                      });
+                                      fetchDocs(channels[index]["channelname"]);
+                                    },
+                                    onLongPress: () {
+                                      // Show bottom sheet with options
+                                      showModalBottomSheet(
+                                        context: context,
+                                        backgroundColor: Colors.grey[850],
+                                        shape: const RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.vertical(
+                                              top: Radius.circular(16)),
                                         ),
-                                        PopupMenuButton(
-                                          icon: const Icon(Icons.more_vert,
-                                              color: Colors.white, size: 20),
-                                          itemBuilder: (context) => [
-                                            const PopupMenuItem(
-                                              value: 'qr_code',
-                                              child: Text('QR Code'),
-                                            ),
-                                          ],
-                                          onSelected: (value) {
-                                            if (value == 'qr_code') {
-                                              showDialog(
-                                                context: context,
-                                                builder: (context) {
-                                                  return AlertDialog(
-                                                    // title: const Text('Channel Name'),
-                                                    content:
-                                                        SingleChildScrollView(
-                                                      // Add this wrapper
-                                                      child: Column(
-                                                        mainAxisSize:
-                                                            MainAxisSize.min,
-                                                        children: [
-                                                          Text(qrurl +
-                                                              selectedEntity +
-                                                              channels[index][
-                                                                  "channelname"]),
-                                                          const SizedBox(
-                                                              height: 20),
-                                                          SizedBox(
-                                                            // Constrain the QR code size
-                                                            width: 300,
-                                                            height: 300,
-                                                            child: QrImageView(
-                                                              data: qrurl +
-                                                                  selectedEntity +
-                                                                  channels[
-                                                                          index]
-                                                                      [
-                                                                      "channelname"],
-                                                              version:
-                                                                  QrVersions
-                                                                      .auto,
-                                                              backgroundColor:
-                                                                  Colors.white,
-                                                            ),
+                                        builder: (context) {
+                                          return Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              ListTile(
+                                                leading: const Icon(
+                                                    Icons.qr_code,
+                                                    color: Colors.white),
+                                                title: const Text(
+                                                  'Show QR Code',
+                                                  style: TextStyle(
+                                                      color: Colors.white),
+                                                ),
+                                                onTap: () {
+                                                  Navigator.pop(
+                                                      context); // close sheet
+                                                  // Show QR Code Dialog
+                                                  showDialog(
+                                                    context: context,
+                                                    builder: (context) {
+                                                      return AlertDialog(
+                                                        backgroundColor:
+                                                            Colors.grey[800],
+                                                        content:
+                                                            SingleChildScrollView(
+                                                          child: Column(
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .min,
+                                                            children: [
+                                                              Text(
+                                                                qrurl +
+                                                                    selectedEntity +
+                                                                    channels[
+                                                                            index]
+                                                                        [
+                                                                        "channelname"],
+                                                                style: const TextStyle(
+                                                                    color: Colors
+                                                                        .white),
+                                                              ),
+                                                              const SizedBox(
+                                                                  height: 20),
+                                                              SizedBox(
+                                                                width: 300,
+                                                                height: 300,
+                                                                child:
+                                                                    QrImageView(
+                                                                  data: qrurl +
+                                                                      selectedEntity +
+                                                                      channels[
+                                                                              index]
+                                                                          [
+                                                                          "channelname"],
+                                                                  version:
+                                                                      QrVersions
+                                                                          .auto,
+                                                                  backgroundColor:
+                                                                      Colors
+                                                                          .white,
+                                                                ),
+                                                              ),
+                                                            ],
                                                           ),
+                                                        ),
+                                                        actions: [
+                                                          TextButton(
+                                                            onPressed: () =>
+                                                                Navigator.of(
+                                                                        context)
+                                                                    .pop(),
+                                                            child: const Text(
+                                                                'Close'),
+                                                          )
                                                         ],
-                                                      ),
-                                                    ),
-                                                    actions: [
-                                                      TextButton(
-                                                        onPressed: () =>
-                                                            Navigator.of(
-                                                                    context)
-                                                                .pop(),
-                                                        child:
-                                                            const Text('Close'),
-                                                      )
-                                                    ],
+                                                      );
+                                                    },
                                                   );
                                                 },
-                                              );
-                                            }
-                                          },
+                                              ),
+                                              ListTile(
+                                                leading: const Icon(
+                                                    Icons.qr_code,
+                                                    color: Colors.white),
+                                                title: const Text(
+                                                  'Show QR Code',
+                                                  style: TextStyle(
+                                                      color: Colors.white),
+                                                ),
+                                                onTap: () {
+                                                  Navigator.pop(
+                                                      context); // close sheet
+                                                  // Show QR Code Dialog
+                                                  showDialog(
+                                                    context: context,
+                                                    builder: (context) {
+                                                      return AlertDialog(
+                                                        backgroundColor:
+                                                            Colors.grey[800],
+                                                        content:
+                                                            SingleChildScrollView(
+                                                          child: Column(
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .min,
+                                                            children: [
+                                                              Text(
+                                                                qrurl +
+                                                                    selectedEntity +
+                                                                    channels[
+                                                                            index]
+                                                                        [
+                                                                        "channelname"],
+                                                                style: const TextStyle(
+                                                                    color: Colors
+                                                                        .white),
+                                                              ),
+                                                              const SizedBox(
+                                                                  height: 20),
+                                                              SizedBox(
+                                                                width: 300,
+                                                                height: 300,
+                                                                child:
+                                                                    QrImageView(
+                                                                  data: qrurl +
+                                                                      selectedEntity +
+                                                                      channels[
+                                                                              index]
+                                                                          [
+                                                                          "channelname"],
+                                                                  version:
+                                                                      QrVersions
+                                                                          .auto,
+                                                                  backgroundColor:
+                                                                      Colors
+                                                                          .white,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        actions: [
+                                                          TextButton(
+                                                            onPressed: () =>
+                                                                Navigator.of(
+                                                                        context)
+                                                                    .pop(),
+                                                            child: const Text(
+                                                                'Close'),
+                                                          )
+                                                        ],
+                                                      );
+                                                    },
+                                                  );
+                                                },
+                                              ),
+                                              // Add more options here if needed
+                                            ],
+                                          );
+                                        },
+                                      );
+                                    },
+                                    child: Tooltip(
+                                      message: channels[index]["channelname"],
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? Colors.blueAccent
+                                              : Colors.grey[800],
+                                          shape: BoxShape.circle,
                                         ),
-                                      ],
+                                        margin: const EdgeInsets.symmetric(
+                                            horizontal: 10),
+                                        width: 50,
+                                        height: 50,
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          channels[index]["channelname"]
+                                              .substring(0, 2)
+                                              .toUpperCase(),
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 );
                               },
                             )
-                          : const Center(child: CircularProgressIndicator()),
+                          : const Center(
+                              child: Text(
+                                "No Channels",
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 12),
+                              ),
+                            ),
+                    ),
+
+                    // Add Channel Button (bottom)
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: GestureDetector(
+                        onTap: () => _showCreateChannelDialog(context),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            shape: BoxShape.circle,
+                          ),
+                          width: 50,
+                          height: 50,
+                          child: const Icon(Icons.add, color: Colors.white),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
+
+              // Container(
+              //   width: 150,
+              //   color: Colors.grey[900],
+              //   child: Column(
+              //     children: [
+              //       Padding(
+              //         padding: const EdgeInsets.all(8.0),
+              //         child: ElevatedButton(
+              //           style: ElevatedButton.styleFrom(
+              //             backgroundColor: Colors.blue,
+              //             minimumSize: const Size(double.infinity, 40),
+              //           ),
+              //           onPressed: () => _showCreateChannelDialog(context),
+              //           child: const Text(
+              //             '+ Add Channel',
+              //             style: TextStyle(fontSize: 12),
+              //           ),
+              //         ),
+              //       ),
+              //       Expanded(
+              //         child: hasChannels
+              //             ? ListView.builder(
+              //                 itemCount: channels.length,
+              //                 itemBuilder: (context, index) {
+              //                   return Padding(
+              //                     padding: const EdgeInsets.all(8.0),
+              //                     child: Container(
+              //                       color: selectedChannelIndex == index
+              //                           ? Colors.blue
+              //                           : Colors.grey[700],
+              //                       padding: const EdgeInsets.all(8),
+              //                       child: Row(
+              //                         children: [
+              //                           Expanded(
+              //                             child: GestureDetector(
+              //                               onTap: () {
+              //                                 setState(() {
+              //                                   selectedChannelIndex = index;
+              //                                   selectedDocIndex = null;
+              //                                   docs = [];
+              //                                   currentChatMessages = [];
+              //                                 });
+              //                                 fetchDocs(channels[index]
+              //                                     ["channelname"]);
+              //                               },
+              //                               child: Text(
+              //                                 channels[index]["channelname"],
+              //                                 style: const TextStyle(
+              //                                     color: Colors.white),
+              //                                 overflow: TextOverflow.ellipsis,
+              //                               ),
+              //                             ),
+              //                           ),
+              //                           PopupMenuButton(
+              //                             icon: const Icon(Icons.more_vert,
+              //                                 color: Colors.white, size: 20),
+              //                             itemBuilder: (context) => [
+              //                               const PopupMenuItem(
+              //                                 value: 'qr_code',
+              //                                 child: Text('QR Code'),
+              //                               ),
+              //                             ],
+              //                             onSelected: (value) {
+              //                               if (value == 'qr_code') {
+              //                                 showDialog(
+              //                                   context: context,
+              //                                   builder: (context) {
+              //                                     return AlertDialog(
+              //                                       content:
+              //                                           SingleChildScrollView(
+              //                                         child: Column(
+              //                                           mainAxisSize:
+              //                                               MainAxisSize.min,
+              //                                           children: [
+              //                                             Text(qrurl +
+              //                                                 selectedEntity +
+              //                                                 channels[index][
+              //                                                     "channelname"]),
+              //                                             const SizedBox(
+              //                                                 height: 20),
+              //                                             SizedBox(
+              //                                               width: 300,
+              //                                               height: 300,
+              //                                               child: QrImageView(
+              //                                                 data: qrurl +
+              //                                                     selectedEntity +
+              //                                                     channels[
+              //                                                             index]
+              //                                                         [
+              //                                                         "channelname"],
+              //                                                 version:
+              //                                                     QrVersions
+              //                                                         .auto,
+              //                                                 backgroundColor:
+              //                                                     Colors.white,
+              //                                               ),
+              //                                             ),
+              //                                           ],
+              //                                         ),
+              //                                       ),
+              //                                       actions: [
+              //                                         TextButton(
+              //                                           onPressed: () =>
+              //                                               Navigator.of(
+              //                                                       context)
+              //                                                   .pop(),
+              //                                           child:
+              //                                               const Text('Close'),
+              //                                         )
+              //                                       ],
+              //                                     );
+              //                                   },
+              //                                 );
+              //                               }
+              //                             },
+              //                           ),
+              //                         ],
+              //                       ),
+              //                     ),
+              //                   );
+              //                 },
+              //               )
+              //             : const Center(
+              //                 child: Text(
+              //                   "No Channel Available",
+              //                   style: TextStyle(color: Colors.white),
+              //                 ),
+              //               ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
 
               // Middle Panel (Docs)
               Container(
@@ -1214,9 +1588,10 @@ class _DashboardViewState extends State<DashboardView> {
                                       onTap: () {
                                         setState(() {
                                           selectedDocIndex = index;
-                                          currentChatMessages = documentChats[
-                                                  docs[index]["docname"]] ??
-                                              [];
+                                          currentChatMessages =
+                                              dashboardController.documentChats[
+                                                      docs[index]["docname"]] ??
+                                                  [];
                                         });
                                       },
                                     );
@@ -1377,8 +1752,10 @@ class _DashboardViewState extends State<DashboardView> {
                                                               .start,
                                                       mainAxisSize:
                                                           MainAxisSize.min,
-                                                      children: actionButtons
-                                                          .map((button) {
+                                                      children:
+                                                          dashboardController
+                                                              .actionButtons
+                                                              .map((button) {
                                                         return Row(
                                                           children: [
                                                             _buildActionButton(

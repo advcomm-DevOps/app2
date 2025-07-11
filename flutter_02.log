@@ -1,0 +1,62 @@
+Flutter crash report.
+Please report a bug at https://github.com/flutter/flutter/issues.
+
+## command
+
+flutter run -d chrome --web-port=3001
+
+## exception
+
+ExistingDartDevelopmentServiceException: DartDevelopmentServiceException: JSON-RPC error 100: Existing VM service clients prevent DDS from taking control.
+
+```
+```
+
+## flutter doctor
+
+```
+[32m[✓][39m Flutter (Channel stable, 3.29.3, on Microsoft Windows [Version 10.0.22631.5472], locale en-US) [811ms]
+    [32m•[39m Flutter version 3.29.3 on channel stable at D:\Projects\flutter
+    [32m•[39m Upstream repository https://github.com/flutter/flutter.git
+    [32m•[39m Framework revision ea121f8859 (3 months ago), 2025-04-11 19:10:07 +0000
+    [32m•[39m Engine revision cf56914b32
+    [32m•[39m Dart version 3.7.2
+    [32m•[39m DevTools version 2.42.3
+
+[32m[✓][39m Windows Version (11 Pro 64-bit, 23H2, 2009) [3.8s]
+
+[32m[✓][39m Android toolchain - develop for Android devices (Android SDK version 35.0.0) [4.6s]
+    [32m•[39m Android SDK at C:\Users\Admin\AppData\Local\Android\sdk
+    [32m•[39m Platform android-35, build-tools 35.0.0
+    [32m•[39m Java binary at: C:\Program Files\OpenLogic\jdk-17.0.14.7-hotspot\bin\java
+      This JDK is specified in your Flutter configuration.
+      To change the current JDK, run: `flutter config --jdk-dir="path/to/jdk"`.
+    [32m•[39m Java version OpenJDK Runtime Environment OpenLogic-OpenJDK (build 17.0.14+7-adhoc..jdk17u)
+    [32m•[39m All Android licenses accepted.
+
+[32m[✓][39m Chrome - develop for the web [173ms]
+    [32m•[39m Chrome at C:\Users\Admin\AppData\Local\Google\Chrome\Application\chrome.exe
+
+[32m[✓][39m Visual Studio - develop Windows apps (Visual Studio Professional 2022 17.13.6) [172ms]
+    [32m•[39m Visual Studio at C:\Program Files\Microsoft Visual Studio\2022\Professional
+    [32m•[39m Visual Studio Professional 2022 version 17.13.35931.197
+    [32m•[39m Windows 10 SDK version 10.0.22621.0
+
+[33m[!][39m Android Studio (not installed) [11ms]
+    [32m•[39m Android Studio not found; download from https://developer.android.com/studio/index.html
+      (or visit https://flutter.dev/to/windows-android-setup for detailed instructions).
+
+[32m[✓][39m VS Code (version 1.99.0) [10ms]
+    [32m•[39m VS Code at C:\Users\Admin\AppData\Local\Programs\Microsoft VS Code
+    [32m•[39m Flutter extension version 3.114.0
+
+[32m[✓][39m Connected device (3 available) [181ms]
+    [32m•[39m Windows (desktop) • windows • windows-x64    • Microsoft Windows [Version 10.0.22631.5472]
+    [32m•[39m Chrome (web)      • chrome  • web-javascript • Google Chrome 137.0.7151.122
+    [32m•[39m Edge (web)        • edge    • web-javascript • Microsoft Edge 138.0.3351.77
+
+[32m[✓][39m Network resources [1,390ms]
+    [32m•[39m All expected network resources are available.
+
+[33m![39m Doctor found issues in 1 category.
+```
