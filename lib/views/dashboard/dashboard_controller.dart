@@ -5,7 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class DashboardController {
   final Dio dio = Dio();
-  final String apiUrl = 'http://192.168.0.87:3000';
+  final String apiUrl = 'http://localhost:3000';
   final String qrurl = 'https://s.xdoc.app/c/';
   final FlutterSecureStorage secureStorage = FlutterSecureStorage();
 
@@ -288,5 +288,95 @@ class DashboardController {
       print("Error joining channel: $e");
       return false;
     }
+  }
+
+  Future<bool> createTag(String tag, String tagDescription, String expireAt,
+      String channelName) async {
+    String token = await getJwt();
+    try {
+      final tagData = {
+        "tag": tag,
+        "tagDescription": tagDescription,
+        "expireAt": expireAt,
+      };
+
+      // Set headers including Content-Type
+      dio.options.headers = {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      };
+
+      final response = await dio.post(
+        '$apiUrl/channel/$channelName/tag',
+        data: jsonEncode(tagData),
+        options: Options(
+          contentType: 'application/json',
+        ),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print("Tag created successfully: ${response.data}");
+        return true;
+      }
+    } on DioException catch (e) {
+      print("Dio error creating tag: ${e.message}");
+      print("Response: ${e.response?.data}");
+    } catch (e) {
+      print("Error creating tag: $e");
+    }
+    return false;
+  }
+
+  Future<List<dynamic>> getTags(String channelName) async {
+    String token = await getJwt();
+    try {
+      dio.options.headers = {
+        "Authorization": "Bearer $token",
+        "Accept": "application/json",
+      };
+
+      final response = await dio.get(
+        '$apiUrl/channel/$channelName/tags',
+      );
+
+      if (response.statusCode == 200) {
+        print("Tags fetched successfully: ${response.data}");
+        return response.data; // assuming your API returns a JSON array
+      } else {
+        print("Failed to fetch tags. Status code: ${response.statusCode}");
+      }
+    } on DioException catch (e) {
+      print("Dio error fetching tags: ${e.message}");
+      print("Response: ${e.response?.data}");
+    } catch (e) {
+      print("Error fetching tags: $e");
+    }
+    return [];
+  }
+
+  Future<List<dynamic>> getDocs(String channelName) async {
+    String token = await getJwt();
+    try {
+      dio.options.headers["Authorization"] = "Bearer $token";
+      dio.options.headers["Accept"] = "application/json";
+
+      final response = await dio.get(
+        '$apiUrl/docs/$channelName',
+      );
+
+      if (response.statusCode == 200) {
+        print("Docs fetched successfully: ${response.data}");
+        return response.data; // assuming API returns a JSON array
+      } else {
+        print("Failed to fetch docs. Status code: ${response.statusCode}");
+      }
+    } on DioException catch (e) {
+      print("Dio error fetching docs: ${e.message}");
+      print("Response: ${e.response?.data}");
+    } catch (e) {
+      print("Error fetching docs: $e");
+    }
+    return [];
   }
 }

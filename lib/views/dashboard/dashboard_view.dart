@@ -13,6 +13,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'platform_web.dart' if (dart.library.io) 'platform_non_web.dart';
 import 'package:liquid_engine/liquid_engine.dart';
 import 'dashboard_controller.dart';
+import 'package:flutter/services.dart';
 
 class DashboardView extends StatefulWidget {
   final String? entity;
@@ -25,17 +26,21 @@ class DashboardView extends StatefulWidget {
 class _DashboardViewState extends State<DashboardView> {
   int? selectedChannelIndex;
   int? selectedDocIndex;
+  int? selectedTagIndex;
   String selectedEntity = '';
 
   final dio = Dio();
-  final String apiUrl = 'http://192.168.0.87:3000';
-  final String qrurl = 'https://s.xdoc.app/c/';
+  final String apiUrl = 'http://localhost:3000';
+  final String qrurl = 'http://localhost:3001/c/';
+  // final String qrurl = 'https://s.xdoc.app/c/';
   List<Map<String, dynamic>> channels = [];
   List<Map<String, dynamic>> docs = [];
+  List<Map<String, dynamic>> tags = [];
   DashboardController dashboardController =
       DashboardController(); // Initialize the controller
 
   bool isDocsLoading = false;
+  bool isTagsLoading = false;
   bool isUploading = false;
   Locale? _currentLocale;
 
@@ -84,7 +89,7 @@ class _DashboardViewState extends State<DashboardView> {
     super.initState();
     dashboardController.onboardEntity().then((result) {
       if (result) {
-        fetchChannels(); 
+        fetchChannels();
       }
     });
     loadSelectedEntity();
@@ -101,7 +106,7 @@ class _DashboardViewState extends State<DashboardView> {
       if (response.data != null &&
           response.data is List &&
           (response.data as List).isNotEmpty) {
-            print("Fetched channels: ${response.data}");
+        print("Fetched channels: ${response.data}");
         setState(() {
           channels = List<Map<String, dynamic>>.from(response.data);
         });
@@ -169,7 +174,7 @@ class _DashboardViewState extends State<DashboardView> {
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
               onPressed: () {
-                addNewChannel(secQr,entityQr!);
+                addNewChannel(secQr, entityQr!);
                 Navigator.of(context).pop();
               },
               child: const Text(
@@ -191,7 +196,7 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
-  void addNewChannel(String sectionName,String entityName) {
+  void addNewChannel(String sectionName, String entityName) {
     dashboardController.joinChannel(entityName, sectionName).then((joined) {
       if (joined) {
         fetchChannels();
@@ -412,255 +417,205 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  // void _showCreateChannelDialog(BuildContext context) {
-  //   showDialog(
-  //     context: context,
-  //     builder: (BuildContext context) {
-  //       return StatefulBuilder(
-  //         builder: (BuildContext context, StateSetter setState) {
-  //           return AlertDialog(
-  //             title: const Text('Create New Channel',
-  //                 style: TextStyle(color: Colors.white)),
-  //             backgroundColor: Colors.grey[800],
-  //             content: SingleChildScrollView(
-  //               child: Column(
-  //                 mainAxisSize: MainAxisSize.min,
-  //                 children: [
-  //                   // Interconnects section
-  //                   if (publicInterconnects.isNotEmpty)
-  //                     Column(
-  //                       crossAxisAlignment: CrossAxisAlignment.start,
-  //                       children: [
-  //                         const Text('Select Interconnect',
-  //                             style: TextStyle(color: Colors.white70)),
-  //                         const SizedBox(height: 8),
-  //                         Wrap(
-  //                           spacing: 8,
-  //                           children:
-  //                               publicInterconnects.map<Widget>((interconnect) {
-  //                             return ChoiceChip(
-  //                               label: Text(interconnect['interconnectname'],
-  //                                   style:
-  //                                       const TextStyle(color: Colors.white)),
-  //                               selected: selectedInterconnectId ==
-  //                                   interconnect['interconnectid'],
-  //                               selectedColor: Colors.blue,
-  //                               backgroundColor: Colors.grey[700],
-  //                               onSelected: (bool selected) async {
-  //                                 setState(() {
-  //                                   selectedInterconnectId = selected
-  //                                       ? interconnect['interconnectid']
-  //                                       : null;
-  //                                   respondentActors = []; // reset before fetch
-  //                                   selectedActorId = null;
-  //                                 });
+  void _showCreateTagDialog(BuildContext context,int index) {
+    final TextEditingController tagController = TextEditingController();
+    final TextEditingController tagDescriptionController =
+        TextEditingController();
+    final TextEditingController expireAtController = TextEditingController();
 
-  //                                 if (selected) {
-  //                                   // Fetch respondent actors for selected interconnect
-  //                                   respondentActors = await dashboardController
-  //                                       .getRespondentActors(
-  //                                           selectedInterconnectId!);
-  //                                   setState(() {});
-  //                                 }
-  //                               },
-  //                             );
-  //                           }).toList(),
-  //                         ),
-  //                       ],
-  //                     ),
-  //                   const SizedBox(height: 16),
-  //                   // Respondent actors section
-  //                   if (respondentActors.isNotEmpty)
-  //                     Column(
-  //                       crossAxisAlignment: CrossAxisAlignment.start,
-  //                       children: [
-  //                         const Text('Select Respondent Actor',
-  //                             style: TextStyle(color: Colors.white70)),
-  //                         const SizedBox(height: 8),
-  //                         Wrap(
-  //                           spacing: 8,
-  //                           children: respondentActors.map<Widget>((actor) {
-  //                             return ChoiceChip(
-  //                               label: Text(actor['actorname'] ?? 'Unnamed',
-  //                                   style:
-  //                                       const TextStyle(color: Colors.white)),
-  //                               selected: selectedActorId ==
-  //                                   actor['actorid'].toString(),
-  //                               selectedColor: Colors.green,
-  //                               backgroundColor: Colors.grey[700],
-  //                               onSelected: (bool selected) {
-  //                                 setState(() {
-  //                                   selectedActorId = selected
-  //                                       ? actor['actorid'].toString()
-  //                                       : null;
-  //                                 });
-  //                               },
-  //                             );
-  //                           }).toList(),
-  //                         ),
-  //                       ],
-  //                     ),
-  //                   const SizedBox(height: 16),
-  //                   if (selectedActorId != null)
-  //                     TextField(
-  //                       controller: _channelNameController,
-  //                       decoration: const InputDecoration(
-  //                         labelText: 'Channel Name',
-  //                         labelStyle: TextStyle(color: Colors.white70),
-  //                         hintText: 'Enter channel name',
-  //                         hintStyle: TextStyle(color: Colors.white54),
-  //                       ),
-  //                       style: const TextStyle(color: Colors.white),
-  //                     ),
-  //                 ],
-  //               ),
-  //             ),
-  //             actions: [
-  //               TextButton(
-  //                 onPressed: () => Navigator.pop(context),
-  //                 child: const Text('Cancel',
-  //                     style: TextStyle(color: Colors.white70)),
-  //               ),
-  //               ElevatedButton(
-  //                 style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-  //                 onPressed: () {
-  //                   if (_channelNameController.text.isNotEmpty &&
-  //                       selectedInterconnectId != null &&
-  //                       selectedActorId != null) {
-  //                     dashboardController.createChannel(
-  //                         _channelNameController.text.trim(),
-  //                         selectedActorId!); // handle selectedActorId in this method
-  //                     Navigator.pop(context);
-  //                   }
-  //                 },
-  //                 child: const Text('Create',
-  //                     style: TextStyle(color: Colors.white)),
-  //               ),
-  //             ],
-  //           );
-  //         },
-  //       );
-  //     },
-  //   );
-  // }
-
-  void _showCreateDocDialog(BuildContext context) {
-    final TextEditingController toController = TextEditingController();
-    final TextEditingController subjectController = TextEditingController();
-    final TextEditingController bodyController = TextEditingController();
-
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.7,
-          minChildSize: 0.4,
-          maxChildSize: 0.95,
-          builder: (context, scrollController) {
-            return Stack(
-              children: [
-                Container(
-                  padding: EdgeInsets.only(
-                    left: 16,
-                    right: 16,
-                    top: 16,
-                    bottom: MediaQuery.of(context).viewInsets.bottom +
-                        60, // Leave space for buttons
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              backgroundColor: Colors.grey[900],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Create New Tag',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[600],
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(20)),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                  child: ListView(
-                    controller: scrollController,
+                ],
+              ),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 500),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'New Document',
-                            style: TextStyle(color: Colors.white, fontSize: 18),
-                          ),
-                          IconButton(
-                            icon:
-                                const Icon(Icons.close, color: Colors.white70),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
                       TextField(
-                        controller: toController,
-                        decoration: const InputDecoration(
-                          labelText: 'To',
-                          labelStyle: TextStyle(color: Colors.white70),
-                          hintText: 'Enter recipient',
-                          hintStyle: TextStyle(color: Colors.white54),
-                          border: UnderlineInputBorder(),
+                        controller: tagController,
+                        decoration: InputDecoration(
+                          labelText: 'Tag *',
+                          labelStyle: const TextStyle(color: Colors.white70),
+                          hintText: 'Enter tag (e.g. example-tag)',
+                          hintStyle: const TextStyle(color: Colors.white54),
+                          filled: true,
+                          fillColor: Colors.grey[800],
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Colors.grey),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Colors.blue),
+                          ),
                         ),
                         style: const TextStyle(color: Colors.white),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
                       TextField(
-                        controller: subjectController,
-                        decoration: const InputDecoration(
-                          labelText: 'Subject',
-                          labelStyle: TextStyle(color: Colors.white70),
-                          hintText: 'Enter subject',
-                          hintStyle: TextStyle(color: Colors.white54),
-                          border: UnderlineInputBorder(),
-                        ),
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: bodyController,
-                        decoration: const InputDecoration(
-                          labelText: 'Body',
-                          labelStyle: TextStyle(color: Colors.white70),
-                          hintText: 'Enter message',
-                          hintStyle: TextStyle(color: Colors.white54),
-                          border: InputBorder.none,
+                        controller: tagDescriptionController,
+                        decoration: InputDecoration(
+                          labelText: 'Tag Description *',
+                          labelStyle: const TextStyle(color: Colors.white70),
+                          hintText: 'Enter tag description',
+                          hintStyle: const TextStyle(color: Colors.white54),
+                          filled: true,
+                          fillColor: Colors.grey[800],
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Colors.grey),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Colors.blue),
+                          ),
                         ),
                         style: const TextStyle(color: Colors.white),
                         keyboardType: TextInputType.multiline,
+                        minLines: 3,
                         maxLines: null,
                       ),
-                    ],
-                  ),
-                ),
-                Positioned(
-                  right: 8,
-                  bottom: 8,
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon:
-                            const Icon(Icons.upload_file, color: Colors.white),
-                        tooltip: 'Upload form',
-                        onPressed: () => _showUploadMethodDialog(context),
-                      ),
-                      IconButton(
-                        icon:
-                            const Icon(Icons.attach_file, color: Colors.white),
-                        tooltip: 'Attach a file',
-                        onPressed: uploadFile,
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.send, color: Colors.white),
-                        tooltip: 'Send',
-                        onPressed: () {
-                          if (toController.text.isNotEmpty &&
-                              bodyController.text.isNotEmpty) {
-                            sendMessage();
-                            Navigator.pop(context);
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: expireAtController,
+                        readOnly: true,
+                        decoration: InputDecoration(
+                          labelText: 'Expire At *',
+                          labelStyle: const TextStyle(color: Colors.white70),
+                          hintText: 'Select expiration date and time',
+                          hintStyle: const TextStyle(color: Colors.white54),
+                          filled: true,
+                          fillColor: Colors.grey[800],
+                          suffixIcon: const Icon(Icons.calendar_today,
+                              color: Colors.white70),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Colors.grey),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Colors.blue),
+                          ),
+                        ),
+                        style: const TextStyle(color: Colors.white),
+                        onTap: () async {
+                          DateTime? picked = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            TimeOfDay? time = await showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay.now(),
+                            );
+                            if (time != null) {
+                              final DateTime combined = DateTime(
+                                picked.year,
+                                picked.month,
+                                picked.day,
+                                time.hour,
+                                time.minute,
+                              );
+                              expireAtController.text =
+                                  combined.toUtc().toIso8601String();
+                            }
                           }
                         },
                       ),
                     ],
+                  ),
+                ),
+              ),
+              actionsPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              actionsAlignment: MainAxisAlignment.spaceBetween,
+              actions: [
+                TextButton(
+                  onPressed: () { 
+                    Navigator.pop(context);
+                    _showChannelOptionsBottomSheet(context, index);
+                    },
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                  ),
+                  onPressed: () {
+                    if (tagController.text.isEmpty ||
+                        tagDescriptionController.text.isEmpty ||
+                        expireAtController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please fill in all required fields.'),
+                        ),
+                      );
+                      return;
+                    }
+                    dashboardController
+                        .createTag(
+                            tagController.text.trim(),
+                            tagDescriptionController.text.trim(),
+                            expireAtController.text.trim(),
+                            channels[selectedChannelIndex!]["channelname"])
+                        .then((created) {
+                      if (created) {
+                        setState(() {
+                          tags.add({
+                            "tag": tagController.text.trim(),
+                            "description": tagDescriptionController.text.trim(),
+                            "expireAt": expireAtController.text.trim(),
+                          });
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Tag created successfully')),
+                        );
+                        Navigator.pop(context);
+                        _showChannelOptionsBottomSheet(context, index);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('failed')),
+                        );
+                      }
+                    });
+                  },
+                  child: const Text(
+                    'Create',
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
               ],
@@ -672,7 +627,6 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   Future<void> fetchDocs(String channelName) async {
-    String token = await dashboardController.getJwt();
     try {
       setState(() {
         isDocsLoading = true;
@@ -681,11 +635,9 @@ class _DashboardViewState extends State<DashboardView> {
         currentChatMessages = [];
       });
 
-      dio.options.headers["Authorization"] = "Bearer $token";
-      final response = await dio.get('$apiUrl/docs/$channelName');
-
+      final docsList = await dashboardController.getDocs(channelName);
       setState(() {
-        docs = List<Map<String, dynamic>>.from(response.data);
+        docs = List<Map<String, dynamic>>.from(docsList);
         isDocsLoading = false;
       });
     } catch (e) {
@@ -693,6 +645,27 @@ class _DashboardViewState extends State<DashboardView> {
         isDocsLoading = false;
       });
       print("Error fetching docs: $e");
+    }
+  }
+
+  Future<void> fetchTags(String channelName) async {
+    try {
+      setState(() {
+        isTagsLoading = true;
+        tags = [];
+        selectedTagIndex = null;
+      });
+
+      final tagsList = await dashboardController.getTags(channelName);
+      setState(() {
+        tags = List<Map<String, dynamic>>.from(tagsList);
+        isTagsLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isTagsLoading = false;
+      });
+      print("Error fetching Tags: $e");
     }
   }
 
@@ -871,6 +844,61 @@ class _DashboardViewState extends State<DashboardView> {
           //         const Text('Submit', style: TextStyle(color: Colors.white)),
           //   ),
           // ],
+        );
+      },
+    );
+  }
+
+  void showQrDialog(BuildContext context, String qrData, int index) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[800],
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  qrData,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: 300,
+                  height: 300,
+                  child: QrImageView(
+                    data: qrData,
+                    version: QrVersions.auto,
+                    backgroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: qrData));
+                Navigator.of(context).pop();
+                _showChannelOptionsBottomSheet(context, index);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('URL copied: $qrData'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+              child: const Text('Copy'),
+            ),
+            TextButton(
+              onPressed: () {
+                 Navigator.of(context).pop();
+                 _showChannelOptionsBottomSheet(context, index);
+                 },
+              child: const Text('Close'),
+            ),
+          ],
         );
       },
     );
@@ -1138,6 +1166,89 @@ class _DashboardViewState extends State<DashboardView> {
       },
     );
   }
+  void _showChannelOptionsBottomSheet(BuildContext context, int index) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[850],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.qr_code, color: Colors.white),
+              title: Text(
+                'Show QR Code for ${channels[index]["channelname"]}',
+                style: const TextStyle(color: Colors.white),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                String qrData = qrurl +
+                    selectedEntity +
+                    channels[index]["channelname"];
+                showQrDialog(context, qrData,index);
+              },
+            ),
+            const SizedBox(height: 10),
+
+            // Create Tag Button
+            if (selectedChannelIndex != null &&
+                channels[selectedChannelIndex!]["actorsequence"] == "1")
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green[600],
+                  minimumSize: const Size(double.infinity, 45),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.add, color: Colors.white),
+                label: const Text(
+                  'Create Tag',
+                  style: TextStyle(fontSize: 14, color: Colors.white),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showCreateTagDialog(context,index);
+                },
+              ),
+
+            // Tags List
+            if (tags.isNotEmpty)
+              ...tags.asMap().entries.map((entry) {
+                var tag = entry.value;
+                return ListTile(
+                  leading: const Icon(Icons.label, color: Colors.white70),
+                  title: Text(
+                    tag["tag"],
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    String qrData = qrurl +
+                        selectedEntity +
+                        channels[index]["channelname"] +
+                        "?tag=" +
+                        tag["tag"];
+                    showQrDialog(context, qrData, index);
+                  },
+                );
+              }).toList()
+            else
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  "No Tags Available",
+                  style: TextStyle(color: Colors.white54),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1163,8 +1274,10 @@ class _DashboardViewState extends State<DashboardView> {
                       padding: const EdgeInsets.all(8.0),
                       child: CircleAvatar(
                         radius: 24,
-                        backgroundColor: Colors.transparent, // optional if your logo has its own background
-                        backgroundImage: AssetImage('assets/images/logo.png'), // replace with your actual path
+                        backgroundColor: Colors
+                            .transparent, // optional if your logo has its own background
+                        backgroundImage: AssetImage(
+                            'assets/images/logo.png'), // replace with your actual path
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -1188,176 +1301,24 @@ class _DashboardViewState extends State<DashboardView> {
                                       });
                                       fetchDocs(channels[index]["channelname"]);
                                     },
-                                    onLongPress: () {
-                                      // Show bottom sheet with options
-                                      showModalBottomSheet(
-                                        context: context,
-                                        backgroundColor: Colors.grey[850],
-                                        shape: const RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.vertical(
-                                              top: Radius.circular(16)),
-                                        ),
-                                        builder: (context) {
-                                          return Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              ListTile(
-                                                leading: const Icon(
-                                                    Icons.qr_code,
-                                                    color: Colors.white),
-                                                title: const Text(
-                                                  'Show QR Code',
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                                onTap: () {
-                                                  Navigator.pop(
-                                                      context); // close sheet
-                                                  // Show QR Code Dialog
-                                                  showDialog(
-                                                    context: context,
-                                                    builder: (context) {
-                                                      return AlertDialog(
-                                                        backgroundColor:
-                                                            Colors.grey[800],
-                                                        content:
-                                                            SingleChildScrollView(
-                                                          child: Column(
-                                                            mainAxisSize:
-                                                                MainAxisSize
-                                                                    .min,
-                                                            children: [
-                                                              Text(
-                                                                qrurl +
-                                                                    selectedEntity +
-                                                                    channels[
-                                                                            index]
-                                                                        [
-                                                                        "channelname"],
-                                                                style: const TextStyle(
-                                                                    color: Colors
-                                                                        .white),
-                                                              ),
-                                                              const SizedBox(
-                                                                  height: 20),
-                                                              SizedBox(
-                                                                width: 300,
-                                                                height: 300,
-                                                                child:
-                                                                    QrImageView(
-                                                                  data: qrurl +
-                                                                      selectedEntity +
-                                                                      channels[
-                                                                              index]
-                                                                          [
-                                                                          "channelname"],
-                                                                  version:
-                                                                      QrVersions
-                                                                          .auto,
-                                                                  backgroundColor:
-                                                                      Colors
-                                                                          .white,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                        actions: [
-                                                          TextButton(
-                                                            onPressed: () =>
-                                                                Navigator.of(
-                                                                        context)
-                                                                    .pop(),
-                                                            child: const Text(
-                                                                'Close'),
-                                                          )
-                                                        ],
-                                                      );
-                                                    },
-                                                  );
-                                                },
-                                              ),
-                                              ListTile(
-                                                leading: const Icon(
-                                                    Icons.qr_code,
-                                                    color: Colors.white),
-                                                title: const Text(
-                                                  'Show QR Code',
-                                                  style: TextStyle(
-                                                      color: Colors.white),
-                                                ),
-                                                onTap: () {
-                                                  Navigator.pop(
-                                                      context); // close sheet
-                                                  // Show QR Code Dialog
-                                                  showDialog(
-                                                    context: context,
-                                                    builder: (context) {
-                                                      return AlertDialog(
-                                                        backgroundColor:
-                                                            Colors.grey[800],
-                                                        content:
-                                                            SingleChildScrollView(
-                                                          child: Column(
-                                                            mainAxisSize:
-                                                                MainAxisSize
-                                                                    .min,
-                                                            children: [
-                                                              Text(
-                                                                qrurl +
-                                                                    selectedEntity +
-                                                                    channels[
-                                                                            index]
-                                                                        [
-                                                                        "channelname"],
-                                                                style: const TextStyle(
-                                                                    color: Colors
-                                                                        .white),
-                                                              ),
-                                                              const SizedBox(
-                                                                  height: 20),
-                                                              SizedBox(
-                                                                width: 300,
-                                                                height: 300,
-                                                                child:
-                                                                    QrImageView(
-                                                                  data: qrurl +
-                                                                      selectedEntity +
-                                                                      channels[
-                                                                              index]
-                                                                          [
-                                                                          "channelname"],
-                                                                  version:
-                                                                      QrVersions
-                                                                          .auto,
-                                                                  backgroundColor:
-                                                                      Colors
-                                                                          .white,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                        actions: [
-                                                          TextButton(
-                                                            onPressed: () =>
-                                                                Navigator.of(
-                                                                        context)
-                                                                    .pop(),
-                                                            child: const Text(
-                                                                'Close'),
-                                                          )
-                                                        ],
-                                                      );
-                                                    },
-                                                  );
-                                                },
-                                              ),
-                                              // Add more options here if needed
-                                            ],
-                                          );
-                                        },
-                                      );
+                                    onLongPress: () async {
+                                      setState(() {
+                                        selectedChannelIndex = index;
+                                        selectedDocIndex = null;
+                                        docs = [];
+                                        currentChatMessages = [];
+                                      });
+                                      if (selectedChannelIndex != null &&
+                                          channels[selectedChannelIndex!]
+                                                  ["actorsequence"] ==
+                                              "1") {
+                                        await fetchTags(
+                                            channels[index]["channelname"]);
+                                            _showChannelOptionsBottomSheet(context, index);
+
+                                      } else {
+                                        tags = [];
+                                      }
                                     },
                                     child: Tooltip(
                                       message: channels[index]["channelname"],
@@ -1415,161 +1376,27 @@ class _DashboardViewState extends State<DashboardView> {
                   ],
                 ),
               ),
-
-              // Container(
-              //   width: 150,
-              //   color: Colors.grey[900],
-              //   child: Column(
-              //     children: [
-              //       Padding(
-              //         padding: const EdgeInsets.all(8.0),
-              //         child: ElevatedButton(
-              //           style: ElevatedButton.styleFrom(
-              //             backgroundColor: Colors.blue,
-              //             minimumSize: const Size(double.infinity, 40),
-              //           ),
-              //           onPressed: () => _showCreateChannelDialog(context),
-              //           child: const Text(
-              //             '+ Add Channel',
-              //             style: TextStyle(fontSize: 12),
-              //           ),
-              //         ),
-              //       ),
-              //       Expanded(
-              //         child: hasChannels
-              //             ? ListView.builder(
-              //                 itemCount: channels.length,
-              //                 itemBuilder: (context, index) {
-              //                   return Padding(
-              //                     padding: const EdgeInsets.all(8.0),
-              //                     child: Container(
-              //                       color: selectedChannelIndex == index
-              //                           ? Colors.blue
-              //                           : Colors.grey[700],
-              //                       padding: const EdgeInsets.all(8),
-              //                       child: Row(
-              //                         children: [
-              //                           Expanded(
-              //                             child: GestureDetector(
-              //                               onTap: () {
-              //                                 setState(() {
-              //                                   selectedChannelIndex = index;
-              //                                   selectedDocIndex = null;
-              //                                   docs = [];
-              //                                   currentChatMessages = [];
-              //                                 });
-              //                                 fetchDocs(channels[index]
-              //                                     ["channelname"]);
-              //                               },
-              //                               child: Text(
-              //                                 channels[index]["channelname"],
-              //                                 style: const TextStyle(
-              //                                     color: Colors.white),
-              //                                 overflow: TextOverflow.ellipsis,
-              //                               ),
-              //                             ),
-              //                           ),
-              //                           PopupMenuButton(
-              //                             icon: const Icon(Icons.more_vert,
-              //                                 color: Colors.white, size: 20),
-              //                             itemBuilder: (context) => [
-              //                               const PopupMenuItem(
-              //                                 value: 'qr_code',
-              //                                 child: Text('QR Code'),
-              //                               ),
-              //                             ],
-              //                             onSelected: (value) {
-              //                               if (value == 'qr_code') {
-              //                                 showDialog(
-              //                                   context: context,
-              //                                   builder: (context) {
-              //                                     return AlertDialog(
-              //                                       content:
-              //                                           SingleChildScrollView(
-              //                                         child: Column(
-              //                                           mainAxisSize:
-              //                                               MainAxisSize.min,
-              //                                           children: [
-              //                                             Text(qrurl +
-              //                                                 selectedEntity +
-              //                                                 channels[index][
-              //                                                     "channelname"]),
-              //                                             const SizedBox(
-              //                                                 height: 20),
-              //                                             SizedBox(
-              //                                               width: 300,
-              //                                               height: 300,
-              //                                               child: QrImageView(
-              //                                                 data: qrurl +
-              //                                                     selectedEntity +
-              //                                                     channels[
-              //                                                             index]
-              //                                                         [
-              //                                                         "channelname"],
-              //                                                 version:
-              //                                                     QrVersions
-              //                                                         .auto,
-              //                                                 backgroundColor:
-              //                                                     Colors.white,
-              //                                               ),
-              //                                             ),
-              //                                           ],
-              //                                         ),
-              //                                       ),
-              //                                       actions: [
-              //                                         TextButton(
-              //                                           onPressed: () =>
-              //                                               Navigator.of(
-              //                                                       context)
-              //                                                   .pop(),
-              //                                           child:
-              //                                               const Text('Close'),
-              //                                         )
-              //                                       ],
-              //                                     );
-              //                                   },
-              //                                 );
-              //                               }
-              //                             },
-              //                           ),
-              //                         ],
-              //                       ),
-              //                     ),
-              //                   );
-              //                 },
-              //               )
-              //             : const Center(
-              //                 child: Text(
-              //                   "No Channel Available",
-              //                   style: TextStyle(color: Colors.white),
-              //                 ),
-              //               ),
-              //       ),
-              //     ],
-              //   ),
-              // ),
-
               // Middle Panel (Docs)
               Container(
                 width: 250,
                 color: Colors.grey[850],
                 child: Column(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          minimumSize: const Size(double.infinity, 40),
-                        ),
-                        onPressed: () => _showCreateDocDialog(
-                            context), // You'll define this method
-                        child: const Text(
-                          '+ Compose',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                      ),
-                    ),
+                    // Padding(
+                    //   padding: const EdgeInsets.all(8.0),
+                    //   child: ElevatedButton(
+                    //     style: ElevatedButton.styleFrom(
+                    //       backgroundColor: Colors.green,
+                    //       minimumSize: const Size(double.infinity, 40),
+                    //     ),
+                    //     onPressed: () => _showCreateTagDialog(
+                    //         context), // You'll define this method
+                    //     child: const Text(
+                    //       '+',
+                    //       style: TextStyle(fontSize: 12),
+                    //     ),
+                    //   ),
+                    // ),
                     Expanded(
                       child: isDocsLoading
                           ? const Center(child: CircularProgressIndicator())
