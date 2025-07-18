@@ -28,8 +28,26 @@ class DeepLinkHandler {
 
   static void handleDeepLink(Uri uri) {
     print("Deep link received: ${uri.toString()}");
-    if (uri.path.isNotEmpty) {
-      router.push(uri.path);
+
+    String routePath;
+
+    if (uri.host.isNotEmpty) {
+      routePath = '/' + uri.host + uri.path;
+    } else {
+      routePath = uri.path;
+    }
+
+    print("Navigating to: $routePath");
+
+    if (routePath.isNotEmpty) {
+      router.push(routePath);
     }
   }
+
+  // static void handleDeepLink(Uri uri) {
+  //   print("Deep link received: ${uri.toString()}");
+  //   if (uri.path.isNotEmpty) {
+  //     router.push(uri.path);
+  //   }
+  // }
 }

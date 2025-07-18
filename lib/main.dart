@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_starter/custom/services/X25519.dart';
 
 
 import 'package:url_strategy/url_strategy.dart';
@@ -20,7 +19,7 @@ void main() async {
   await EasyLocalization.ensureInitialized();
   // await initializeSsoSdk('https://auth1.3u.gg', 'api.3u.gg');
   await initializeSsoSdk(authUrl, audDomain);
-  await generateX25519KeyPair();
+  
   // await FirebaseService.initializeFirebase();
   runApp(
     EasyLocalization(

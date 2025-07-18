@@ -40,14 +40,17 @@ final List<GoRoute> customRoutes = [
   ),
   GoRoute(
     name: "c",
-    path: '/c/:entity/:section',
+    path: '/c/:entity/:section/:tagid',
     pageBuilder: (context, state) {
+       print('Full URI,,,: ${state.uri}');
       final entity = state.pathParameters['entity']!;
       final section = state.pathParameters['section']!;
+      final tagid = state.pathParameters['tagid'];
+      print('tagid.................................: $tagid');
       return buildPageWithTransition(
         context,
         state,
-        DashboardView(entity: entity, section: section),
+        DashboardView(entity: entity, section: section, tagid: tagid),
       );
     },
     redirect: (context, state) async {

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_starter/custom/services/X25519.dart';
 import 'package:flutter_starter/custom/services/sso.dart';
 import 'package:flutter_starter/views/dashboard/form_resume.dart';
 import '../nav/custom_app_bar.dart';
@@ -18,7 +19,8 @@ import 'package:flutter/services.dart';
 class DashboardView extends StatefulWidget {
   final String? entity;
   final String? section;
-  const DashboardView({super.key, this.entity, this.section});
+  final String? tagid;
+  const DashboardView({super.key, this.entity, this.section, this.tagid});
   @override
   _DashboardViewState createState() => _DashboardViewState();
 }
@@ -26,8 +28,12 @@ class DashboardView extends StatefulWidget {
 class _DashboardViewState extends State<DashboardView> {
   int? selectedChannelIndex;
   int? selectedDocIndex;
+  int? selectedjoinedTagIndex;
   int? selectedTagIndex;
   String selectedEntity = '';
+  String? secQr = '';
+  String? entityQr = '';
+  String? newSecQr = '';
 
   final dio = Dio();
   final String apiUrl = 'http://localhost:3000';
@@ -35,11 +41,13 @@ class _DashboardViewState extends State<DashboardView> {
   // final String qrurl = 'https://s.xdoc.app/c/';
   List<Map<String, dynamic>> channels = [];
   List<Map<String, dynamic>> docs = [];
+  List<Map<String, dynamic>> joinedTags = [];
   List<Map<String, dynamic>> tags = [];
   DashboardController dashboardController =
       DashboardController(); // Initialize the controller
 
   bool isDocsLoading = false;
+  bool isjoinedTagsLoading = false;
   bool isTagsLoading = false;
   bool isUploading = false;
   Locale? _currentLocale;
@@ -87,6 +95,9 @@ class _DashboardViewState extends State<DashboardView> {
   @override
   void initState() {
     super.initState();
+    initSetup();
+    secQr = widget.section;
+    entityQr = widget.entity;
     dashboardController.onboardEntity().then((result) {
       if (result) {
         fetchChannels();
@@ -97,7 +108,9 @@ class _DashboardViewState extends State<DashboardView> {
       publicInterconnects = result;
     });
   }
-
+  Future<void> initSetup() async {
+    await generateX25519KeyPair();
+  }
   Future<void> fetchChannels() async {
     try {
       String token = await dashboardController.getJwt();
@@ -120,10 +133,14 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   void validateSection() {
-    final secQr = widget.section;
-    final entityQr = widget.entity;
-
-    if (secQr == null || secQr.isEmpty) return;
+    secQr = widget.section;
+    if(widget.section == "Job Employer") {
+      newSecQr = "Job Applicant";
+    }else{
+      newSecQr = widget.section;
+    }
+    final tagid = widget.tagid;
+    if (secQr == null) return;
 
     final exists = channels.any((channel) => channel['channelname'] == secQr);
     final index =
@@ -174,7 +191,7 @@ class _DashboardViewState extends State<DashboardView> {
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
               onPressed: () {
-                addNewChannel(secQr, entityQr!);
+                joinNewChannel(secQr!, entityQr!, tagid);
                 Navigator.of(context).pop();
               },
               child: const Text(
@@ -186,6 +203,7 @@ class _DashboardViewState extends State<DashboardView> {
         ),
       );
     } else {
+      dashboardController.addTagIfNotExists(oldEntityId: entityQr!,tagId:tagid!,oldChannelName:secQr!,newChannelName:newSecQr!);
       setState(() {
         selectedChannelIndex = index;
         selectedDocIndex = null;
@@ -196,10 +214,16 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
-  void addNewChannel(String sectionName, String entityName) {
-    dashboardController.joinChannel(entityName, sectionName).then((joined) {
+  void joinNewChannel(String sectionName, String entityName, String? tagid) {
+    dashboardController
+        .joinChannel(entityName, sectionName, tagid)
+        .then((joined) {
       if (joined) {
         fetchChannels();
+        fetchDocs(sectionName);
+        setState(() {
+          secQr = null; // set to null after joining
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Section "$sectionName" added to channels.')),
         );
@@ -417,7 +441,7 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  void _showCreateTagDialog(BuildContext context,int index) {
+  void _showCreateTagDialog(BuildContext context, int index) {
     final TextEditingController tagController = TextEditingController();
     final TextEditingController tagDescriptionController =
         TextEditingController();
@@ -557,10 +581,10 @@ class _DashboardViewState extends State<DashboardView> {
               actionsAlignment: MainAxisAlignment.spaceBetween,
               actions: [
                 TextButton(
-                  onPressed: () { 
+                  onPressed: () {
                     Navigator.pop(context);
                     _showChannelOptionsBottomSheet(context, index);
-                    },
+                  },
                   child: const Text(
                     'Cancel',
                     style: TextStyle(color: Colors.white70),
@@ -636,6 +660,7 @@ class _DashboardViewState extends State<DashboardView> {
       });
 
       final docsList = await dashboardController.getDocs(channelName);
+      print('Fetched docs........................................: $docsList');
       setState(() {
         docs = List<Map<String, dynamic>>.from(docsList);
         isDocsLoading = false;
@@ -645,6 +670,27 @@ class _DashboardViewState extends State<DashboardView> {
         isDocsLoading = false;
       });
       print("Error fetching docs: $e");
+    }
+  }
+
+  Future<void> fetchJoinedTags(String channelName) async {
+    try {
+      setState(() {
+        isjoinedTagsLoading = true;
+        joinedTags = [];
+        selectedjoinedTagIndex = null;
+        currentChatMessages = [];
+      });
+      final joinTagsList = await dashboardController.getTagList(channelName);
+      setState(() {
+        joinedTags = List<Map<String, dynamic>>.from(joinTagsList);
+        isjoinedTagsLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isjoinedTagsLoading = false;
+      });
+      print("Error fetching joined tags: $e");
     }
   }
 
@@ -893,9 +939,9 @@ class _DashboardViewState extends State<DashboardView> {
             ),
             TextButton(
               onPressed: () {
-                 Navigator.of(context).pop();
-                 _showChannelOptionsBottomSheet(context, index);
-                 },
+                Navigator.of(context).pop();
+                _showChannelOptionsBottomSheet(context, index);
+              },
               child: const Text('Close'),
             ),
           ],
@@ -1166,6 +1212,7 @@ class _DashboardViewState extends State<DashboardView> {
       },
     );
   }
+
   void _showChannelOptionsBottomSheet(BuildContext context, int index) {
     showModalBottomSheet(
       context: context,
@@ -1185,10 +1232,9 @@ class _DashboardViewState extends State<DashboardView> {
               ),
               onTap: () {
                 Navigator.pop(context);
-                String qrData = qrurl +
-                    selectedEntity +
-                    channels[index]["channelname"];
-                showQrDialog(context, qrData,index);
+                String qrData =
+                    qrurl + selectedEntity + channels[index]["channelname"];
+                showQrDialog(context, qrData, index);
               },
             ),
             const SizedBox(height: 10),
@@ -1211,7 +1257,7 @@ class _DashboardViewState extends State<DashboardView> {
                 ),
                 onPressed: () {
                   Navigator.pop(context);
-                  _showCreateTagDialog(context,index);
+                  _showCreateTagDialog(context, index);
                 },
               ),
 
@@ -1230,8 +1276,8 @@ class _DashboardViewState extends State<DashboardView> {
                     String qrData = qrurl +
                         selectedEntity +
                         channels[index]["channelname"] +
-                        "?tag=" +
-                        tag["tag"];
+                        "/" +
+                        tag["tagid"];
                     showQrDialog(context, qrData, index);
                   },
                 );
@@ -1247,6 +1293,246 @@ class _DashboardViewState extends State<DashboardView> {
           ],
         );
       },
+    );
+  }
+
+  Widget buildDocsListOrTagsList() {
+    if (selectedChannelIndex != null &&
+        channels[selectedChannelIndex!]["actorsequence"] == "1") {
+      return Expanded(
+        child: isDocsLoading
+            ? const Center(child: CircularProgressIndicator())
+            : docs.isNotEmpty
+                ? ListView.builder(
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        title: Text(
+                          docs[index]["docname"],
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        selected: selectedDocIndex == index,
+                        selectedTileColor: Colors.grey[700],
+                        onTap: () {
+                          setState(() {
+                            selectedDocIndex = index;
+                            currentChatMessages = dashboardController
+                                    .documentChats[docs[index]["docname"]] ??
+                                [];
+                          });
+                        },
+                      );
+                    },
+                  )
+                : const Center(
+                    child: Text(
+                      "No Docs Available",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+      );
+    } else {
+      return Expanded(
+        child: isjoinedTagsLoading
+            ? const Center(child: CircularProgressIndicator())
+            : joinedTags.isNotEmpty
+                ? ListView.builder(
+                    itemCount: joinedTags.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        title: Text(
+                          "Job ${ joinedTags[index]["tagId"]}",
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        selected: selectedjoinedTagIndex == index,
+                        selectedTileColor: Colors.grey[700],
+                        onTap: () {
+                          setState(() {
+                            selectedjoinedTagIndex = index;
+                            currentChatMessages = [];
+                            // currentChatMessages = dashboardController
+                            //         .documentChats[docs[index]["docname"]] ??
+                            //     [];
+                          });
+                        },
+                      );
+                    },
+                  )
+                : const Center(
+                    child: Text(
+                      "No Tags Available",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+      );
+    }
+  }
+
+  Widget buildChatColumn() {
+    final isActorSequenceOne = selectedChannelIndex != null &&
+        channels[selectedChannelIndex!]["actorsequence"] == "1";
+    final chatTitle = isActorSequenceOne
+        ? tr("Chat in") + " ${docs[selectedDocIndex!]["docname"]}"
+        : tr("Chat in") + " ${joinedTags[selectedjoinedTagIndex!]["tagId"]}";
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            chatTitle,
+            style: const TextStyle(color: Colors.white, fontSize: 18),
+          ),
+        ),
+        const Divider(color: Colors.white70),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(8),
+            children: [
+              // InAppWebView at the top
+              SizedBox(
+                height: 600,
+                child: InAppWebView(
+                  initialData: InAppWebViewInitialData(
+                    data: appendScriptWithHtml(htmlForm),
+                  ),
+                  onWebViewCreated: (controller) {
+                    if (!kIsWeb) {
+                      controller.addJavaScriptHandler(
+                        handlerName: 'onFormSubmit',
+                        callback: (args) {
+                          String jsonString = args[0];
+                          print(
+                              'Received JSON string..................: $jsonString');
+                          showHtmlPopup(context, jsonString);
+                        },
+                      );
+                    } else {
+                      handleWebMessage();
+                    }
+                  },
+                ),
+              ),
+
+              // Chat messages
+              ...currentChatMessages.map((msg) {
+                final isUser = msg["sender"] == "You";
+                final isFile = msg["isFile"] == true;
+                final isLastFile = isFile && msg == currentChatMessages.last;
+
+                return Column(
+                  crossAxisAlignment: isUser
+                      ? CrossAxisAlignment.end
+                      : CrossAxisAlignment.start,
+                  children: [
+                    Align(
+                      alignment:
+                          isUser ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        padding: const EdgeInsets.all(10),
+                        constraints: const BoxConstraints(maxWidth: 300),
+                        decoration: BoxDecoration(
+                          color: isUser ? Colors.blueAccent : Colors.grey[700],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              msg["sender"]!,
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.white70),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              msg["message"]!,
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (isLastFile)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, bottom: 8),
+                        child: Row(
+                          mainAxisAlignment: isUser
+                              ? MainAxisAlignment.end
+                              : MainAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children:
+                              dashboardController.actionButtons.map((button) {
+                            return Row(
+                              children: [
+                                _buildActionButton(
+                                  button["label"]!,
+                                  () => _handleAction(button["label"]!,
+                                      msg["message"]!, button["html"]!),
+                                ),
+                                const SizedBox(width: 4),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                  ],
+                );
+              }).toList(),
+            ],
+          ),
+        ),
+        const Divider(height: 1, color: Colors.white70),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: messageController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    hintText: 'Type a message...',
+                    hintStyle: TextStyle(color: Colors.white54),
+                    filled: true,
+                    fillColor: Colors.black26,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  enabled: !(currentChatMessages.isNotEmpty &&
+                      currentChatMessages.last["isFile"] == true),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.upload_file, color: Colors.white),
+                tooltip: 'Upload form',
+                onPressed: (currentChatMessages.isNotEmpty &&
+                        currentChatMessages.last["isFile"] == true)
+                    ? null
+                    : () => _showUploadMethodDialog(context),
+              ),
+              IconButton(
+                icon: const Icon(Icons.attach_file, color: Colors.white),
+                tooltip: 'Attach a file',
+                onPressed: (currentChatMessages.isNotEmpty &&
+                        currentChatMessages.last["isFile"] == true)
+                    ? null
+                    : uploadFile,
+              ),
+              IconButton(
+                icon: const Icon(Icons.send, color: Colors.white),
+                onPressed: (currentChatMessages.isNotEmpty &&
+                        currentChatMessages.last["isFile"] == true)
+                    ? null
+                    : sendMessage,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -1299,7 +1585,14 @@ class _DashboardViewState extends State<DashboardView> {
                                         docs = [];
                                         currentChatMessages = [];
                                       });
-                                      fetchDocs(channels[index]["channelname"]);
+                                      if (channels[index]["actorsequence"] ==
+                                          "1") {
+                                        fetchDocs(
+                                            channels[index]["channelname"]);
+                                      } else {
+                                        fetchJoinedTags(
+                                            channels[index]["channelname"]);
+                                      }
                                     },
                                     onLongPress: () async {
                                       setState(() {
@@ -1314,8 +1607,8 @@ class _DashboardViewState extends State<DashboardView> {
                                               "1") {
                                         await fetchTags(
                                             channels[index]["channelname"]);
-                                            _showChannelOptionsBottomSheet(context, index);
-
+                                        _showChannelOptionsBottomSheet(
+                                            context, index);
                                       } else {
                                         tags = [];
                                       }
@@ -1335,9 +1628,13 @@ class _DashboardViewState extends State<DashboardView> {
                                         height: 50,
                                         alignment: Alignment.center,
                                         child: Text(
-                                          channels[index]["channelname"]
-                                              .substring(0, 2)
-                                              .toUpperCase(),
+                                          // channels[index]["channelname"]
+                                          //     .substring(0, 3)
+                                          //     .toUpperCase(),
+                                          dashboardController
+                                              .getChannelInitials(
+                                                  channels[index]
+                                                      ["channelname"]),
                                           style: const TextStyle(
                                               color: Colors.white,
                                               fontWeight: FontWeight.bold),
@@ -1397,40 +1694,7 @@ class _DashboardViewState extends State<DashboardView> {
                     //     ),
                     //   ),
                     // ),
-                    Expanded(
-                      child: isDocsLoading
-                          ? const Center(child: CircularProgressIndicator())
-                          : docs.isNotEmpty
-                              ? ListView.builder(
-                                  itemCount: docs.length,
-                                  itemBuilder: (context, index) {
-                                    return ListTile(
-                                      title: Text(
-                                        docs[index]["docname"],
-                                        style: const TextStyle(
-                                            color: Colors.white),
-                                      ),
-                                      selected: selectedDocIndex == index,
-                                      selectedTileColor: Colors.grey[700],
-                                      onTap: () {
-                                        setState(() {
-                                          selectedDocIndex = index;
-                                          currentChatMessages =
-                                              dashboardController.documentChats[
-                                                      docs[index]["docname"]] ??
-                                                  [];
-                                        });
-                                      },
-                                    );
-                                  },
-                                )
-                              : const Center(
-                                  child: Text(
-                                    "No Docs Available",
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                ),
-                    ),
+                    buildDocsListOrTagsList(),
                   ],
                 ),
               ),
@@ -1446,224 +1710,30 @@ class _DashboardViewState extends State<DashboardView> {
                             style: TextStyle(color: Colors.white),
                           ),
                         )
-                      : isDocsLoading
+                      : (
+                              // Determine which loading flag to use based on actorsequence
+                              (selectedChannelIndex != null &&
+                                      channels[selectedChannelIndex!]
+                                              ["actorsequence"] ==
+                                          "1"
+                                  ? isDocsLoading
+                                  : isjoinedTagsLoading))
                           ? const Center(child: CircularProgressIndicator())
-                          : (selectedDocIndex == null)
+                          : (
+                                  // Determine which selected index to check based on actorsequence
+                                  (selectedChannelIndex != null &&
+                                          channels[selectedChannelIndex!]
+                                                  ["actorsequence"] ==
+                                              "1"
+                                      ? (selectedDocIndex == null)
+                                      : (selectedjoinedTagIndex == null)))
                               ? const Center(
                                   child: Text(
                                     "Please select a doc",
                                     style: TextStyle(color: Colors.white),
                                   ),
                                 )
-                              : Column(
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.all(16.0),
-                                      child: Text(
-                                        tr("Chat in") +
-                                            " ${docs[selectedDocIndex!]["docname"]}",
-                                        style: const TextStyle(
-                                            color: Colors.white, fontSize: 18),
-                                      ),
-                                    ),
-                                    const Divider(color: Colors.white70),
-                                    Expanded(
-                                      child: ListView(
-                                        padding: const EdgeInsets.all(8),
-                                        children: [
-                                          // InAppWebView at the top
-                                          SizedBox(
-                                            height: 600,
-                                            child: InAppWebView(
-                                              initialData:
-                                                  InAppWebViewInitialData(
-                                                data: appendScriptWithHtml(
-                                                    htmlForm),
-                                              ),
-                                              onWebViewCreated: (controller) {
-                                                if (!kIsWeb) {
-                                                  controller
-                                                      .addJavaScriptHandler(
-                                                    handlerName: 'onFormSubmit',
-                                                    callback: (args) {
-                                                      String jsonString =
-                                                          args[0];
-                                                      print(
-                                                          'Received JSON string..................: $jsonString');
-                                                      showHtmlPopup(
-                                                          context, jsonString);
-                                                      // Map<String, dynamic>
-                                                      //     formData = jsonDecode(
-                                                      //         jsonString);
-                                                      // print('Received JSON.........................: $formData');
-                                                    },
-                                                  );
-                                                } else {
-                                                  handleWebMessage();
-                                                }
-                                              },
-                                            ),
-                                          ),
-
-                                          // Chat messages (manually add each as a widget)
-                                          ...currentChatMessages.map((msg) {
-                                            final isUser =
-                                                msg["sender"] == "You";
-                                            final isFile =
-                                                msg["isFile"] == true;
-                                            final isLastFile = isFile &&
-                                                msg == currentChatMessages.last;
-
-                                            return Column(
-                                              crossAxisAlignment: isUser
-                                                  ? CrossAxisAlignment.end
-                                                  : CrossAxisAlignment.start,
-                                              children: [
-                                                Align(
-                                                  alignment: isUser
-                                                      ? Alignment.centerRight
-                                                      : Alignment.centerLeft,
-                                                  child: Container(
-                                                    margin: const EdgeInsets
-                                                        .symmetric(vertical: 4),
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            10),
-                                                    constraints:
-                                                        const BoxConstraints(
-                                                            maxWidth: 300),
-                                                    decoration: BoxDecoration(
-                                                      color: isUser
-                                                          ? Colors.blueAccent
-                                                          : Colors.grey[700],
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              10),
-                                                    ),
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        Text(
-                                                          msg["sender"]!,
-                                                          style:
-                                                              const TextStyle(
-                                                                  fontSize: 12,
-                                                                  color: Colors
-                                                                      .white70),
-                                                        ),
-                                                        const SizedBox(
-                                                            height: 4),
-                                                        Text(
-                                                          msg["message"]!,
-                                                          style:
-                                                              const TextStyle(
-                                                                  color: Colors
-                                                                      .white),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                                if (isLastFile)
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.only(
-                                                            top: 4, bottom: 8),
-                                                    child: Row(
-                                                      mainAxisAlignment: isUser
-                                                          ? MainAxisAlignment
-                                                              .end
-                                                          : MainAxisAlignment
-                                                              .start,
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children:
-                                                          dashboardController
-                                                              .actionButtons
-                                                              .map((button) {
-                                                        return Row(
-                                                          children: [
-                                                            _buildActionButton(
-                                                              button["label"]!,
-                                                              () => _handleAction(
-                                                                  button[
-                                                                      "label"]!,
-                                                                  msg[
-                                                                      "message"]!,
-                                                                  button[
-                                                                      "html"]!),
-                                                            ),
-                                                            const SizedBox(
-                                                                width: 4),
-                                                          ],
-                                                        );
-                                                      }).toList(),
-                                                    ),
-                                                  ),
-                                              ],
-                                            );
-                                          }).toList(),
-                                        ],
-                                      ),
-                                    ),
-                                    const Divider(
-                                        height: 1, color: Colors.white70),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8.0, vertical: 6),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: TextField(
-                                              controller: messageController,
-                                              style: const TextStyle(
-                                                  color: Colors.white),
-                                              decoration: const InputDecoration(
-                                                hintText: 'Type a message...',
-                                                hintStyle: TextStyle(
-                                                    color: Colors.white54),
-                                                filled: true,
-                                                fillColor: Colors.black26,
-                                                border: OutlineInputBorder(
-                                                  borderRadius:
-                                                      BorderRadius.all(
-                                                          Radius.circular(8)),
-                                                  borderSide: BorderSide.none,
-                                                ),
-                                              ),
-                                              enabled: !isLastFile,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          IconButton(
-                                            icon: const Icon(Icons.upload_file,
-                                                color: Colors.white),
-                                            tooltip: 'Upload form',
-                                            onPressed: isLastFile
-                                                ? null
-                                                : () => _showUploadMethodDialog(
-                                                    context),
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.attach_file,
-                                                color: Colors.white),
-                                            tooltip: 'Attach a file',
-                                            onPressed:
-                                                isLastFile ? null : uploadFile,
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.send,
-                                                color: Colors.white),
-                                            onPressed:
-                                                isLastFile ? null : sendMessage,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              : buildChatColumn(), // use your reusable function here
                 ),
               ),
             ],
