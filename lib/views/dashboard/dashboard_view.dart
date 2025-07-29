@@ -62,7 +62,7 @@ class _DashboardViewState extends State<DashboardView> {
   final TextEditingController _htmlController = TextEditingController();
   final TextEditingController _channelNameController = TextEditingController();
 
-  final String htmlForm = getResumeForm();
+  String htmlForm = getResumeForm();
   final String htmlResume = getResumeHtml();
   final String htmlResume1 = getResumeHtml1();
   List<Map<String, dynamic>> currentChatMessages = [];
@@ -108,9 +108,11 @@ class _DashboardViewState extends State<DashboardView> {
       publicInterconnects = result;
     });
   }
+
   Future<void> initSetup() async {
     await generateX25519KeyPair();
   }
+
   Future<void> fetchChannels() async {
     try {
       String token = await dashboardController.getJwt();
@@ -119,7 +121,7 @@ class _DashboardViewState extends State<DashboardView> {
       if (response.data != null &&
           response.data is List &&
           (response.data as List).isNotEmpty) {
-        print("Fetched channels: ${response.data}");
+        // print("Fetched channels: ${response.data}");
         setState(() {
           channels = List<Map<String, dynamic>>.from(response.data);
         });
@@ -134,17 +136,18 @@ class _DashboardViewState extends State<DashboardView> {
 
   void validateSection() {
     secQr = widget.section;
-    if(widget.section == "Job Employer") {
+    if (widget.section == "Job Employer") {
       newSecQr = "Job Applicant";
-    }else{
+    } else {
       newSecQr = widget.section;
     }
     final tagid = widget.tagid;
     if (secQr == null) return;
 
-    final exists = channels.any((channel) => channel['channelname'] == secQr);
+    final exists =
+        channels.any((channel) => channel['channelname'] == newSecQr);
     final index =
-        channels.indexWhere((channel) => channel['channelname'] == secQr);
+        channels.indexWhere((channel) => channel['channelname'] == newSecQr);
     if (!exists) {
       showDialog(
         context: context,
@@ -161,7 +164,7 @@ class _DashboardViewState extends State<DashboardView> {
             ),
           ),
           content: Text(
-            'Channel "$secQr" does not exist in the available channels. Do you want to add it?',
+            'Channel "$newSecQr" does not exist in the available channels. Do you want to add it?',
             style: const TextStyle(
               color: Colors.white70,
               fontSize: 14,
@@ -203,7 +206,11 @@ class _DashboardViewState extends State<DashboardView> {
         ),
       );
     } else {
-      dashboardController.addTagIfNotExists(oldEntityId: entityQr!,tagId:tagid!,oldChannelName:secQr!,newChannelName:newSecQr!);
+      dashboardController.addTagIfNotExists(
+          oldEntityId: entityQr!,
+          tagId: tagid!,
+          oldChannelName: secQr!,
+          newChannelName: newSecQr!);
       setState(() {
         selectedChannelIndex = index;
         selectedDocIndex = null;
@@ -681,7 +688,8 @@ class _DashboardViewState extends State<DashboardView> {
         selectedjoinedTagIndex = null;
         currentChatMessages = [];
       });
-      final joinTagsList = await dashboardController.getTagList(channelName);
+      final joinTagsList =
+          await dashboardController.getTagList(channelName: channelName);
       setState(() {
         joinedTags = List<Map<String, dynamic>>.from(joinTagsList);
         isjoinedTagsLoading = false;
@@ -1296,76 +1304,112 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  Widget buildDocsListOrTagsList() {
-    if (selectedChannelIndex != null &&
-        channels[selectedChannelIndex!]["actorsequence"] == "1") {
-      return Expanded(
-        child: isDocsLoading
-            ? const Center(child: CircularProgressIndicator())
-            : docs.isNotEmpty
-                ? ListView.builder(
-                    itemCount: docs.length,
-                    itemBuilder: (context, index) {
-                      return ListTile(
-                        title: Text(
-                          docs[index]["docname"],
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        selected: selectedDocIndex == index,
-                        selectedTileColor: Colors.grey[700],
-                        onTap: () {
-                          setState(() {
-                            selectedDocIndex = index;
-                            currentChatMessages = dashboardController
-                                    .documentChats[docs[index]["docname"]] ??
-                                [];
-                          });
-                        },
-                      );
-                    },
-                  )
-                : const Center(
-                    child: Text(
-                      "No Docs Available",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-      );
+  void getContextAndPublicKey(
+      oldEntityId, oldChannelName, tagId, isChannelOwner, index) async {
+    if (isChannelOwner) {
+      setState(() {
+        currentChatMessages = [];
+        selectedDocIndex = index;
+        // currentChatMessages = dashboardController.documentChats[item["docname"]] ?? [];
+      });
     } else {
-      return Expanded(
-        child: isjoinedTagsLoading
-            ? const Center(child: CircularProgressIndicator())
-            : joinedTags.isNotEmpty
-                ? ListView.builder(
-                    itemCount: joinedTags.length,
-                    itemBuilder: (context, index) {
-                      return ListTile(
-                        title: Text(
-                          "Job ${ joinedTags[index]["tagId"]}",
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        selected: selectedjoinedTagIndex == index,
-                        selectedTileColor: Colors.grey[700],
-                        onTap: () {
-                          setState(() {
-                            selectedjoinedTagIndex = index;
-                            currentChatMessages = [];
-                            // currentChatMessages = dashboardController
-                            //         .documentChats[docs[index]["docname"]] ??
-                            //     [];
-                          });
-                        },
-                      );
-                    },
-                  )
-                : const Center(
-                    child: Text(
-                      "No Tags Available",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
+      final contextData = await dashboardController.getContextAndPublicKey(
+          oldEntityId, oldChannelName, tagId);
+      if (contextData != null) {
+        setState(() {
+          currentChatMessages = [];
+          selectedjoinedTagIndex = index;
+          htmlForm = contextData["contexttemplate"];
+          currentChatMessages = dashboardController.documentChats[tagId] ?? [];
+          currentChatMessages.add({
+            "sender": "System",
+            "message":
+                "Click to open form", // Or whatever text you want to show
+            "isFile": false,
+          });
+        });
+      }
+    }
+  }
+
+  Widget buildDocsListOrTagsList() {
+    final isChannelOwner = selectedChannelIndex != null &&
+        channels[selectedChannelIndex!]["actorsequence"] == "1";
+
+    final listData = isChannelOwner ? docs : joinedTags;
+    final isLoading = isChannelOwner ? isDocsLoading : isjoinedTagsLoading;
+    final selectedIndex =
+        isChannelOwner ? selectedDocIndex : selectedjoinedTagIndex;
+
+    if (isLoading) {
+      return const Expanded(
+        child: Center(child: CircularProgressIndicator()),
       );
     }
+
+    if (listData.isEmpty) {
+      return Expanded(
+        child: Center(
+          child: Text(
+            isChannelOwner ? "No Docs Available" : "No Tags Available",
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
+
+    return Expanded(
+      child: ListView.builder(
+        itemCount: listData.length,
+        padding: const EdgeInsets.all(8),
+        itemBuilder: (context, index) {
+          final item = listData[index];
+          final isSelected = selectedIndex == index;
+
+          // Get display name
+          final displayName =
+              isChannelOwner ? item["docname"] : "Job ${item["tagId"]}";
+
+          return GestureDetector(
+            onTap: () {
+              getContextAndPublicKey(item["oldEntityId"],
+                  item["oldChannelName"], item["tagId"], isChannelOwner, index);
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.blueGrey[700] : Colors.grey[800],
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  if (isSelected)
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                ],
+              ),
+              child: ListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                leading: CircleAvatar(
+                  backgroundColor: Colors.blueAccent,
+                  child: Text(
+                    displayName[0].toUpperCase(),
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                title: Text(
+                  displayName,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Widget buildChatColumn() {
@@ -1389,36 +1433,87 @@ class _DashboardViewState extends State<DashboardView> {
           child: ListView(
             padding: const EdgeInsets.all(8),
             children: [
-              // InAppWebView at the top
-              SizedBox(
-                height: 600,
-                child: InAppWebView(
-                  initialData: InAppWebViewInitialData(
-                    data: appendScriptWithHtml(htmlForm),
-                  ),
-                  onWebViewCreated: (controller) {
-                    if (!kIsWeb) {
-                      controller.addJavaScriptHandler(
-                        handlerName: 'onFormSubmit',
-                        callback: (args) {
-                          String jsonString = args[0];
-                          print(
-                              'Received JSON string..................: $jsonString');
-                          showHtmlPopup(context, jsonString);
-                        },
-                      );
-                    } else {
-                      handleWebMessage();
-                    }
-                  },
-                ),
-              ),
-
-              // Chat messages
+              // Chat messages including the System message with InAppWebView
               ...currentChatMessages.map((msg) {
                 final isUser = msg["sender"] == "You";
+                final isSystem = msg["sender"] == "System";
                 final isFile = msg["isFile"] == true;
                 final isLastFile = isFile && msg == currentChatMessages.last;
+
+                if (isSystem) {
+                  // Special System message that shows form when clicked                 
+                  return InkWell(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text(msg["message"] ?? "Form"),
+                          content: SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.8,
+                            height: MediaQuery.of(context).size.height * 0.6,
+                            child: InAppWebView(
+                              initialData: InAppWebViewInitialData(
+                                data: appendScriptWithHtml(htmlForm),
+                              ),
+                              onWebViewCreated: (controller) {
+                                if (!kIsWeb) {
+                                  controller.addJavaScriptHandler(
+                                    handlerName: 'onFormSubmit',
+                                    callback: (args) {
+                                      String jsonString = args[0];
+                                      print(
+                                          'Received JSON string: $jsonString');
+                                      showHtmlPopup(context, jsonString);
+                                    },
+                                  );
+                                } else {
+                                  handleWebMessage();
+                                }
+                              },
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: Text(tr('Close')),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      padding: const EdgeInsets.all(10),
+                      constraints: const BoxConstraints(maxWidth: 300),
+                      decoration: BoxDecoration(
+                        color: Colors.green[800],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            msg["sender"]!,
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.white70),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Text(
+                                msg["message"]!,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.open_in_new,
+                                  size: 16, color: Colors.white70),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
 
                 return Column(
                   crossAxisAlignment: isUser
@@ -1535,6 +1630,173 @@ class _DashboardViewState extends State<DashboardView> {
       ],
     );
   }
+  // Widget buildChatColumn() {
+  //   final isActorSequenceOne = selectedChannelIndex != null &&
+  //       channels[selectedChannelIndex!]["actorsequence"] == "1";
+  //   final chatTitle = isActorSequenceOne
+  //       ? tr("Chat in") + " ${docs[selectedDocIndex!]["docname"]}"
+  //       : tr("Chat in") + " ${joinedTags[selectedjoinedTagIndex!]["tagId"]}";
+
+  //   return Column(
+  //     children: [
+  //       Padding(
+  //         padding: const EdgeInsets.all(16.0),
+  //         child: Text(
+  //           chatTitle,
+  //           style: const TextStyle(color: Colors.white, fontSize: 18),
+  //         ),
+  //       ),
+  //       const Divider(color: Colors.white70),
+  //       Expanded(
+  //         child: ListView(
+  //           padding: const EdgeInsets.all(8),
+  //           children: [
+  //             // InAppWebView at the top
+  //             SizedBox(
+  //               height: 600,
+  //               child: InAppWebView(
+  //                 initialData: InAppWebViewInitialData(
+  //                   data: appendScriptWithHtml(htmlForm),
+  //                 ),
+  //                 onWebViewCreated: (controller) {
+  //                   if (!kIsWeb) {
+  //                     controller.addJavaScriptHandler(
+  //                       handlerName: 'onFormSubmit',
+  //                       callback: (args) {
+  //                         String jsonString = args[0];
+  //                         print(
+  //                             'Received JSON string..................: $jsonString');
+  //                         showHtmlPopup(context, jsonString);
+  //                       },
+  //                     );
+  //                   } else {
+  //                     handleWebMessage();
+  //                   }
+  //                 },
+  //               ),
+  //             ),
+
+  //             // Chat messages
+  //             ...currentChatMessages.map((msg) {
+  //               final isUser = msg["sender"] == "You";
+  //               final isFile = msg["isFile"] == true;
+  //               final isLastFile = isFile && msg == currentChatMessages.last;
+
+  //               return Column(
+  //                 crossAxisAlignment: isUser
+  //                     ? CrossAxisAlignment.end
+  //                     : CrossAxisAlignment.start,
+  //                 children: [
+  //                   Align(
+  //                     alignment:
+  //                         isUser ? Alignment.centerRight : Alignment.centerLeft,
+  //                     child: Container(
+  //                       margin: const EdgeInsets.symmetric(vertical: 4),
+  //                       padding: const EdgeInsets.all(10),
+  //                       constraints: const BoxConstraints(maxWidth: 300),
+  //                       decoration: BoxDecoration(
+  //                         color: isUser ? Colors.blueAccent : Colors.grey[700],
+  //                         borderRadius: BorderRadius.circular(10),
+  //                       ),
+  //                       child: Column(
+  //                         crossAxisAlignment: CrossAxisAlignment.start,
+  //                         children: [
+  //                           Text(
+  //                             msg["sender"]!,
+  //                             style: const TextStyle(
+  //                                 fontSize: 12, color: Colors.white70),
+  //                           ),
+  //                           const SizedBox(height: 4),
+  //                           Text(
+  //                             msg["message"]!,
+  //                             style: const TextStyle(color: Colors.white),
+  //                           ),
+  //                         ],
+  //                       ),
+  //                     ),
+  //                   ),
+  //                   if (isLastFile)
+  //                     Padding(
+  //                       padding: const EdgeInsets.only(top: 4, bottom: 8),
+  //                       child: Row(
+  //                         mainAxisAlignment: isUser
+  //                             ? MainAxisAlignment.end
+  //                             : MainAxisAlignment.start,
+  //                         mainAxisSize: MainAxisSize.min,
+  //                         children:
+  //                             dashboardController.actionButtons.map((button) {
+  //                           return Row(
+  //                             children: [
+  //                               _buildActionButton(
+  //                                 button["label"]!,
+  //                                 () => _handleAction(button["label"]!,
+  //                                     msg["message"]!, button["html"]!),
+  //                               ),
+  //                               const SizedBox(width: 4),
+  //                             ],
+  //                           );
+  //                         }).toList(),
+  //                       ),
+  //                     ),
+  //                 ],
+  //               );
+  //             }).toList(),
+  //           ],
+  //         ),
+  //       ),
+  //       const Divider(height: 1, color: Colors.white70),
+  //       Padding(
+  //         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6),
+  //         child: Row(
+  //           children: [
+  //             Expanded(
+  //               child: TextField(
+  //                 controller: messageController,
+  //                 style: const TextStyle(color: Colors.white),
+  //                 decoration: const InputDecoration(
+  //                   hintText: 'Type a message...',
+  //                   hintStyle: TextStyle(color: Colors.white54),
+  //                   filled: true,
+  //                   fillColor: Colors.black26,
+  //                   border: OutlineInputBorder(
+  //                     borderRadius: BorderRadius.all(Radius.circular(8)),
+  //                     borderSide: BorderSide.none,
+  //                   ),
+  //                 ),
+  //                 enabled: !(currentChatMessages.isNotEmpty &&
+  //                     currentChatMessages.last["isFile"] == true),
+  //               ),
+  //             ),
+  //             const SizedBox(width: 8),
+  //             IconButton(
+  //               icon: const Icon(Icons.upload_file, color: Colors.white),
+  //               tooltip: 'Upload form',
+  //               onPressed: (currentChatMessages.isNotEmpty &&
+  //                       currentChatMessages.last["isFile"] == true)
+  //                   ? null
+  //                   : () => _showUploadMethodDialog(context),
+  //             ),
+  //             IconButton(
+  //               icon: const Icon(Icons.attach_file, color: Colors.white),
+  //               tooltip: 'Attach a file',
+  //               onPressed: (currentChatMessages.isNotEmpty &&
+  //                       currentChatMessages.last["isFile"] == true)
+  //                   ? null
+  //                   : uploadFile,
+  //             ),
+  //             IconButton(
+  //               icon: const Icon(Icons.send, color: Colors.white),
+  //               onPressed: (currentChatMessages.isNotEmpty &&
+  //                       currentChatMessages.last["isFile"] == true)
+  //                   ? null
+  //                   : sendMessage,
+  //             ),
+  //           ],
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -1563,7 +1825,7 @@ class _DashboardViewState extends State<DashboardView> {
                         backgroundColor: Colors
                             .transparent, // optional if your logo has its own background
                         backgroundImage: AssetImage(
-                            'assets/images/logo.png'), // replace with your actual path
+                            'assets/images/xdoc_logo.png'), // replace with your actual path
                       ),
                     ),
                     const SizedBox(height: 10),

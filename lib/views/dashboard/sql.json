@@ -1,0 +1,41 @@
+[
+    {
+      "basit.munir19@gmail.com": {
+        "newChannelName1": {
+          "tagId1": {
+            "old": {
+              "entityId": "oldEntityId1",
+              "channelName": "oldChannelName1"
+            }
+          },
+          "tagId2": {
+            "old": {
+              "entityId": "oldEntityId2",
+              "channelName": "oldChannelName2"
+            }
+          }
+        },
+        "newChannelName2": {
+          "tagId3": {
+            "old": {
+              "entityId": "oldEntityId3",
+              "channelName": "oldChannelName3"
+            }
+          }
+        }
+      }
+    },
+    {
+      "info@advcomm.net": {
+        "newChannelName3": {
+          "tagId4": {
+            "old": {
+              "entityId": "oldEntityId4",
+              "channelName": "oldChannelName4"
+            }
+          }
+        }
+      }
+    }
+  ]
+  

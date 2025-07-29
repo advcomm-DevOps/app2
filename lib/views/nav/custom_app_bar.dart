@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_starter/core/routing/route_names.dart';
 import 'package:flutter_starter/core/services/entity_selection_service.dart';
+import 'package:flutter_starter/custom/services/sso.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uids_io_sdk_flutter/auth_logout.dart';
 import 'package:uids_io_sdk_flutter/services/pk_service.dart';
@@ -36,15 +37,21 @@ class _CustomAppBarState extends State<CustomAppBar> {
     super.initState();
     _fetchEntities();
   }
+  Future<String> getSelectedEntity() async {
+    final ssoService = SSOService();
+    final String? entity = await ssoService.getSelectedEntity();
+    return entity ?? '';
+  }
 
   Future<void> _fetchEntities() async {
     print("Generated PK: ");
     print(PK.getPK());
     List<dynamic> fetchedEntities = await _spService.getEntitiesList();
+    final defaultEntity = await getSelectedEntity();
     setState(() {
       entities = fetchedEntities;
       if (entities.isNotEmpty) {
-        selectedEntity = entities[0]['tenant']; // Default selection
+        selectedEntity = defaultEntity; // Default selection
       }
     });
   }
@@ -123,25 +130,29 @@ class _CustomAppBarState extends State<CustomAppBar> {
             },
           ),
         ),
-
-        // Entity selection
         if (entities.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: PopupMenuButton<String>(
               icon: Icon(Icons.account_tree, color: Colors.grey),
               onSelected: (String newValue) {
+                print("Selected Entity: $newValue");
                 setState(() {
                   selectedEntity = newValue;
                 });
               },
               itemBuilder: (BuildContext context) {
                 return entities.map<PopupMenuEntry<String>>((entity) {
+                  final isSelected = entity['tenant'] == selectedEntity;
+
                   return PopupMenuItem<String>(
                     value: entity['tenant'],
-                    child: ListTile(
-                      leading: Icon(Icons.business, color: Colors.blue),
-                      title: Text(entity['tenant'] ?? 'Unknown Tenant'),
+                    child: Container(
+                      color: isSelected ? Colors.blue.withOpacity(0.1) : null,
+                      child: ListTile(
+                        leading: Icon(Icons.business, color: Colors.blue),
+                        title: Text(entity['tenant'] ?? 'Unknown Tenant'),
+                      ),
                     ),
                   );
                 }).toList();
