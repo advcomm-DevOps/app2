@@ -15,6 +15,7 @@ import 'platform_web.dart' if (dart.library.io) 'platform_non_web.dart';
 import 'package:liquid_engine/liquid_engine.dart';
 import 'dashboard_controller.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class DashboardView extends StatefulWidget {
   final String? entity;
@@ -134,15 +135,19 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
-  void validateSection() {
+  void validateSection() async {
     secQr = widget.section;
-    if (widget.section == "Job Employer") {
-      newSecQr = "Job Applicant";
-    } else {
-      newSecQr = widget.section;
-    }
     final tagid = widget.tagid;
     if (secQr == null) return;
+
+    final details = await dashboardController.getChannelDetailsForJoin(
+      entityId: entityQr!,
+      channelName: widget.section!,
+      tagId: widget.tagid!,
+    );
+    if (details != null && details["channelDetails"] != null) {
+      newSecQr = details["channelDetails"]["newChannelName"];
+    }
 
     final exists =
         channels.any((channel) => channel['channelname'] == newSecQr);
@@ -242,7 +247,37 @@ class _DashboardViewState extends State<DashboardView> {
     });
   }
 
-  // Add this method to show the channel creation dialog
+  void createEncryptedDocument(
+    String entityName,
+    String channelName,
+    String tagid,
+    String submittedData,
+  ) async {
+    bool joined = await dashboardController.createEncryptedDocument(
+      entityName: entityName,
+      channelName: channelName,
+      tagId: tagid,
+      submittedData: submittedData,
+    );
+
+    if (joined) {
+      await dashboardController.removeTagById(
+        channelName: channels[selectedChannelIndex!]["channelname"],
+        tagId: tagid,
+      );
+      fetchDocs(channels[selectedChannelIndex!]["channelname"]);
+      fetchJoinedTags(channels[selectedChannelIndex!]["channelname"]);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Submitted.')),
+      );
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('failed')),
+      );
+    }
+  }
+
 
   void _showCreateChannelDialog(BuildContext context) {
     showDialog(
@@ -1316,101 +1351,226 @@ class _DashboardViewState extends State<DashboardView> {
       final contextData = await dashboardController.getContextAndPublicKey(
           oldEntityId, oldChannelName, tagId);
       if (contextData != null) {
-        setState(() {
-          currentChatMessages = [];
-          selectedjoinedTagIndex = index;
-          htmlForm = contextData["contexttemplate"];
-          currentChatMessages = dashboardController.documentChats[tagId] ?? [];
-          currentChatMessages.add({
-            "sender": "System",
-            "message":
-                "Click to open form", // Or whatever text you want to show
-            "isFile": false,
+        if (contextData["contexttemplate"] != null) {
+          setState(() {
+            currentChatMessages = [];
+            selectedjoinedTagIndex = index;
+            htmlForm = contextData["contexttemplate"];
+            currentChatMessages =
+                dashboardController.documentChats[tagId] ?? [];
+            currentChatMessages.add({
+              "sender": "System",
+              "message":
+                  "Click to open form", // Or whatever text you want to show
+              "isFile": false,
+            });
           });
-        });
+        } else {
+          print("No context template found for this tag.");
+          setState(() {
+            currentChatMessages = [];
+            selectedjoinedTagIndex = index;
+            currentChatMessages.add({
+              "sender": "Unknown",
+              "message":
+                  "${contextData["message"]}", // Or whatever text you want to show
+              "isFile": false,
+            });
+          });
+        }
       }
     }
   }
+  void getDocumentDetails(docId) async{
+    print('Fetching document details for docId: $docId');
+    final docDetails = await dashboardController.getDocumentDetails(docId); // or your dynamic docId
+     print(docDetails);
+  }
+Widget buildDocsListOrTagsList() {
+  final isChannelOwner = selectedChannelIndex != null &&
+      channels[selectedChannelIndex!]["actorsequence"] == "1";
 
-  Widget buildDocsListOrTagsList() {
-    final isChannelOwner = selectedChannelIndex != null &&
-        channels[selectedChannelIndex!]["actorsequence"] == "1";
+  final bool isLoading = isChannelOwner ? isDocsLoading : isjoinedTagsLoading;
+  final List<Map<String, dynamic>> tagsList = List<Map<String, dynamic>>.from(joinedTags);
+  final List<Map<String, dynamic>> docsList = List<Map<String, dynamic>>.from(docs);
 
-    final listData = isChannelOwner ? docs : joinedTags;
-    final isLoading = isChannelOwner ? isDocsLoading : isjoinedTagsLoading;
-    final selectedIndex =
-        isChannelOwner ? selectedDocIndex : selectedjoinedTagIndex;
+  // Use the same loading condition as original
+  if (isLoading) {
+    return const Expanded(
+      child: Center(child: CircularProgressIndicator()),
+    );
+  }
 
-    if (isLoading) {
-      return const Expanded(
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
+  // Merge lists for a single scroll, tags first
+  final List<Map<String, dynamic>> combinedList = [
+    ...tagsList.map((item) => {...item, "type": "tag"}),
+    ...docsList.map((item) => {...item, "type": "doc"}),
+  ];
 
-    if (listData.isEmpty) {
-      return Expanded(
-        child: Center(
-          child: Text(
-            isChannelOwner ? "No Docs Available" : "No Tags Available",
-            style: const TextStyle(color: Colors.white),
-          ),
+  // Show generic message if no tags nor docs
+  if (combinedList.isEmpty) {
+    return const Expanded(
+      child: Center(
+        child: Text(
+          "No data found",
+          style: TextStyle(color: Colors.white),
         ),
-      );
-    }
-
-    return Expanded(
-      child: ListView.builder(
-        itemCount: listData.length,
-        padding: const EdgeInsets.all(8),
-        itemBuilder: (context, index) {
-          final item = listData[index];
-          final isSelected = selectedIndex == index;
-
-          // Get display name
-          final displayName =
-              isChannelOwner ? item["docname"] : "Job ${item["tagId"]}";
-
-          return GestureDetector(
-            onTap: () {
-              getContextAndPublicKey(item["oldEntityId"],
-                  item["oldChannelName"], item["tagId"], isChannelOwner, index);
-            },
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 6),
-              decoration: BoxDecoration(
-                color: isSelected ? Colors.blueGrey[700] : Colors.grey[800],
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  if (isSelected)
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                ],
-              ),
-              child: ListTile(
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                leading: CircleAvatar(
-                  backgroundColor: Colors.blueAccent,
-                  child: Text(
-                    displayName[0].toUpperCase(),
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                title: Text(
-                  displayName,
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
-          );
-        },
       ),
     );
   }
+
+  return Expanded(
+    child: ListView.builder(
+      itemCount: combinedList.length,
+      padding: const EdgeInsets.all(8),
+      itemBuilder: (context, index) {
+        final item = combinedList[index];
+        final isTag = item["type"] == "tag";
+
+        // Keep correct selection index logic as original
+        final isSelected = isTag
+            ? (isChannelOwner ? false : selectedjoinedTagIndex == index)
+            : (isChannelOwner ? selectedDocIndex == (index - tagsList.length) : false);
+
+        // Display name logic preserved
+        final displayName = isTag
+            ? "Job ${item["tagId"]}"
+            : (item["docname"] ?? "Doc ${index - tagsList.length}");
+
+        return GestureDetector(
+          onTap: () {
+              if (isTag) {
+                getContextAndPublicKey(
+                  item["oldEntityId"],
+                  item["oldChannelName"],
+                  item["tagId"],
+                  false, // because it's a tag
+                  index,
+                );
+              } else {
+                getDocumentDetails(item["docid"]); // or item["docname"] if you need that
+                // For docs, call your doc detail function
+                // getDocdetail(
+                //   item, // or pass item["docId"], or whatever your function needs
+                //   index - tagsList.length,
+                // );
+              }
+          },
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 6),
+            decoration: BoxDecoration(
+              color: isSelected ? Colors.blueGrey[700] : Colors.grey[800],
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                if (isSelected)
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+              ],
+            ),
+            child: ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              leading: CircleAvatar(
+                backgroundColor: Colors.blueAccent,
+                child: Text(
+                  displayName[0].toUpperCase(),
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+              title: Text(
+                displayName,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+        );
+      },
+    ),
+  );
+}
+
+  // Widget buildDocsListOrTagsList() {
+  //   final isChannelOwner = selectedChannelIndex != null &&
+  //       channels[selectedChannelIndex!]["actorsequence"] == "1";
+
+  //   final listData = isChannelOwner ? docs : joinedTags;
+  //   final isLoading = isChannelOwner ? isDocsLoading : isjoinedTagsLoading;
+  //   final selectedIndex = isChannelOwner ? selectedDocIndex : selectedjoinedTagIndex;
+
+  //   if (isLoading) {
+  //     return const Expanded(
+  //       child: Center(child: CircularProgressIndicator()),
+  //     );
+  //   }
+
+  //   if (listData.isEmpty) {
+  //     return Expanded(
+  //       child: Center(
+  //         child: Text(
+  //           isChannelOwner ? "No Docs Available" : "No Tags Available",
+  //           style: const TextStyle(color: Colors.white),
+  //         ),
+  //       ),
+  //     );
+  //   }
+
+  //   return Expanded(
+  //     child: ListView.builder(
+  //       itemCount: listData.length,
+  //       padding: const EdgeInsets.all(8),
+  //       itemBuilder: (context, index) {
+  //         final item = listData[index];
+  //         final isSelected = selectedIndex == index;
+
+  //         // Get display name
+  //         final displayName =
+  //             isChannelOwner ? item["docname"] : "Job ${item["tagId"]}";
+
+  //         return GestureDetector(
+  //           onTap: () {
+  //             getContextAndPublicKey(item["oldEntityId"],
+  //                 item["oldChannelName"], item["tagId"], isChannelOwner, index);
+  //           },
+  //           child: Container(
+  //             margin: const EdgeInsets.symmetric(vertical: 6),
+  //             decoration: BoxDecoration(
+  //               color: isSelected ? Colors.blueGrey[700] : Colors.grey[800],
+  //               borderRadius: BorderRadius.circular(12),
+  //               boxShadow: [
+  //                 if (isSelected)
+  //                   BoxShadow(
+  //                     color: Colors.black.withOpacity(0.3),
+  //                     blurRadius: 4,
+  //                     offset: const Offset(0, 2),
+  //                   ),
+  //               ],
+  //             ),
+  //             child: ListTile(
+  //               contentPadding:
+  //                   const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+  //               leading: CircleAvatar(
+  //                 backgroundColor: Colors.blueAccent,
+  //                 child: Text(
+  //                   displayName[0].toUpperCase(),
+  //                   style: const TextStyle(
+  //                       color: Colors.white, fontWeight: FontWeight.bold),
+  //                 ),
+  //               ),
+  //               title: Text(
+  //                 displayName,
+  //                 style: const TextStyle(color: Colors.white),
+  //               ),
+  //             ),
+  //           ),
+  //         );
+  //       },
+  //     ),
+  //   );
+  // }
 
   Widget buildChatColumn() {
     final isActorSequenceOne = selectedChannelIndex != null &&
@@ -1441,7 +1601,7 @@ class _DashboardViewState extends State<DashboardView> {
                 final isLastFile = isFile && msg == currentChatMessages.last;
 
                 if (isSystem) {
-                  // Special System message that shows form when clicked                 
+                  // Special System message that shows form when clicked
                   return InkWell(
                     onTap: () {
                       showDialog(
@@ -1463,7 +1623,10 @@ class _DashboardViewState extends State<DashboardView> {
                                       String jsonString = args[0];
                                       print(
                                           'Received JSON string: $jsonString');
-                                      showHtmlPopup(context, jsonString);
+                                          createEncryptedDocument(joinedTags[selectedjoinedTagIndex!]["oldEntityId"],joinedTags[selectedjoinedTagIndex!]["oldChannelName"],joinedTags[selectedjoinedTagIndex!]["tagId"],jsonString);
+                                      // Handle the JSON string as needed
+
+                                      // showHtmlPopup(context, jsonString);
                                     },
                                   );
                                 } else {
@@ -1820,13 +1983,22 @@ class _DashboardViewState extends State<DashboardView> {
                     // Logo or App Icon at top (optional)
                     Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: CircleAvatar(
-                        radius: 24,
-                        backgroundColor: Colors
-                            .transparent, // optional if your logo has its own background
-                        backgroundImage: AssetImage(
-                            'assets/images/xdoc_logo.png'), // replace with your actual path
-                      ),
+                      // child: CircleAvatar(
+                      //   radius: 24,
+                      //   backgroundColor: Colors
+                      //       .transparent, // optional if your logo has its own background
+                      //   backgroundImage: AssetImage(
+                      //       'assets/images/xdoc_logo.png'), // replace with your actual path
+                      // ),
+                        child: CircleAvatar(
+                          radius: 24,
+                          backgroundColor: Colors.transparent,
+                          child: SvgPicture.asset(
+                            'assets/images/xdoc_logo.svg',
+                            width: 40, // adjust as needed
+                            height: 40,
+                          ),
+                        ),
                     ),
                     const SizedBox(height: 10),
                     // Channels List
@@ -1847,14 +2019,14 @@ class _DashboardViewState extends State<DashboardView> {
                                         docs = [];
                                         currentChatMessages = [];
                                       });
-                                      if (channels[index]["actorsequence"] ==
-                                          "1") {
-                                        fetchDocs(
-                                            channels[index]["channelname"]);
-                                      } else {
-                                        fetchJoinedTags(
-                                            channels[index]["channelname"]);
-                                      }
+                                      fetchDocs(channels[index]["channelname"]);
+                                      fetchJoinedTags(channels[index]["channelname"]);
+                                      // if (channels[index]["actorsequence"] ==
+                                      //     "1") {
+                                        
+                                      // } else {
+                                        
+                                      // }
                                     },
                                     onLongPress: () async {
                                       setState(() {
