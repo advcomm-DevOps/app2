@@ -64,8 +64,9 @@ class _DashboardViewState extends State<DashboardView> {
   final TextEditingController _channelNameController = TextEditingController();
 
   String htmlForm = getResumeForm();
-  final String htmlResume = getResumeHtml();
-  final String htmlResume1 = getResumeHtml1();
+  String htmlResume = "";
+  String jsonHtmlTheme = "";
+
   List<Map<String, dynamic>> currentChatMessages = [];
 
   bool get isLastFile {
@@ -277,7 +278,6 @@ class _DashboardViewState extends State<DashboardView> {
       );
     }
   }
-
 
   void _showCreateChannelDialog(BuildContext context) {
     showDialog(
@@ -1183,7 +1183,7 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   Future<String> renderResume(String jsonContent) async {
-    final raw = htmlResume1;
+    final raw = htmlResume;
 
     final context = Context.create();
 
@@ -1212,7 +1212,7 @@ class _DashboardViewState extends State<DashboardView> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("Resume Preview",
+                      const Text("Document Preview",
                           style: TextStyle(color: Colors.white)),
                       IconButton(
                         icon: const Icon(Icons.close, color: Colors.white),
@@ -1350,19 +1350,21 @@ class _DashboardViewState extends State<DashboardView> {
     } else {
       final contextData = await dashboardController.getContextAndPublicKey(
           oldEntityId, oldChannelName, tagId);
+          print("Context Data: $contextData");
       if (contextData != null) {
-        if (contextData["contexttemplate"] != null) {
+        if (contextData["contextform"] != null) {
           setState(() {
             currentChatMessages = [];
             selectedjoinedTagIndex = index;
-            htmlForm = contextData["contexttemplate"];
+            htmlForm = contextData["contextform"];
             currentChatMessages =
                 dashboardController.documentChats[tagId] ?? [];
             currentChatMessages.add({
-              "sender": "System",
+              "sender": "Pending Form",
               "message":
                   "Click to open form", // Or whatever text you want to show
               "isFile": false,
+              "hasActionButtons": true,
             });
           });
         } else {
@@ -1381,64 +1383,107 @@ class _DashboardViewState extends State<DashboardView> {
       }
     }
   }
-  void getDocumentDetails(docId) async{
+
+  void getDocumentDetails(docId, index) async {
+    setState(() {
+      currentChatMessages = [];
+      selectedDocIndex = index;
+    });
     print('Fetching document details for docId: $docId');
-    final docDetails = await dashboardController.getDocumentDetails(docId); // or your dynamic docId
-     print(docDetails);
+    final docDetails = await dashboardController.getDocumentDetails(docId);
+    if (docDetails != null) {
+      // print("......................................${docDetails['jsonData']}");
+      // print("......................................${docDetails['htmlTheme']}");
+          if (docDetails["jsonData"] != null) {
+          setState(() {
+            // currentChatMessages = [];
+            selectedjoinedTagIndex = index;
+            // selectedDocIndex = index;
+            htmlResume = docDetails['htmlTheme'];
+            jsonHtmlTheme = docDetails['jsonData'];
+            currentChatMessages =
+                dashboardController.documentChats[docId] ?? [];
+            currentChatMessages.add({
+              "sender": "Received Document",
+              "message":
+                  "Click to view doc", // Or whatever text you want to show
+              "isFile": false,
+              "hasActionButtons": true,
+            });
+          });
+        } else {
+          print("No context template found for this tag.");
+          setState(() {
+            currentChatMessages = [];
+            selectedjoinedTagIndex = index;
+            currentChatMessages.add({
+              "sender": "Unknown",
+              "message":
+                  "Error while loading data", // Or whatever text you want to show
+              "isFile": false,
+            });
+          });
+        }
+    }
   }
-Widget buildDocsListOrTagsList() {
-  final isChannelOwner = selectedChannelIndex != null &&
-      channels[selectedChannelIndex!]["actorsequence"] == "1";
 
-  final bool isLoading = isChannelOwner ? isDocsLoading : isjoinedTagsLoading;
-  final List<Map<String, dynamic>> tagsList = List<Map<String, dynamic>>.from(joinedTags);
-  final List<Map<String, dynamic>> docsList = List<Map<String, dynamic>>.from(docs);
+  Widget buildDocsListOrTagsList() {
+    final isChannelOwner = selectedChannelIndex != null &&
+        channels[selectedChannelIndex!]["actorsequence"] == "1";
 
-  // Use the same loading condition as original
-  if (isLoading) {
-    return const Expanded(
-      child: Center(child: CircularProgressIndicator()),
-    );
-  }
+    final bool isLoading = isChannelOwner ? isDocsLoading : isjoinedTagsLoading;
+    final List<Map<String, dynamic>> tagsList =
+        List<Map<String, dynamic>>.from(joinedTags);
+    final List<Map<String, dynamic>> docsList =
+        List<Map<String, dynamic>>.from(docs);
 
-  // Merge lists for a single scroll, tags first
-  final List<Map<String, dynamic>> combinedList = [
-    ...tagsList.map((item) => {...item, "type": "tag"}),
-    ...docsList.map((item) => {...item, "type": "doc"}),
-  ];
+    // Use the same loading condition as original
+    if (isLoading) {
+      return const Expanded(
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
 
-  // Show generic message if no tags nor docs
-  if (combinedList.isEmpty) {
-    return const Expanded(
-      child: Center(
-        child: Text(
-          "No data found",
-          style: TextStyle(color: Colors.white),
+    // Merge lists for a single scroll, tags first
+    final List<Map<String, dynamic>> combinedList = [
+      ...tagsList.map((item) => {...item, "type": "tag"}),
+      ...docsList.map((item) => {...item, "type": "doc"}),
+    ];
+
+    // Show generic message if no tags nor docs
+    if (combinedList.isEmpty) {
+      return const Expanded(
+        child: Center(
+          child: Text(
+            "No data found",
+            style: TextStyle(color: Colors.white),
+          ),
         ),
-      ),
-    );
-  }
+      );
+    }
 
-  return Expanded(
-    child: ListView.builder(
-      itemCount: combinedList.length,
-      padding: const EdgeInsets.all(8),
-      itemBuilder: (context, index) {
-        final item = combinedList[index];
-        final isTag = item["type"] == "tag";
+    return Expanded(
+      child: ListView.builder(
+        itemCount: combinedList.length,
+        padding: const EdgeInsets.all(8),
+        itemBuilder: (context, index) {
+          final item = combinedList[index];
+          final isTag = item["type"] == "tag";
 
-        // Keep correct selection index logic as original
-        final isSelected = isTag
-            ? (isChannelOwner ? false : selectedjoinedTagIndex == index)
-            : (isChannelOwner ? selectedDocIndex == (index - tagsList.length) : false);
+          // Keep correct selection index logic as original
+          final isSelected = isTag
+              ? (isChannelOwner ? false : selectedjoinedTagIndex == index)
+              : (isChannelOwner
+                  ? selectedDocIndex == (index - tagsList.length)
+                  : false);
 
-        // Display name logic preserved
-        final displayName = isTag
-            ? "Job ${item["tagId"]}"
-            : (item["docname"] ?? "Doc ${index - tagsList.length}");
+          // Display name logic preserved
+          final displayName = isTag
+              ? "Job ${item["tagId"]}"
+              : (item["docname"] ?? "Doc ${index - tagsList.length}");
 
-        return GestureDetector(
-          onTap: () {
+          return GestureDetector(
+            onTap: () {
               if (isTag) {
                 getContextAndPublicKey(
                   item["oldEntityId"],
@@ -1448,137 +1493,53 @@ Widget buildDocsListOrTagsList() {
                   index,
                 );
               } else {
-                getDocumentDetails(item["docid"]); // or item["docname"] if you need that
-                // For docs, call your doc detail function
-                // getDocdetail(
-                //   item, // or pass item["docId"], or whatever your function needs
-                //   index - tagsList.length,
-                // );
+                getDocumentDetails(item["docid"],index - joinedTags.length); // or item["docname"] if you need that
               }
-          },
-          child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 6),
-            decoration: BoxDecoration(
-              color: isSelected ? Colors.blueGrey[700] : Colors.grey[800],
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                if (isSelected)
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.blueGrey[700] : Colors.grey[800],
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  if (isSelected)
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                ],
+              ),
+              child: ListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                leading: CircleAvatar(
+                  backgroundColor: Colors.blueAccent,
+                  child: Text(
+                    displayName[0].toUpperCase(),
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
                   ),
-              ],
-            ),
-            child: ListTile(
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              leading: CircleAvatar(
-                backgroundColor: Colors.blueAccent,
-                child: Text(
-                  displayName[0].toUpperCase(),
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                title: Text(
+                  displayName +" "+item["type"],
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
-              title: Text(
-                displayName,
-                style: const TextStyle(color: Colors.white),
-              ),
             ),
-          ),
-        );
-      },
-    ),
-  );
-}
-
-  // Widget buildDocsListOrTagsList() {
-  //   final isChannelOwner = selectedChannelIndex != null &&
-  //       channels[selectedChannelIndex!]["actorsequence"] == "1";
-
-  //   final listData = isChannelOwner ? docs : joinedTags;
-  //   final isLoading = isChannelOwner ? isDocsLoading : isjoinedTagsLoading;
-  //   final selectedIndex = isChannelOwner ? selectedDocIndex : selectedjoinedTagIndex;
-
-  //   if (isLoading) {
-  //     return const Expanded(
-  //       child: Center(child: CircularProgressIndicator()),
-  //     );
-  //   }
-
-  //   if (listData.isEmpty) {
-  //     return Expanded(
-  //       child: Center(
-  //         child: Text(
-  //           isChannelOwner ? "No Docs Available" : "No Tags Available",
-  //           style: const TextStyle(color: Colors.white),
-  //         ),
-  //       ),
-  //     );
-  //   }
-
-  //   return Expanded(
-  //     child: ListView.builder(
-  //       itemCount: listData.length,
-  //       padding: const EdgeInsets.all(8),
-  //       itemBuilder: (context, index) {
-  //         final item = listData[index];
-  //         final isSelected = selectedIndex == index;
-
-  //         // Get display name
-  //         final displayName =
-  //             isChannelOwner ? item["docname"] : "Job ${item["tagId"]}";
-
-  //         return GestureDetector(
-  //           onTap: () {
-  //             getContextAndPublicKey(item["oldEntityId"],
-  //                 item["oldChannelName"], item["tagId"], isChannelOwner, index);
-  //           },
-  //           child: Container(
-  //             margin: const EdgeInsets.symmetric(vertical: 6),
-  //             decoration: BoxDecoration(
-  //               color: isSelected ? Colors.blueGrey[700] : Colors.grey[800],
-  //               borderRadius: BorderRadius.circular(12),
-  //               boxShadow: [
-  //                 if (isSelected)
-  //                   BoxShadow(
-  //                     color: Colors.black.withOpacity(0.3),
-  //                     blurRadius: 4,
-  //                     offset: const Offset(0, 2),
-  //                   ),
-  //               ],
-  //             ),
-  //             child: ListTile(
-  //               contentPadding:
-  //                   const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-  //               leading: CircleAvatar(
-  //                 backgroundColor: Colors.blueAccent,
-  //                 child: Text(
-  //                   displayName[0].toUpperCase(),
-  //                   style: const TextStyle(
-  //                       color: Colors.white, fontWeight: FontWeight.bold),
-  //                 ),
-  //               ),
-  //               title: Text(
-  //                 displayName,
-  //                 style: const TextStyle(color: Colors.white),
-  //               ),
-  //             ),
-  //           ),
-  //         );
-  //       },
-  //     ),
-  //   );
-  // }
+          );
+        },
+      ),
+    );
+  }
 
   Widget buildChatColumn() {
     final isActorSequenceOne = selectedChannelIndex != null &&
         channels[selectedChannelIndex!]["actorsequence"] == "1";
-    final chatTitle = isActorSequenceOne
-        ? tr("Chat in") + " ${docs[selectedDocIndex!]["docname"]}"
-        : tr("Chat in") + " ${joinedTags[selectedjoinedTagIndex!]["tagId"]}";
-
+    // final chatTitle = isActorSequenceOne
+    //     ? tr("Chat in") + " ${docs[selectedDocIndex!]["docname"]}"
+    //     : tr("Chat in") + " ${joinedTags[selectedjoinedTagIndex!]["tagId"]}";
+final chatTitle="Chat";
     return Column(
       children: [
         Padding(
@@ -1596,85 +1557,169 @@ Widget buildDocsListOrTagsList() {
               // Chat messages including the System message with InAppWebView
               ...currentChatMessages.map((msg) {
                 final isUser = msg["sender"] == "You";
-                final isSystem = msg["sender"] == "System";
+                // final isSystem = msg["sender"] == "System";
+                final isPendingForm = msg["sender"] == "Pending Form";
+                final isReceivedDoc = msg["sender"] == "Received Document";
                 final isFile = msg["isFile"] == true;
                 final isLastFile = isFile && msg == currentChatMessages.last;
-
-                if (isSystem) {
-                  // Special System message that shows form when clicked
-                  return InkWell(
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: Text(msg["message"] ?? "Form"),
-                          content: SizedBox(
-                            width: MediaQuery.of(context).size.width * 0.8,
-                            height: MediaQuery.of(context).size.height * 0.6,
-                            child: InAppWebView(
-                              initialData: InAppWebViewInitialData(
-                                data: appendScriptWithHtml(htmlForm),
+                final hasActionButtons = msg["hasActionButtons"] == true;
+                if (isPendingForm) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: Text(msg["message"] ?? "Form"),
+                              content: SizedBox(
+                                width: MediaQuery.of(context).size.width * 0.8,
+                                height: MediaQuery.of(context).size.height * 0.6,
+                                child: InAppWebView(
+                                  initialData: InAppWebViewInitialData(
+                                    data: appendScriptWithHtml(htmlForm),
+                                  ),
+                                  onWebViewCreated: (controller) {
+                                    if (!kIsWeb) {
+                                      controller.addJavaScriptHandler(
+                                        handlerName: 'onFormSubmit',
+                                        callback: (args) {
+                                          String jsonString = args[0];
+                                          print('Received JSON string: $jsonString');
+                                          createEncryptedDocument(
+                                            joinedTags[selectedjoinedTagIndex!]["oldEntityId"],
+                                            joinedTags[selectedjoinedTagIndex!]["oldChannelName"],
+                                            joinedTags[selectedjoinedTagIndex!]["tagId"],
+                                            jsonString,
+                                          );
+                                        },
+                                      );
+                                    } else {
+                                      handleWebMessage();
+                                    }
+                                  },
+                                ),
                               ),
-                              onWebViewCreated: (controller) {
-                                if (!kIsWeb) {
-                                  controller.addJavaScriptHandler(
-                                    handlerName: 'onFormSubmit',
-                                    callback: (args) {
-                                      String jsonString = args[0];
-                                      print(
-                                          'Received JSON string: $jsonString');
-                                          createEncryptedDocument(joinedTags[selectedjoinedTagIndex!]["oldEntityId"],joinedTags[selectedjoinedTagIndex!]["oldChannelName"],joinedTags[selectedjoinedTagIndex!]["tagId"],jsonString);
-                                      // Handle the JSON string as needed
-
-                                      // showHtmlPopup(context, jsonString);
-                                    },
-                                  );
-                                } else {
-                                  handleWebMessage();
-                                }
-                              },
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: Text(tr('Close')),
+                                ),
+                              ],
                             ),
+                          );
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          padding: const EdgeInsets.all(10),
+                          constraints: const BoxConstraints(maxWidth: 300),
+                          decoration: BoxDecoration(
+                            color: Colors.green[800],
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: Text(tr('Close')),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      padding: const EdgeInsets.all(10),
-                      constraints: const BoxConstraints(maxWidth: 300),
-                      decoration: BoxDecoration(
-                        color: Colors.green[800],
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            msg["sender"]!,
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.white70),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                msg["message"]!,
-                                style: const TextStyle(color: Colors.white),
+                                msg["sender"]!,
+                                style: const TextStyle(fontSize: 12, color: Colors.white70),
                               ),
-                              const SizedBox(width: 8),
-                              const Icon(Icons.open_in_new,
-                                  size: 16, color: Colors.white70),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Text(
+                                    msg["message"]!,
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.open_in_new, size: 16, color: Colors.white70),
+                                ],
+                              ),
                             ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                      if (hasActionButtons && dashboardController.actionButtons.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4, bottom: 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: dashboardController.actionButtons.map((button) {
+                              return Row(
+                                children: [
+                                  _buildActionButton(
+                                    button["label"]!,
+                                    () => _handleAction(button["label"]!, msg["message"]!, button["html"]!),
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                    ],
+                  );
+                }
+                if (isReceivedDoc) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          showHtmlPopup(context, jsonHtmlTheme);
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          padding: const EdgeInsets.all(10),
+                          constraints: const BoxConstraints(maxWidth: 300),
+                          decoration: BoxDecoration(
+                            color: Colors.green[800],
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                msg["sender"]!,
+                                style: const TextStyle(fontSize: 12, color: Colors.white70),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Text(
+                                    msg["message"]!,
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.open_in_new, size: 16, color: Colors.white70),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (hasActionButtons && dashboardController.actionButtons.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4, bottom: 8),
+                          child: Row(
+                            mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: dashboardController.actionButtons.map((button) {
+                              return Row(
+                                children: [
+                                  _buildActionButton(
+                                    button["label"]!,
+                                    () => _handleAction(button["label"]!, msg["message"]!, button["html"]!),
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                    ],
                   );
                 }
 
@@ -1711,7 +1756,7 @@ Widget buildDocsListOrTagsList() {
                         ),
                       ),
                     ),
-                    if (isLastFile)
+                    if ((isLastFile || hasActionButtons) && dashboardController.actionButtons.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 4, bottom: 8),
                         child: Row(
@@ -1990,15 +2035,15 @@ Widget buildDocsListOrTagsList() {
                       //   backgroundImage: AssetImage(
                       //       'assets/images/xdoc_logo.png'), // replace with your actual path
                       // ),
-                        child: CircleAvatar(
-                          radius: 24,
-                          backgroundColor: Colors.transparent,
-                          child: SvgPicture.asset(
-                            'assets/images/xdoc_logo.svg',
-                            width: 40, // adjust as needed
-                            height: 40,
-                          ),
+                      child: CircleAvatar(
+                        radius: 24,
+                        backgroundColor: Colors.transparent,
+                        child: SvgPicture.asset(
+                          'assets/images/xdoc_logo.svg',
+                          width: 40, // adjust as needed
+                          height: 40,
                         ),
+                      ),
                     ),
                     const SizedBox(height: 10),
                     // Channels List
@@ -2020,12 +2065,13 @@ Widget buildDocsListOrTagsList() {
                                         currentChatMessages = [];
                                       });
                                       fetchDocs(channels[index]["channelname"]);
-                                      fetchJoinedTags(channels[index]["channelname"]);
+                                      fetchJoinedTags(
+                                          channels[index]["channelname"]);
                                       // if (channels[index]["actorsequence"] ==
                                       //     "1") {
-                                        
+
                                       // } else {
-                                        
+
                                       // }
                                     },
                                     onLongPress: () async {

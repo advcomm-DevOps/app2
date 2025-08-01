@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_starter/custom/services/sso.dart';
 import 'package:flutter_starter/custom/services/encryption.dart';
+import 'dart:typed_data';
 
 class DashboardController {
   final Dio dio = Dio();
@@ -561,7 +562,7 @@ class DashboardController {
     return [];
   }
 
-  Future<Map<String, dynamic>?> getContextAndPublicKey(
+   Future<Map<String, dynamic>?> getContextAndPublicKey(
       String entityName, String channelName, String tagId) async {
     String token = await getJwt();
     try {
@@ -597,6 +598,7 @@ class DashboardController {
     }
     return null;
   }
+
   Future<Map<String, dynamic>?> getDocumentDetails(String docId) async {
     String token = await getJwt(); // If you use JWT like in your other calls
     try {
@@ -616,38 +618,51 @@ class DashboardController {
       if (response.statusCode == 200) {
         print("Fetched document details successfully:");
         if (response.data != null && response.data["documentDetails"] != null) {
-          // String current_user_encryptedsymmetrickey = response.data["documentDetails"]["current_user_encryptedsymmetrickey"];
-          // String other_actor_publickey = response.data["documentDetails"]["other_actor_publickey"];
+          var sk = List<int>.from(response.data["documentDetails"]
+              ["current_user_encryptedsymmetrickey"]["data"]);
 
-          print(response.data["documentDetails"]["current_user_encryptedsymmetrickey"]['data']);
-           print(response.data["documentDetails"]["other_actor_publickey"]['data']);
+          List<dynamic> pkList =
+              response.data["documentDetails"]["other_actor_publickey"]["data"];
+          Uint8List pkUint8List = Uint8List.fromList(pkList.cast<int>());
 
-          // List<int> byteList = response.data["documentDetails"]["current_user_encryptedsymmetrickey"]['data'];
+          var currentUserEncryptedsymmetrickey =
+              jsonDecode(dartMapStringToJson(utf8.decode(sk)));
 
-          //   // Option 1: If bytes represent a UTF8 string
-          //   String utf8String = utf8.decode(byteList, allowMalformed: true);
-          //   print('UTF8 String: $utf8String');
+          print(currentUserEncryptedsymmetrickey);
 
-          //   // Option 2: If you want base64 representation (for cryptography or transport)
-          //   String base64String = base64Encode(byteList);
-          //   print('Base64 String: $base64String');
+          final senderKeys = await getSelectedEntityX25519Keys();
+          if (senderKeys == null) {
+            print("❌ Sender keys not found.");
+            return response.data;
+          }
+          final senderPrivateKeyBytes = base64Decode(senderKeys["privateKey"]!);
 
+          final decrypted = await decryptTextFromSender(
+            cipherText: currentUserEncryptedsymmetrickey['cipherText']!,
+            nonce: currentUserEncryptedsymmetrickey['nonce']!,
+            mac: currentUserEncryptedsymmetrickey['mac']!,
+            senderPublicKeyBytes: pkUint8List,
+            recipientPrivateKeyBytes: senderPrivateKeyBytes,
+          );
+          print('Decrypted symmetric key: $decrypted');
 
-          // final senderKeys = await getSelectedEntityX25519Keys();
-          //     if (senderKeys == null) {
-          //       print("❌ Sender keys not found.");
-          //       return response.data;
-          //     }
-          //     final senderPrivateKeyBytes = base64Decode(senderKeys["privateKey"]!);
-          //    final decrypted = await decryptTextFromSender(
-          //     cipherText: response.data["documentDetails"]["current_user_encryptedsymmetrickey"]['cipherText']!,
-          //     nonce: response.data["documentDetails"]["current_user_encryptedsymmetrickey"]['nonce']!,
-          //     mac: response.data["documentDetails"]["current_user_encryptedsymmetrickey"]['mac']!,
-          //     senderPublicKeyBytes: response.data["documentDetails"]["other_actor_publickey"]['data'],
-          //     recipientPrivateKeyBytes: senderPrivateKeyBytes,
-          //   );
-          //   print('Decrypted symmetric key: $decrypted');
+          print(response.data["documentDetails"]["contextdata"]['cipherText']);
+          List<dynamic> tempList = jsonDecode(decrypted);
+          List<int> intList = tempList.cast<int>();
+          final decrypted1 = await decryptWithSymmetrickey(
+            symmetrickey: intList,
+            cipherText: response.data["documentDetails"]["contextdata"]
+                ['cipherText']!,
+            nonce: response.data["documentDetails"]["contextdata"]['nonce']!,
+            mac: response.data["documentDetails"]["contextdata"]['mac']!,
+          );
+            return {
+              "data": response.data,
+              "jsonData": decrypted1,
+              "htmlTheme": response.data["documentDetails"]["contexttemplate"],
+            };
         }
+        print("Document details fetched successfully: ${response.data}");
         return response.data;
       }
     } on DioException catch (e) {
@@ -658,6 +673,34 @@ class DashboardController {
       print("Error fetching document details: $e");
     }
     return null;
+  }
+
+  String dartMapStringToJson(String input) {
+    // Step 1: Remove starting and ending curly braces
+    String trimmed = input.trim();
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      trimmed = trimmed.substring(1, trimmed.length - 1);
+    }
+
+    // Step 2: Split by comma for each key-value pair
+    final pairs = trimmed.split(',');
+
+    // Step 3: Add double quotes around keys and values
+    final entries = pairs
+        .map((pair) {
+          final kv = pair.split(':');
+          if (kv.length < 2) return null;
+          final key = kv[0].trim();
+          // If value contains ":" (e.g., in base64) join them back
+          final value = kv.sublist(1).join(':').trim();
+          return '"$key":"$value"';
+        })
+        .where((e) => e != null)
+        .toList();
+
+    // Step 4: Build JSON string
+    final jsonString = '{${entries.join(',')}}';
+    return jsonString;
   }
 
   Future<bool> uploadPublicKey(
@@ -744,11 +787,14 @@ class DashboardController {
     required String submittedData,
   }) async {
     final symmetrickey = generate32BytesRandom();
+    print('Symmetrickey..............$symmetrickey');
     final encryptedContextData = await encryptWithSymmetrickey(
       symmetrickey: symmetrickey,
       plainText: submittedData,
     );
-
+    print('Encrypted Symmetrickey..............$encryptedContextData');
+    print(
+        'Encrypted Symmetrickey to string..............${encryptedContextData.toString()}');
     final senderKeys = await getSelectedEntityX25519Keys();
     if (senderKeys == null) {
       print("❌ Sender keys not found.");
@@ -769,17 +815,18 @@ class DashboardController {
       plainText: symmetrickey.toString(),
       senderPrivateKeyBytes: senderPrivateKeyBytes,
       senderPublicKeyBytes: senderPublicKeyBytes,
-      recipientPublicKeyBytes: senderPublicKeyBytes,
+      recipientPublicKeyBytes: recipientPublicKeyBytes,
     );
+    print(
+        'Encrypted primaryEntitySymmetricKey..............${primaryEntitySymmetricKey}');
     final otherActorSymmetricKey = await encryptTextForRecipient(
       plainText: symmetrickey.toString(),
       senderPrivateKeyBytes: recipientPrivateKeyBytes,
       senderPublicKeyBytes: recipientPublicKeyBytes,
-      recipientPublicKeyBytes: recipientPublicKeyBytes,
+      recipientPublicKeyBytes: senderPublicKeyBytes,
     );
-    // String otherActorSymmetricKey = '';
-    // String primaryEntitySymmetricKey = '';
-    // String encryptedContextData='';
+    print(
+        'Encrypted otherActorSymmetricKey..............${otherActorSymmetricKey}');
     String encryptedEventSchema = '';
     String token = await getJwt(); // Get your JWT token
     try {
@@ -787,8 +834,8 @@ class DashboardController {
         "entityName": entityName,
         "channelName": channelName,
         "tagId": tagId,
-        "otherActorSymmetricKey": otherActorSymmetricKey['cipherText'],
-        "primaryEntitySymmetricKey": primaryEntitySymmetricKey['cipherText'],
+        "otherActorSymmetricKey": otherActorSymmetricKey.toString(),
+        "primaryEntitySymmetricKey": primaryEntitySymmetricKey.toString(),
         "encryptedContextData": encryptedContextData,
         "encryptedEventSchema": encryptedEventSchema
       };
@@ -798,7 +845,7 @@ class DashboardController {
         "Content-Type": "application/json",
         "Accept": "application/json",
       };
-
+      print('Request body...........................: $body');
       final response = await dio.post(
         '$apiUrl/create-encrypted-document',
         data: jsonEncode(body),

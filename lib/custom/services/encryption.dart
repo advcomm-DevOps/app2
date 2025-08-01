@@ -71,7 +71,7 @@ void testKeyEncryption(symmetrickey) async {
   );
 
   print("Encrypted Symmetric key: ${encrypted['cipherText']}");
-
+  print(senderPublicKeyBytes);
   // 🔓 Decrypt using recipient private key + sender public key
   final decrypted = await decryptTextFromSender(
     cipherText: encrypted['cipherText']!,

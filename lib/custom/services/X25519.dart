@@ -1,20 +1,22 @@
 import 'dart:convert';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter_starter/custom/services/encryption.dart';
+// import 'package:flutter_starter/custom/services/encryption.dart';
 import 'package:flutter_starter/views/dashboard/dashboard_controller.dart';
 
 
 final secureStorage = FlutterSecureStorage();
 
 Future<void> generateX25519KeyPair() async {
-  testDocEncryption();
+  // testDocEncryption();
   DashboardController dashboardController = DashboardController();
 
-  Map<String, String>? keys =
-      await dashboardController.getSelectedEntityX25519Keys();
+  final keys = await dashboardController.getSelectedEntityX25519Keys();
   if (keys != null) {
     print("Keys already exist:");
+    final privateKeyBytes = keys["privateKey"]!;
+    final publicKeyBytes = keys["publicKey"]!;
+    await dashboardController.uploadPublicKey(publicKeyBytes, privateKeyBytes);
 
     // Uint8List publicKeyBytes = base64Decode(keys['publicKey']!);
     // Uint8List privateKeyBytes = base64Decode(keys['privateKey']!);
