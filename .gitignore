@@ -25,3 +25,8 @@ doc/api/
 
 .flutter-plugins
 .flutter-plugins-dependencies
+
+# Flutter auto-generated files
+linux/flutter/generated_*
+windows/flutter/generated_*
+macos/Flutter/GeneratedPluginRegistrant.swift

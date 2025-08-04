@@ -11,6 +11,19 @@ class DashboardController {
   final String apiUrl = 'http://localhost:3000';
   final String qrurl = 'https://s.xdoc.app/c/';
   final FlutterSecureStorage secureStorage = FlutterSecureStorage();
+  final List<Map<String, dynamic>> statusJson = [
+    {
+      "label": "Under Process",
+      "value": "underprocess",
+      "children": [
+        {"label": "Rejected", "value": "rejected"},
+        {"label": "Accepted", "value": "accepted"},
+      ]
+    },
+    {"label": "Review", "value": "review"},
+    {"label": "Published", "value": "published"},
+    {"label": "Archived", "value": "archived"},
+  ];
 
   final Map<String, List<Map<String, dynamic>>> documentChats = {
     "8": [
@@ -30,7 +43,7 @@ class DashboardController {
       {"sender": "User B", "message": "Sure, ask me anything."},
     ],
   };
-  final List<Map<String, String>> actionButtons = [
+  final List<Map<String, String>> actionButtons1 = [
     {"label": "Accept", "html": "<button>Accept</button>"},
     {
       "label": "Reject",
@@ -562,7 +575,7 @@ class DashboardController {
     return [];
   }
 
-   Future<Map<String, dynamic>?> getContextAndPublicKey(
+  Future<Map<String, dynamic>?> getContextAndPublicKey(
       String entityName, String channelName, String tagId) async {
     String token = await getJwt();
     try {
@@ -656,11 +669,11 @@ class DashboardController {
             nonce: response.data["documentDetails"]["contextdata"]['nonce']!,
             mac: response.data["documentDetails"]["contextdata"]['mac']!,
           );
-            return {
-              "data": response.data,
-              "jsonData": decrypted1,
-              "htmlTheme": response.data["documentDetails"]["contexttemplate"],
-            };
+          return {
+            "data": response.data,
+            "jsonData": decrypted1,
+            "htmlTheme": response.data["documentDetails"]["contexttemplate"],
+          };
         }
         print("Document details fetched successfully: ${response.data}");
         return response.data;

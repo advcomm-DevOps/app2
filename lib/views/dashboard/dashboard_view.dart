@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_starter/custom/services/X25519.dart';
 import 'package:flutter_starter/custom/services/sso.dart';
+import 'package:flutter_starter/views/dashboard/dashboard_model.dart';
 import 'package:flutter_starter/views/dashboard/form_resume.dart';
 import '../nav/custom_app_bar.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -35,6 +36,7 @@ class _DashboardViewState extends State<DashboardView> {
   String? secQr = '';
   String? entityQr = '';
   String? newSecQr = '';
+  bool showRightSidebar = false;
 
   final dio = Dio();
   final String apiUrl = 'http://localhost:3000';
@@ -44,6 +46,7 @@ class _DashboardViewState extends State<DashboardView> {
   List<Map<String, dynamic>> docs = [];
   List<Map<String, dynamic>> joinedTags = [];
   List<Map<String, dynamic>> tags = [];
+  List<Map<String, String>> actionButtons = [];
   DashboardController dashboardController =
       DashboardController(); // Initialize the controller
 
@@ -1350,7 +1353,8 @@ class _DashboardViewState extends State<DashboardView> {
     } else {
       final contextData = await dashboardController.getContextAndPublicKey(
           oldEntityId, oldChannelName, tagId);
-          print("Context Data: $contextData");
+
+      print("Context Data: $contextData");
       if (contextData != null) {
         if (contextData["contextform"] != null) {
           setState(() {
@@ -1359,12 +1363,13 @@ class _DashboardViewState extends State<DashboardView> {
             htmlForm = contextData["contextform"];
             currentChatMessages =
                 dashboardController.documentChats[tagId] ?? [];
+
             currentChatMessages.add({
               "sender": "Pending Form",
               "message":
                   "Click to open form", // Or whatever text you want to show
               "isFile": false,
-              "hasActionButtons": true,
+              "hasActionButtons": false,
             });
           });
         } else {
@@ -1394,36 +1399,48 @@ class _DashboardViewState extends State<DashboardView> {
     if (docDetails != null) {
       // print("......................................${docDetails['jsonData']}");
       // print("......................................${docDetails['htmlTheme']}");
-          if (docDetails["jsonData"] != null) {
-          setState(() {
-            // currentChatMessages = [];
-            selectedjoinedTagIndex = index;
-            // selectedDocIndex = index;
-            htmlResume = docDetails['htmlTheme'];
-            jsonHtmlTheme = docDetails['jsonData'];
-            currentChatMessages =
-                dashboardController.documentChats[docId] ?? [];
-            currentChatMessages.add({
-              "sender": "Received Document",
-              "message":
-                  "Click to view doc", // Or whatever text you want to show
-              "isFile": false,
-              "hasActionButtons": true,
-            });
+      final availableEvents = docDetails['data']['documentDetails']
+          ['available_events'] as List<dynamic>;
+      if (docDetails["jsonData"] != null) {
+        setState(() {
+          // currentChatMessages = [];
+          selectedjoinedTagIndex = index;
+          // selectedDocIndex = index;
+          htmlResume = docDetails['htmlTheme'];
+          jsonHtmlTheme = docDetails['jsonData'];
+
+          currentChatMessages = dashboardController.documentChats[docId] ?? [];
+          actionButtons = [];
+          actionButtons.addAll(
+            availableEvents.map<Map<String, String>>((event) {
+              final eventName = event['event_name']?.toString() ?? "Unknown";
+              return {
+                "label": eventName,
+                "html": "<button>$eventName</button>",
+              };
+            }).toList(),
+          );
+
+          currentChatMessages.add({
+            "sender": "Received Document",
+            "message": "Click to view doc", // Or whatever text you want to show
+            "isFile": false,
+            "hasActionButtons": true,
           });
-        } else {
-          print("No context template found for this tag.");
-          setState(() {
-            currentChatMessages = [];
-            selectedjoinedTagIndex = index;
-            currentChatMessages.add({
-              "sender": "Unknown",
-              "message":
-                  "Error while loading data", // Or whatever text you want to show
-              "isFile": false,
-            });
+        });
+      } else {
+        print("No context template found for this tag.");
+        setState(() {
+          currentChatMessages = [];
+          selectedjoinedTagIndex = index;
+          currentChatMessages.add({
+            "sender": "Unknown",
+            "message":
+                "Error while loading data", // Or whatever text you want to show
+            "isFile": false,
           });
-        }
+        });
+      }
     }
   }
 
@@ -1493,7 +1510,11 @@ class _DashboardViewState extends State<DashboardView> {
                   index,
                 );
               } else {
-                getDocumentDetails(item["docid"],index - joinedTags.length); // or item["docname"] if you need that
+                getDocumentDetails(
+                    item["docid"],
+                    index -
+                        joinedTags
+                            .length); // or item["docname"] if you need that
               }
             },
             child: Container(
@@ -1522,7 +1543,7 @@ class _DashboardViewState extends State<DashboardView> {
                   ),
                 ),
                 title: Text(
-                  displayName +" "+item["type"],
+                  displayName + " " + item["type"],
                   style: const TextStyle(color: Colors.white),
                 ),
               ),
@@ -1534,12 +1555,12 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   Widget buildChatColumn() {
-    final isActorSequenceOne = selectedChannelIndex != null &&
-        channels[selectedChannelIndex!]["actorsequence"] == "1";
+    // final isActorSequenceOne = selectedChannelIndex != null &&
+    //     channels[selectedChannelIndex!]["actorsequence"] == "1";
     // final chatTitle = isActorSequenceOne
     //     ? tr("Chat in") + " ${docs[selectedDocIndex!]["docname"]}"
     //     : tr("Chat in") + " ${joinedTags[selectedjoinedTagIndex!]["tagId"]}";
-final chatTitle="Chat";
+    final chatTitle = "Chat";
     return Column(
       children: [
         Padding(
@@ -1575,7 +1596,8 @@ final chatTitle="Chat";
                               title: Text(msg["message"] ?? "Form"),
                               content: SizedBox(
                                 width: MediaQuery.of(context).size.width * 0.8,
-                                height: MediaQuery.of(context).size.height * 0.6,
+                                height:
+                                    MediaQuery.of(context).size.height * 0.6,
                                 child: InAppWebView(
                                   initialData: InAppWebViewInitialData(
                                     data: appendScriptWithHtml(htmlForm),
@@ -1586,11 +1608,15 @@ final chatTitle="Chat";
                                         handlerName: 'onFormSubmit',
                                         callback: (args) {
                                           String jsonString = args[0];
-                                          print('Received JSON string: $jsonString');
+                                          print(
+                                              'Received JSON string: $jsonString');
                                           createEncryptedDocument(
-                                            joinedTags[selectedjoinedTagIndex!]["oldEntityId"],
-                                            joinedTags[selectedjoinedTagIndex!]["oldChannelName"],
-                                            joinedTags[selectedjoinedTagIndex!]["tagId"],
+                                            joinedTags[selectedjoinedTagIndex!]
+                                                ["oldEntityId"],
+                                            joinedTags[selectedjoinedTagIndex!]
+                                                ["oldChannelName"],
+                                            joinedTags[selectedjoinedTagIndex!]
+                                                ["tagId"],
                                             jsonString,
                                           );
                                         },
@@ -1623,7 +1649,8 @@ final chatTitle="Chat";
                             children: [
                               Text(
                                 msg["sender"]!,
-                                style: const TextStyle(fontSize: 12, color: Colors.white70),
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.white70),
                               ),
                               const SizedBox(height: 4),
                               Row(
@@ -1633,25 +1660,27 @@ final chatTitle="Chat";
                                     style: const TextStyle(color: Colors.white),
                                   ),
                                   const SizedBox(width: 8),
-                                  const Icon(Icons.open_in_new, size: 16, color: Colors.white70),
+                                  const Icon(Icons.open_in_new,
+                                      size: 16, color: Colors.white70),
                                 ],
                               ),
                             ],
                           ),
                         ),
                       ),
-                      if (hasActionButtons && dashboardController.actionButtons.isNotEmpty)
+                      if (hasActionButtons && actionButtons.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 4, bottom: 8),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
-                            children: dashboardController.actionButtons.map((button) {
+                            children: actionButtons.map((button) {
                               return Row(
                                 children: [
                                   _buildActionButton(
                                     button["label"]!,
-                                    () => _handleAction(button["label"]!, msg["message"]!, button["html"]!),
+                                    () => _handleAction(button["label"]!,
+                                        msg["message"]!, button["html"]!),
                                   ),
                                   const SizedBox(width: 4),
                                 ],
@@ -1683,7 +1712,8 @@ final chatTitle="Chat";
                             children: [
                               Text(
                                 msg["sender"]!,
-                                style: const TextStyle(fontSize: 12, color: Colors.white70),
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.white70),
                               ),
                               const SizedBox(height: 4),
                               Row(
@@ -1693,25 +1723,29 @@ final chatTitle="Chat";
                                     style: const TextStyle(color: Colors.white),
                                   ),
                                   const SizedBox(width: 8),
-                                  const Icon(Icons.open_in_new, size: 16, color: Colors.white70),
+                                  const Icon(Icons.open_in_new,
+                                      size: 16, color: Colors.white70),
                                 ],
                               ),
                             ],
                           ),
                         ),
                       ),
-                      if (hasActionButtons && dashboardController.actionButtons.isNotEmpty)
+                      if (hasActionButtons && actionButtons.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 4, bottom: 8),
                           child: Row(
-                            mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+                            mainAxisAlignment: isUser
+                                ? MainAxisAlignment.end
+                                : MainAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
-                            children: dashboardController.actionButtons.map((button) {
+                            children: actionButtons.map((button) {
                               return Row(
                                 children: [
                                   _buildActionButton(
                                     button["label"]!,
-                                    () => _handleAction(button["label"]!, msg["message"]!, button["html"]!),
+                                    () => _handleAction(button["label"]!,
+                                        msg["message"]!, button["html"]!),
                                   ),
                                   const SizedBox(width: 4),
                                 ],
@@ -1756,7 +1790,8 @@ final chatTitle="Chat";
                         ),
                       ),
                     ),
-                    if ((isLastFile || hasActionButtons) && dashboardController.actionButtons.isNotEmpty)
+                    if ((isLastFile || hasActionButtons) &&
+                        actionButtons.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 4, bottom: 8),
                         child: Row(
@@ -1764,8 +1799,7 @@ final chatTitle="Chat";
                               ? MainAxisAlignment.end
                               : MainAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
-                          children:
-                              dashboardController.actionButtons.map((button) {
+                          children: actionButtons.map((button) {
                             return Row(
                               children: [
                                 _buildActionButton(
@@ -1838,173 +1872,79 @@ final chatTitle="Chat";
       ],
     );
   }
-  // Widget buildChatColumn() {
-  //   final isActorSequenceOne = selectedChannelIndex != null &&
-  //       channels[selectedChannelIndex!]["actorsequence"] == "1";
-  //   final chatTitle = isActorSequenceOne
-  //       ? tr("Chat in") + " ${docs[selectedDocIndex!]["docname"]}"
-  //       : tr("Chat in") + " ${joinedTags[selectedjoinedTagIndex!]["tagId"]}";
 
-  //   return Column(
-  //     children: [
-  //       Padding(
-  //         padding: const EdgeInsets.all(16.0),
-  //         child: Text(
-  //           chatTitle,
-  //           style: const TextStyle(color: Colors.white, fontSize: 18),
-  //         ),
-  //       ),
-  //       const Divider(color: Colors.white70),
-  //       Expanded(
-  //         child: ListView(
-  //           padding: const EdgeInsets.all(8),
-  //           children: [
-  //             // InAppWebView at the top
-  //             SizedBox(
-  //               height: 600,
-  //               child: InAppWebView(
-  //                 initialData: InAppWebViewInitialData(
-  //                   data: appendScriptWithHtml(htmlForm),
-  //                 ),
-  //                 onWebViewCreated: (controller) {
-  //                   if (!kIsWeb) {
-  //                     controller.addJavaScriptHandler(
-  //                       handlerName: 'onFormSubmit',
-  //                       callback: (args) {
-  //                         String jsonString = args[0];
-  //                         print(
-  //                             'Received JSON string..................: $jsonString');
-  //                         showHtmlPopup(context, jsonString);
-  //                       },
-  //                     );
-  //                   } else {
-  //                     handleWebMessage();
-  //                   }
-  //                 },
-  //               ),
-  //             ),
+  StatusNode parseStatusNode(Map<String, dynamic> json) {
+    return StatusNode(
+      label: json['label'],
+      value: json['value'],
+      children: (json['children'] != null)
+          ? (json['children'] as List)
+              .map((child) => parseStatusNode(child))
+              .toList()
+          : [],
+    );
+  }
 
-  //             // Chat messages
-  //             ...currentChatMessages.map((msg) {
-  //               final isUser = msg["sender"] == "You";
-  //               final isFile = msg["isFile"] == true;
-  //               final isLastFile = isFile && msg == currentChatMessages.last;
+  List<StatusNode> parseStatusTree(List<Map<String, dynamic>> jsonList) {
+    return jsonList.map((e) => parseStatusNode(e)).toList();
+  }
 
-  //               return Column(
-  //                 crossAxisAlignment: isUser
-  //                     ? CrossAxisAlignment.end
-  //                     : CrossAxisAlignment.start,
-  //                 children: [
-  //                   Align(
-  //                     alignment:
-  //                         isUser ? Alignment.centerRight : Alignment.centerLeft,
-  //                     child: Container(
-  //                       margin: const EdgeInsets.symmetric(vertical: 4),
-  //                       padding: const EdgeInsets.all(10),
-  //                       constraints: const BoxConstraints(maxWidth: 300),
-  //                       decoration: BoxDecoration(
-  //                         color: isUser ? Colors.blueAccent : Colors.grey[700],
-  //                         borderRadius: BorderRadius.circular(10),
-  //                       ),
-  //                       child: Column(
-  //                         crossAxisAlignment: CrossAxisAlignment.start,
-  //                         children: [
-  //                           Text(
-  //                             msg["sender"]!,
-  //                             style: const TextStyle(
-  //                                 fontSize: 12, color: Colors.white70),
-  //                           ),
-  //                           const SizedBox(height: 4),
-  //                           Text(
-  //                             msg["message"]!,
-  //                             style: const TextStyle(color: Colors.white),
-  //                           ),
-  //                         ],
-  //                       ),
-  //                     ),
-  //                   ),
-  //                   if (isLastFile)
-  //                     Padding(
-  //                       padding: const EdgeInsets.only(top: 4, bottom: 8),
-  //                       child: Row(
-  //                         mainAxisAlignment: isUser
-  //                             ? MainAxisAlignment.end
-  //                             : MainAxisAlignment.start,
-  //                         mainAxisSize: MainAxisSize.min,
-  //                         children:
-  //                             dashboardController.actionButtons.map((button) {
-  //                           return Row(
-  //                             children: [
-  //                               _buildActionButton(
-  //                                 button["label"]!,
-  //                                 () => _handleAction(button["label"]!,
-  //                                     msg["message"]!, button["html"]!),
-  //                               ),
-  //                               const SizedBox(width: 4),
-  //                             ],
-  //                           );
-  //                         }).toList(),
-  //                       ),
-  //                     ),
-  //                 ],
-  //               );
-  //             }).toList(),
-  //           ],
-  //         ),
-  //       ),
-  //       const Divider(height: 1, color: Colors.white70),
-  //       Padding(
-  //         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6),
-  //         child: Row(
-  //           children: [
-  //             Expanded(
-  //               child: TextField(
-  //                 controller: messageController,
-  //                 style: const TextStyle(color: Colors.white),
-  //                 decoration: const InputDecoration(
-  //                   hintText: 'Type a message...',
-  //                   hintStyle: TextStyle(color: Colors.white54),
-  //                   filled: true,
-  //                   fillColor: Colors.black26,
-  //                   border: OutlineInputBorder(
-  //                     borderRadius: BorderRadius.all(Radius.circular(8)),
-  //                     borderSide: BorderSide.none,
-  //                   ),
-  //                 ),
-  //                 enabled: !(currentChatMessages.isNotEmpty &&
-  //                     currentChatMessages.last["isFile"] == true),
-  //               ),
-  //             ),
-  //             const SizedBox(width: 8),
-  //             IconButton(
-  //               icon: const Icon(Icons.upload_file, color: Colors.white),
-  //               tooltip: 'Upload form',
-  //               onPressed: (currentChatMessages.isNotEmpty &&
-  //                       currentChatMessages.last["isFile"] == true)
-  //                   ? null
-  //                   : () => _showUploadMethodDialog(context),
-  //             ),
-  //             IconButton(
-  //               icon: const Icon(Icons.attach_file, color: Colors.white),
-  //               tooltip: 'Attach a file',
-  //               onPressed: (currentChatMessages.isNotEmpty &&
-  //                       currentChatMessages.last["isFile"] == true)
-  //                   ? null
-  //                   : uploadFile,
-  //             ),
-  //             IconButton(
-  //               icon: const Icon(Icons.send, color: Colors.white),
-  //               onPressed: (currentChatMessages.isNotEmpty &&
-  //                       currentChatMessages.last["isFile"] == true)
-  //                   ? null
-  //                   : sendMessage,
-  //             ),
-  //           ],
-  //         ),
-  //       ),
-  //     ],
-  //   );
-  // }
+  Widget buildDocStatusTree({required String? currentDocStatus}) {
+    List<StatusNode> roots = parseStatusTree(dashboardController.statusJson);
+    Widget statusNodeWidget(StatusNode node, {double indent = 0}) {
+      bool active = currentDocStatus == node.value;
+      Color nodeColor = active ? Colors.blueAccent : Colors.grey[600]!;
+      FontWeight nodeFontWeight = active ? FontWeight.bold : FontWeight.normal;
+
+      return Padding(
+        padding: EdgeInsets.only(left: indent),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: nodeColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+                Text(
+                  node.label,
+                  style: TextStyle(
+                    color: nodeColor,
+                    fontWeight: nodeFontWeight,
+                  ),
+                ),
+              ],
+            ),
+            ...node.children
+                .map((c) => statusNodeWidget(c, indent: indent + 24))
+                .toList(),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 16.0),
+          child: Text(
+            "Document Status",
+            style: TextStyle(
+                fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+        ...roots.map((node) => statusNodeWidget(node)).toList(),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2181,39 +2121,105 @@ final chatTitle="Chat";
 
               // Right Panel (Chat Panel)
               Expanded(
-                child: Container(
-                  color: Colors.grey[800],
-                  child: (selectedChannelIndex == null)
-                      ? const Center(
-                          child: Text(
-                            "Please select a channel",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        )
-                      : (
-                              // Determine which loading flag to use based on actorsequence
-                              (selectedChannelIndex != null &&
+                child: Stack(
+                  children: [
+                    Container(
+                      color: Colors.grey[800],
+                      child: (selectedChannelIndex == null)
+                          ? const Center(
+                              child: Text(
+                                "Please select a channel",
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            )
+                          : ((selectedChannelIndex != null &&
                                       channels[selectedChannelIndex!]
                                               ["actorsequence"] ==
                                           "1"
                                   ? isDocsLoading
                                   : isjoinedTagsLoading))
-                          ? const Center(child: CircularProgressIndicator())
-                          : (
-                                  // Determine which selected index to check based on actorsequence
-                                  (selectedChannelIndex != null &&
+                              ? const Center(child: CircularProgressIndicator())
+                              : ((selectedChannelIndex != null &&
                                           channels[selectedChannelIndex!]
                                                   ["actorsequence"] ==
                                               "1"
                                       ? (selectedDocIndex == null)
                                       : (selectedjoinedTagIndex == null)))
-                              ? const Center(
-                                  child: Text(
-                                    "Please select a doc",
-                                    style: TextStyle(color: Colors.white),
+                                  ? const Center(
+                                      child: Text(
+                                        "Please select a doc",
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    )
+                                  : buildChatColumn(),
+                    ),
+
+                    // Top-Right Button
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: IconButton(
+                        icon: Icon(Icons.menu_open, color: Colors.white),
+                        onPressed: () {
+                          setState(() {
+                            showRightSidebar = true;
+                          });
+                        },
+                      ),
+                    ),
+
+                    // Right Sidebar Overlay
+                    if (showRightSidebar)
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        bottom: 0,
+                        width: 300, // Adjust width as needed
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey[850],
+                            border: Border(
+                              left: BorderSide(
+                                color: Colors.grey[
+                                    700]!, // Use a slightly lighter shade for the border
+                                width: 1, // Adjust the width as needed
+                              ),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.close, color: Colors.white),
+                                onPressed: () {
+                                  setState(() {
+                                    showRightSidebar = false;
+                                  });
+                                },
+                              ),
+                              // Your sidebar content here
+                              Expanded(
+                                child: SingleChildScrollView(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: buildDocStatusTree(currentDocStatus: "accepted"),
                                   ),
-                                )
-                              : buildChatColumn(), // use your reusable function here
+                                ),
+                              ),
+                              // Expanded(
+                              //   child: Center(
+                              //     child: Text(
+                              //       "Right Sidebar",
+                              //       style: TextStyle(
+                              //           fontSize: 18, color: Colors.white),
+                              //     ),
+                              //   ),
+                              // ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],
