@@ -1955,211 +1955,410 @@ class _DashboardViewState extends State<DashboardView> {
         title: "dashboard.dashboard",
         context: context,
       ),
-      body: Stack(
-        children: [
-          Row(
-            children: [
-              // Left Sidebar (Channels with Long Press Options)
-              Container(
-                width: 80,
-                color: Colors.grey[900],
-                child: Column(
-                  children: [
-                    // Logo or App Icon at top (optional)
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      // child: CircleAvatar(
-                      //   radius: 24,
-                      //   backgroundColor: Colors
-                      //       .transparent, // optional if your logo has its own background
-                      //   backgroundImage: AssetImage(
-                      //       'assets/images/xdoc_logo.png'), // replace with your actual path
-                      // ),
-                      child: CircleAvatar(
-                        radius: 24,
-                        backgroundColor: Colors.transparent,
-                        child: SvgPicture.asset(
-                          'assets/images/xdoc_logo.svg',
-                          width: 40, // adjust as needed
-                          height: 40,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth <= 768;
+          
+          if (isMobile) {
+            return _buildMobileLayout(hasChannels);
+          } else {
+            return _buildTabletDesktopLayout(hasChannels, constraints);
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout(bool hasChannels) {
+    return Stack(
+      children: [
+        Column(
+          children: [
+            // Top navigation bar for mobile
+            Container(
+              height: 60,
+              color: Colors.grey[900],
+              child: Row(
+                children: [
+                  // Channels dropdown/selector
+                  Expanded(
+                    child: hasChannels
+                        ? DropdownButton<int>(
+                            value: selectedChannelIndex,
+                            hint: const Text('Select Channel', style: TextStyle(color: Colors.white)),
+                            dropdownColor: Colors.grey[800],
+                            style: const TextStyle(color: Colors.white),
+                            underline: Container(),
+                            isExpanded: true,
+                            items: channels.asMap().entries.map((entry) {
+                              int index = entry.key;
+                              Map<String, dynamic> channel = entry.value;
+                              return DropdownMenuItem<int>(
+                                value: index,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                  child: Text(
+                                    channel["channelname"],
+                                    style: const TextStyle(color: Colors.white),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (int? newIndex) {
+                              if (newIndex != null) {
+                                setState(() {
+                                  selectedChannelIndex = newIndex;
+                                  selectedDocIndex = null;
+                                  docs = [];
+                                  currentChatMessages = [];
+                                });
+                                fetchDocs(channels[newIndex]["channelname"]);
+                                fetchJoinedTags(channels[newIndex]["channelname"]);
+                              }
+                            },
+                          )
+                        : const Center(
+                            child: Text(
+                              "No Channels",
+                              style: TextStyle(color: Colors.white, fontSize: 12),
+                            ),
+                          ),
+                  ),
+                  // Add channel button
+                  IconButton(
+                    onPressed: () => _showCreateChannelDialog(context),
+                    icon: const Icon(Icons.add, color: Colors.white),
+                  ),
+                  // Menu button for channel options
+                  if (selectedChannelIndex != null)
+                    IconButton(
+                      onPressed: () async {
+                        if (channels[selectedChannelIndex!]["actorsequence"] == "1") {
+                          await fetchTags(channels[selectedChannelIndex!]["channelname"]);
+                          _showChannelOptionsBottomSheet(context, selectedChannelIndex!);
+                        }
+                      },
+                      icon: const Icon(Icons.more_vert, color: Colors.white),
+                    ),
+                ],
+              ),
+            ),
+            // Main content area
+            Expanded(
+              child: selectedChannelIndex == null
+                  ? Container(
+                      color: Colors.grey[850],
+                      child: const Center(
+                        child: Text(
+                          "Please select a channel",
+                          style: TextStyle(color: Colors.white),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    // Channels List
-                    Expanded(
-                      child: hasChannels
-                          ? ListView.builder(
-                              itemCount: channels.length,
-                              itemBuilder: (context, index) {
-                                bool isSelected = selectedChannelIndex == index;
-                                return Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 6.0),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        selectedChannelIndex = index;
-                                        selectedDocIndex = null;
-                                        docs = [];
-                                        currentChatMessages = [];
-                                      });
-                                      fetchDocs(channels[index]["channelname"]);
-                                      fetchJoinedTags(
-                                          channels[index]["channelname"]);
-                                      // if (channels[index]["actorsequence"] ==
-                                      //     "1") {
-
-                                      // } else {
-
-                                      // }
-                                    },
-                                    onLongPress: () async {
-                                      setState(() {
-                                        selectedChannelIndex = index;
-                                        selectedDocIndex = null;
-                                        docs = [];
-                                        currentChatMessages = [];
-                                      });
-                                      if (selectedChannelIndex != null &&
-                                          channels[selectedChannelIndex!]
-                                                  ["actorsequence"] ==
-                                              "1") {
-                                        await fetchTags(
-                                            channels[index]["channelname"]);
-                                        _showChannelOptionsBottomSheet(
-                                            context, index);
-                                      } else {
-                                        tags = [];
-                                      }
-                                    },
-                                    child: Tooltip(
-                                      message: channels[index]["channelname"],
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: isSelected
-                                              ? Colors.blueAccent
-                                              : Colors.grey[800],
-                                          shape: BoxShape.circle,
-                                        ),
-                                        margin: const EdgeInsets.symmetric(
-                                            horizontal: 10),
-                                        width: 50,
-                                        height: 50,
-                                        alignment: Alignment.center,
+                    )
+                  : Row(
+                      children: [
+                        // Docs/Tags list (1/3 of screen)
+                        Expanded(
+                          flex: 1,
+                          child: Container(
+                            color: Colors.grey[850],
+                            child: buildDocsListOrTagsList(),
+                          ),
+                        ),
+                        // Chat area (2/3 of screen)
+                        Expanded(
+                          flex: 2,
+                          child: Container(
+                            color: Colors.grey[800],
+                            child: ((selectedChannelIndex != null &&
+                                        channels[selectedChannelIndex!]["actorsequence"] == "1"
+                                    ? isDocsLoading
+                                    : isjoinedTagsLoading))
+                                ? const Center(child: CircularProgressIndicator())
+                                : ((selectedChannelIndex != null &&
+                                            channels[selectedChannelIndex!]["actorsequence"] == "1"
+                                        ? (selectedDocIndex == null)
+                                        : (selectedjoinedTagIndex == null)))
+                                    ? const Center(
                                         child: Text(
-                                          // channels[index]["channelname"]
-                                          //     .substring(0, 3)
-                                          //     .toUpperCase(),
-                                          dashboardController
-                                              .getChannelInitials(
-                                                  channels[index]
-                                                      ["channelname"]),
-                                          style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold),
+                                          "Please select a doc",
+                                          style: TextStyle(color: Colors.white),
                                         ),
+                                      )
+                                    : Stack(
+                                        children: [
+                                          buildChatColumn(),
+                                          if (selectedChannelIndex != null &&
+                                              (channels[selectedChannelIndex!]["actorsequence"] == "1"
+                                                  ? selectedDocIndex != null
+                                                  : selectedjoinedTagIndex != null))
+                                            Positioned(
+                                              top: 10,
+                                              right: 10,
+                                              child: IconButton(
+                                                icon: const Icon(Icons.menu_open, color: Colors.white),
+                                                onPressed: () {
+                                                  setState(() {
+                                                    showRightSidebar = true;
+                                                  });
+                                                },
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ],
+        ),
+        // Right sidebar overlay for mobile
+        if (showRightSidebar)
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  showRightSidebar = false;
+                });
+              },
+              child: Container(
+                color: Colors.black.withOpacity(0.5),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: GestureDetector(
+                    onTap: () {}, // Prevent dismissal when tapping sidebar
+                    child: Container(
+                      width: 280,
+                      height: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[850],
+                        border: Border(
+                          left: BorderSide(
+                            color: Colors.grey[700]!,
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white),
+                            onPressed: () {
+                              setState(() {
+                                showRightSidebar = false;
+                              });
+                            },
+                          ),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: buildDocStatusTree(currentDocStatus: "underprocess"),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        if (isUploading)
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text(
+                    'Uploading file...',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTabletDesktopLayout(bool hasChannels, BoxConstraints constraints) {
+    final sidebarWidth = constraints.maxWidth > 1200 ? 80.0 : 60.0;
+    final docsWidth = constraints.maxWidth > 1200 ? 250.0 : 200.0;
+    
+    return Stack(
+      children: [
+        Row(
+          children: [
+            // Left Sidebar (Channels with Long Press Options)
+            Container(
+              width: sidebarWidth,
+              color: Colors.grey[900],
+              child: Column(
+                children: [
+                  // Logo or App Icon at top (optional)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: CircleAvatar(
+                      radius: constraints.maxWidth > 1200 ? 24 : 20,
+                      backgroundColor: Colors.transparent,
+                      child: SvgPicture.asset(
+                        'assets/images/xdoc_logo.svg',
+                        width: constraints.maxWidth > 1200 ? 40 : 32,
+                        height: constraints.maxWidth > 1200 ? 40 : 32,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Channels List
+                  Expanded(
+                    child: hasChannels
+                        ? ListView.builder(
+                            itemCount: channels.length,
+                            itemBuilder: (context, index) {
+                              bool isSelected = selectedChannelIndex == index;
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 6.0),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      selectedChannelIndex = index;
+                                      selectedDocIndex = null;
+                                      docs = [];
+                                      currentChatMessages = [];
+                                    });
+                                    fetchDocs(channels[index]["channelname"]);
+                                    fetchJoinedTags(channels[index]["channelname"]);
+                                  },
+                                  onLongPress: () async {
+                                    setState(() {
+                                      selectedChannelIndex = index;
+                                      selectedDocIndex = null;
+                                      docs = [];
+                                      currentChatMessages = [];
+                                    });
+                                    if (selectedChannelIndex != null &&
+                                        channels[selectedChannelIndex!]["actorsequence"] == "1") {
+                                      await fetchTags(channels[index]["channelname"]);
+                                      _showChannelOptionsBottomSheet(context, index);
+                                    } else {
+                                      tags = [];
+                                    }
+                                  },
+                                  child: Tooltip(
+                                    message: channels[index]["channelname"],
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: isSelected ? Colors.blueAccent : Colors.grey[800],
+                                        shape: BoxShape.circle,
+                                      ),
+                                      margin: const EdgeInsets.symmetric(horizontal: 10),
+                                      width: constraints.maxWidth > 1200 ? 50 : 40,
+                                      height: constraints.maxWidth > 1200 ? 50 : 40,
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        dashboardController.getChannelInitials(
+                                            channels[index]["channelname"]),
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: constraints.maxWidth > 1200 ? 14 : 12),
                                       ),
                                     ),
                                   ),
-                                );
-                              },
-                            )
-                          : const Center(
-                              child: Text(
-                                "No Channels",
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 12),
-                              ),
+                                ),
+                              );
+                            },
+                          )
+                        : const Center(
+                            child: Text(
+                              "No Channels",
+                              style: TextStyle(color: Colors.white, fontSize: 12),
                             ),
-                    ),
-
-                    // Add Channel Button (bottom)
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: GestureDetector(
-                        onTap: () => _showCreateChannelDialog(context),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
                           ),
-                          width: 50,
-                          height: 50,
-                          child: const Icon(Icons.add, color: Colors.white),
+                  ),
+                  // Add Channel Button (bottom)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: GestureDetector(
+                      onTap: () => _showCreateChannelDialog(context),
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
                         ),
+                        width: constraints.maxWidth > 1200 ? 50 : 40,
+                        height: constraints.maxWidth > 1200 ? 50 : 40,
+                        child: Icon(Icons.add, 
+                            color: Colors.white, 
+                            size: constraints.maxWidth > 1200 ? 24 : 20),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              // Middle Panel (Docs)
-              Container(
-                width: 250,
-                color: Colors.grey[850],
-                child: Column(
-                  children: [
-                    // Padding(
-                    //   padding: const EdgeInsets.all(8.0),
-                    //   child: ElevatedButton(
-                    //     style: ElevatedButton.styleFrom(
-                    //       backgroundColor: Colors.green,
-                    //       minimumSize: const Size(double.infinity, 40),
-                    //     ),
-                    //     onPressed: () => _showCreateTagDialog(
-                    //         context), // You'll define this method
-                    //     child: const Text(
-                    //       '+',
-                    //       style: TextStyle(fontSize: 12),
-                    //     ),
-                    //   ),
-                    // ),
-                    buildDocsListOrTagsList(),
-                  ],
-                ),
+            ),
+            // Middle Panel (Docs)
+            Container(
+              width: docsWidth,
+              color: Colors.grey[850],
+              child: Column(
+                children: [
+                  buildDocsListOrTagsList(),
+                ],
               ),
-
-              // Right Panel (Chat Panel)
-              Expanded(
-                child: Stack(
-                  children: [
-                    Container(
-                      color: Colors.grey[800],
-                      child: (selectedChannelIndex == null)
-                          ? const Center(
-                              child: Text(
-                                "Please select a channel",
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            )
-                          : ((selectedChannelIndex != null &&
-                                      channels[selectedChannelIndex!]
-                                              ["actorsequence"] ==
-                                          "1"
-                                  ? isDocsLoading
-                                  : isjoinedTagsLoading))
-                              ? const Center(child: CircularProgressIndicator())
-                              : ((selectedChannelIndex != null &&
-                                          channels[selectedChannelIndex!]
-                                                  ["actorsequence"] ==
-                                              "1"
-                                      ? (selectedDocIndex == null)
-                                      : (selectedjoinedTagIndex == null)))
-                                  ? const Center(
-                                      child: Text(
-                                        "Please select a doc",
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                    )
-                                  : buildChatColumn(),
-                    ),
-
-                    // Top-Right Button
+            ),
+            // Right Panel (Chat Panel)
+            Expanded(
+              child: Stack(
+                children: [
+                  Container(
+                    color: Colors.grey[800],
+                    child: (selectedChannelIndex == null)
+                        ? const Center(
+                            child: Text(
+                              "Please select a channel",
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          )
+                        : ((selectedChannelIndex != null &&
+                                    channels[selectedChannelIndex!]["actorsequence"] == "1"
+                                ? isDocsLoading
+                                : isjoinedTagsLoading))
+                            ? const Center(child: CircularProgressIndicator())
+                            : ((selectedChannelIndex != null &&
+                                        channels[selectedChannelIndex!]["actorsequence"] == "1"
+                                    ? (selectedDocIndex == null)
+                                    : (selectedjoinedTagIndex == null)))
+                                ? const Center(
+                                    child: Text(
+                                      "Please select a doc",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  )
+                                : buildChatColumn(),
+                  ),
+                  // Top-Right Button
+                  if (selectedChannelIndex != null &&
+                      (channels[selectedChannelIndex!]["actorsequence"] == "1"
+                          ? selectedDocIndex != null
+                          : selectedjoinedTagIndex != null))
                     Positioned(
                       top: 10,
                       right: 10,
                       child: IconButton(
-                        icon: Icon(Icons.menu_open, color: Colors.white),
+                        icon: const Icon(Icons.menu_open, color: Colors.white),
                         onPressed: () {
                           setState(() {
                             showRightSidebar = true;
@@ -2167,86 +2366,73 @@ class _DashboardViewState extends State<DashboardView> {
                         },
                       ),
                     ),
-
-                    // Right Sidebar Overlay
-                    if (showRightSidebar)
-                      Positioned(
-                        top: 0,
-                        right: 0,
-                        bottom: 0,
-                        width: 300, // Adjust width as needed
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.grey[850],
-                            border: Border(
-                              left: BorderSide(
-                                color: Colors.grey[
-                                    700]!, // Use a slightly lighter shade for the border
-                                width: 1, // Adjust the width as needed
-                              ),
+                  // Right Sidebar Overlay
+                  if (showRightSidebar)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      bottom: 0,
+                      width: constraints.maxWidth > 1200 ? 350 : 300,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[850],
+                          border: Border(
+                            left: BorderSide(
+                              color: Colors.grey[700]!,
+                              width: 1,
                             ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.close, color: Colors.white),
-                                onPressed: () {
-                                  setState(() {
-                                    showRightSidebar = false;
-                                  });
-                                },
-                              ),
-                              // Your sidebar content here
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: buildDocStatusTree(currentDocStatus: "accepted"),
-                                  ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.white),
+                              onPressed: () {
+                                setState(() {
+                                  showRightSidebar = false;
+                                });
+                              },
+                            ),
+                            Expanded(
+                              child: SingleChildScrollView(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: buildDocStatusTree(currentDocStatus: "underprocess"),
                                 ),
                               ),
-                              // Expanded(
-                              //   child: Center(
-                              //     child: Text(
-                              //       "Right Sidebar",
-                              //       style: TextStyle(
-                              //           fontSize: 18, color: Colors.white),
-                              //     ),
-                              //   ),
-                              // ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (isUploading)
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Uploading file...',
-                      style: TextStyle(color: Colors.white),
                     ),
-                  ],
-                ),
+                ],
               ),
             ),
-        ],
-      ),
+          ],
+        ),
+        if (isUploading)
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text(
+                    'Uploading file...',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
