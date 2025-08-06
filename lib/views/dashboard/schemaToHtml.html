@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Resume JSON Schema Dynamic Form (with Required Fields)</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 30px; }
+    .array-section { border: 1px solid #aaa; border-radius: 8px; margin: 18px 0; padding: 12px; }
+    .array-header { display: flex; align-items: center; }
+    .array-header h4 { margin: 0 10px 0 0; }
+    .array-item { background: #f6f8fa; margin-bottom: 10px; padding: 10px; border-radius: 8px; position: relative; }
+    .remove-btn { position: absolute; right: 10px; top: 10px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; padding: 2px 8px; }
+    label { display: block; margin: 12px 0 3px; }
+    .required-star { color: red; margin-left: 4px; }
+    input, select, textarea { width: 100%; padding: 7px; box-sizing: border-box; margin-bottom: 8px; }
+    input[type="checkbox"] { width: auto; }
+    input[type="submit"] { width: auto; margin-top: 20px; }
+    .nested-object { border-left: 4px solid #ddd; margin: 8px 0 8px 20px; padding-left: 14px; }
+    .add-btn { background: #3498db; color: white; border: none; border-radius: 5px; padding: 5px 15px; cursor: pointer; }
+    .add-btn:active, .remove-btn:active { opacity: 0.8; }
+  </style>
+</head>
+<body>
+  <h2>Auto-Generated Resume Form</h2>
+  <div id="form-container"></div>
+  <div id="form-result"></div>
+  <script>
+    // --- JSON SCHEMA WITH REQUIRED FIELDS ---
+    const schema = {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Resume",
+      "type": "object",
+      "properties": {
+        "basics": {
+          "type": "object",
+          "required": ["name", "email", "location"],
+          "properties": {
+            "name": { "type": "string" },
+            "label": { "type": "string" },
+            "image": { "type": "string", "format": "uri" },
+            "email": { "type": "string", "format": "email" },
+            "phone": { "type": "string" },
+            "url": { "type": "string", "format": "uri" },
+            "summary": { "type": "string" },
+            "location": {
+              "type": "object",
+              "required": ["address", "city", "countryCode"],
+              "properties": {
+                "address": { "type": "string" },
+                "postalCode": { "type": "string" },
+                "city": { "type": "string" },
+                "countryCode": { "type": "string" },
+                "region": { "type": "string" }
+              }
+            },
+            "profiles": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["network", "username", "url"],
+                "properties": {
+                  "network": { "type": "string" },
+                  "username": { "type": "string" },
+                  "url": { "type": "string", "format": "uri" }
+                }
+              }
+            }
+          }
+        },
+        "work": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "position", "startDate"],
+            "properties": {
+              "name": { "type": "string" },
+              "position": { "type": "string" },
+              "url": { "type": "string", "format": "uri" },
+              "startDate": { "type": "string", "format": "date" },
+              "endDate": { "type": "string", "format": "date" },
+              "summary": { "type": "string" },
+              "highlights": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "volunteer": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "organization": { "type": "string" },
+              "position": { "type": "string" },
+              "url": { "type": "string", "format": "uri" },
+              "startDate": { "type": "string", "format": "date" },
+              "endDate": { "type": "string", "format": "date" },
+              "summary": { "type": "string" },
+              "highlights": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "education": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "institution": { "type": "string" },
+              "url": { "type": "string", "format": "uri" },
+              "area": { "type": "string" },
+              "studyType": { "type": "string" },
+              "startDate": { "type": "string", "format": "date" },
+              "endDate": { "type": "string", "format": "date" },
+              "score": { "type": "string" },
+              "courses": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "awards": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "date": { "type": "string", "format": "date" },
+              "awarder": { "type": "string" },
+              "summary": { "type": "string" }
+            }
+          }
+        },
+        "certificates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "date": { "type": "string", "format": "date" },
+              "issuer": { "type": "string" },
+              "url": { "type": "string", "format": "uri" }
+            }
+          }
+        },
+        "publications": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "publisher": { "type": "string" },
+              "releaseDate": { "type": "string", "format": "date" },
+              "url": { "type": "string", "format": "uri" },
+              "summary": { "type": "string" }
+            }
+          }
+        },
+        "skills": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "level"],
+            "properties": {
+              "name": { "type": "string" },
+              "level": { "type": "string" },
+              "keywords": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "languages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "language": { "type": "string" },
+              "fluency": { "type": "string" }
+            }
+          }
+        },
+        "interests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "keywords": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "reference": { "type": "string" }
+            }
+          }
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "startDate": { "type": "string", "format": "date" },
+              "endDate": { "type": "string", "format": "date" },
+              "description": { "type": "string" },
+              "highlights": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "url": { "type": "string", "format": "uri" }
+            }
+          }
+        }
+      }
+    };
+
+    // Helper functions
+    function capitalize(str) {
+      if (!str) return '';
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    // Recursive function to generate form fields from schema
+    function createFieldsFromSchema(schema, path = '', parentKey = '', arrayFieldSchemas = {}, parentRequired = []) {
+      let html = '';
+      const required = schema.required || [];
+
+      if (schema.type === 'object' && schema.properties) {
+        html += `<div class="nested-object">`;
+        for (const [key, propSchema] of Object.entries(schema.properties)) {
+          const fieldPath = path ? `${path}.${key}` : key;
+          html += createFieldsFromSchema(propSchema, fieldPath, key, arrayFieldSchemas, required);
+        }
+        html += `</div>`;
+      } else if (schema.type === 'array' && schema.items) {
+        const arrayId = path.replace(/\./g, '_');
+        arrayFieldSchemas[arrayId] = schema.items;
+        html += `<div class="array-section" id="section_${arrayId}">`;
+        html += `<div class="array-header"><h4>${capitalize(parentKey)} <span id="count_${arrayId}">(0)</span></h4>
+          <button type="button" class="add-btn" data-arrayid="${arrayId}" data-path="${path}">Add +</button>
+        </div>`;
+        html += `<div id="container_${arrayId}"></div>`;
+        html += `</div>`;
+      } else {
+        // Primitive types and enums
+        const isRequired = parentRequired.includes(parentKey);
+        html += `<label for="${path}">${capitalize(parentKey)}`;
+        if (isRequired) html += `<span class="required-star">*</span>`;
+        html += `</label>`;
+
+        if (schema.enum) {
+          html += `<select name="${path}" id="${path}"${isRequired ? ' required' : ''}>`;
+          schema.enum.forEach(opt => {
+            html += `<option value="${opt}">${opt}</option>`;
+          });
+          html += `</select>`;
+        } else if (schema.type === 'string' && schema.format === 'date') {
+          html += `<input type="date" name="${path}" id="${path}"${isRequired ? ' required' : ''}>`;
+        } else if (schema.type === 'string' && schema.format === 'email') {
+          html += `<input type="email" name="${path}" id="${path}"${isRequired ? ' required' : ''}>`;
+        } else if (schema.type === 'string' && schema.format === 'uri') {
+          html += `<input type="url" name="${path}" id="${path}"${isRequired ? ' required' : ''}>`;
+        } else if (schema.type === 'string') {
+          html += `<input type="text" name="${path}" id="${path}"${isRequired ? ' required' : ''}>`;
+        } else if (schema.type === 'integer' || schema.type === 'number') {
+          html += `<input type="number" name="${path}" id="${path}"${isRequired ? ' required' : ''}>`;
+        } else if (schema.type === 'boolean') {
+          html += `<input type="checkbox" name="${path}" id="${path}"${isRequired ? ' required' : ''}>`;
+        }
+      }
+      return html;
+    }
+
+    // Build and render form
+    const arrayFieldSchemas = {};
+    document.getElementById('form-container').innerHTML = `
+      <form id="resumeForm">
+        ${createFieldsFromSchema(schema, '', '', arrayFieldSchemas, schema.required || [])}
+        <input type="submit" value="Submit">
+      </form>
+    `;
+
+    // Array item adding and removing
+    function addArrayItem(arrayId, itemsSchema, path) {
+      const container = document.getElementById('container_' + arrayId);
+      const idx = container.childElementCount;
+      const itemId = `${arrayId}_${idx}`;
+      let fieldsHtml = '';
+      if (itemsSchema.type === 'object') {
+        fieldsHtml = createFieldsFromSchema(
+          itemsSchema,
+          `${path}[${idx}]`,
+          '',
+          arrayFieldSchemas,
+          itemsSchema.required || []
+        );
+      } else {
+        fieldsHtml = `<input type="text" name="${path}[${idx}]" id="${path}[${idx}]">`;
+      }
+      container.insertAdjacentHTML('beforeend', `
+        <div class="array-item" id="item_${itemId}">
+          <button type="button" class="remove-btn" data-remove="${itemId}" data-arrayid="${arrayId}">x</button>
+          ${fieldsHtml}
+        </div>
+      `);
+      updateArrayCount(arrayId);
+    }
+
+    function removeArrayItem(itemId, arrayId) {
+      const el = document.getElementById('item_' + itemId);
+      if (el) el.remove();
+      updateArrayCount(arrayId);
+    }
+
+    function updateArrayCount(arrayId) {
+      const container = document.getElementById('container_' + arrayId);
+      const count = container ? container.childElementCount : 0;
+      const countEl = document.getElementById('count_' + arrayId);
+      if (countEl) countEl.textContent = `(${count})`;
+    }
+
+    // Event delegation for add/remove buttons
+    document.getElementById('form-container').addEventListener('click', function(e) {
+      if (e.target.classList.contains('add-btn')) {
+        const arrayId = e.target.getAttribute('data-arrayid');
+        const path = e.target.getAttribute('data-path');
+        addArrayItem(arrayId, arrayFieldSchemas[arrayId], path);
+      }
+      if (e.target.classList.contains('remove-btn')) {
+        const itemId = e.target.getAttribute('data-remove');
+        const arrayId = e.target.getAttribute('data-arrayid');
+        removeArrayItem(itemId, arrayId);
+      }
+    });
+
+    // Gather form data into object (handles arrays and nested objects)
+    function gatherFormData(formEl) {
+      const formData = new FormData(formEl);
+      const result = {};
+
+      for (const [name, value] of formData.entries()) {
+        setNestedValue(result, name, value);
+      }
+      // Handle checkboxes
+      formEl.querySelectorAll('input[type="checkbox"]').forEach(input => {
+        setNestedValue(result, input.name, input.checked);
+      });
+      return result;
+    }
+
+    // Helper to set value by nested path, supporting array indices (e.g. "skills[0].keywords[1]")
+    function setNestedValue(obj, path, value) {
+      const pathArr = path.replace(/\]/g, '').split(/\.|\[/g);
+      let curr = obj;
+      for (let i = 0; i < pathArr.length; i++) {
+        const part = pathArr[i];
+        const nextPart = pathArr[i + 1];
+        if (part === '') continue;
+        if (nextPart && /^\d+$/.test(nextPart)) {
+          if (!curr[part]) curr[part] = [];
+          curr = curr[part];
+        } else if (nextPart) {
+          if (!curr[part]) curr[part] = {};
+          curr = curr[part];
+        } else {
+          // final value
+          if (/^\d+$/.test(part)) {
+            curr[parseInt(part, 10)] = value;
+          } else {
+            curr[part] = value;
+          }
+        }
+      }
+    }
+
+    // Handle form submit
+    document.getElementById('resumeForm').onsubmit = function(e) {
+      e.preventDefault();
+      const obj = gatherFormData(this);
+      document.getElementById('form-result').innerHTML = `<h3>Form Data as JSON:</h3><pre>${JSON.stringify(obj, null, 2)}</pre>`;
+    };
+  </script>
+</body>
+</html>

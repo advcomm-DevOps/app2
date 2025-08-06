@@ -71,19 +71,19 @@ class _CustomAppBarState extends State<CustomAppBar> {
     return AppBar(
       title: Text(widget.title.tr()),
       actions: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: TextButton(
-            onPressed: () => context.push(landingpageRoute),
-            child: Text(
-              "InterConnects",
-              style: TextStyle(
-                color: Colors.blue,
-                decoration: TextDecoration.underline,
-              ),
-            ),
-          ),
-        ),
+        // Padding(
+        //   padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        //   child: TextButton(
+        //     onPressed: () => context.push(landingpageRoute),
+        //     child: Text(
+        //       "InterConnects",
+        //       style: TextStyle(
+        //         color: Colors.blue,
+        //         decoration: TextDecoration.underline,
+        //       ),
+        //     ),
+        //   ),
+        // ),
         // About button
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0),

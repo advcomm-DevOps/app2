@@ -1533,13 +1533,28 @@ class _DashboardViewState extends State<DashboardView> {
               ),
               child: ListTile(
                 contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                leading: CircleAvatar(
-                  backgroundColor: Colors.blueAccent,
-                  child: Text(
-                    displayName[0].toUpperCase(),
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                // leading: CircleAvatar(
+                //   backgroundColor: Colors.blueAccent,
+                //   child: Text(
+                //     displayName[0].toUpperCase(),
+                //     style: const TextStyle(
+                //         color: Colors.white, fontWeight: FontWeight.bold),
+                //   ),
+                // ),
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.blueAccent,
+                    borderRadius: BorderRadius.circular(8), // Square with rounded corners
+                  ),
+                  child: Center(
+                    child: Text(
+                      displayName[0].toUpperCase(),
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
                 title: Text(
@@ -1570,7 +1585,6 @@ class _DashboardViewState extends State<DashboardView> {
             style: const TextStyle(color: Colors.white, fontSize: 18),
           ),
         ),
-        const Divider(color: Colors.white70),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.all(8),
@@ -1819,7 +1833,6 @@ class _DashboardViewState extends State<DashboardView> {
             ],
           ),
         ),
-        const Divider(height: 1, color: Colors.white70),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6),
           child: Row(
@@ -2134,12 +2147,6 @@ class _DashboardViewState extends State<DashboardView> {
                       height: double.infinity,
                       decoration: BoxDecoration(
                         color: Colors.grey[850],
-                        border: Border(
-                          left: BorderSide(
-                            color: Colors.grey[700]!,
-                            width: 1,
-                          ),
-                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
@@ -2194,8 +2201,10 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   Widget _buildTabletDesktopLayout(bool hasChannels, BoxConstraints constraints) {
-    final sidebarWidth = constraints.maxWidth > 1200 ? 80.0 : 60.0;
+    final sidebarWidth = 70.0; // Same width for all screen sizes
     final docsWidth = constraints.maxWidth > 1200 ? 250.0 : 200.0;
+    // Calculate channel size to maintain square proportions relative to sidebar width
+    final channelSize = sidebarWidth * 0.7; // 70% of sidebar width for perfect square appearance
     
     return Stack(
       children: [
@@ -2261,11 +2270,11 @@ class _DashboardViewState extends State<DashboardView> {
                                     child: Container(
                                       decoration: BoxDecoration(
                                         color: isSelected ? Colors.blueAccent : Colors.grey[800],
-                                        shape: BoxShape.circle,
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
                                       margin: const EdgeInsets.symmetric(horizontal: 10),
-                                      width: constraints.maxWidth > 1200 ? 50 : 40,
-                                      height: constraints.maxWidth > 1200 ? 50 : 40,
+                                      width: channelSize,
+                                      height: channelSize,
                                       alignment: Alignment.center,
                                       child: Text(
                                         dashboardController.getChannelInitials(
@@ -2294,12 +2303,12 @@ class _DashboardViewState extends State<DashboardView> {
                     child: GestureDetector(
                       onTap: () => _showCreateChannelDialog(context),
                       child: Container(
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           color: Colors.green,
-                          shape: BoxShape.circle,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        width: constraints.maxWidth > 1200 ? 50 : 40,
-                        height: constraints.maxWidth > 1200 ? 50 : 40,
+                        width: channelSize,
+                        height: channelSize,
                         child: Icon(Icons.add, 
                             color: Colors.white, 
                             size: constraints.maxWidth > 1200 ? 24 : 20),
@@ -2376,12 +2385,6 @@ class _DashboardViewState extends State<DashboardView> {
                       child: Container(
                         decoration: BoxDecoration(
                           color: Colors.grey[850],
-                          border: Border(
-                            left: BorderSide(
-                              color: Colors.grey[700]!,
-                              width: 1,
-                            ),
-                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
