@@ -697,55 +697,18 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   Widget buildComposeView() {
-    const String composeHtml = '''
+    String composeHtml = '''
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Compose Message</title>
-        <!-- Quill CSS -->
-        <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
         <style>
             body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 background-color: transparent;
                 color: #ffffff;
-                margin: 0;
-                padding: 30px 160px;
-                box-sizing: border-box;
-            }
-            .form-container {
-                border: 1px solid #555;
-                border-radius: 12px;
-                padding: 24px;
-                background-color: #3a3a3a;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            }
-            .form-group {
-                margin-bottom: 20px;
-            }
-            label {
-                display: block;
-                margin-bottom: 8px;
-                color: #b0b0b0;
-                font-weight: 500;
-            }
-            input, textarea, select {
-                width: 100%;
-                padding: 12px;
-                border: 1px solid #555;
-                border-radius: 8px;
-                background-color: #2a2a2a;
-                color: #ffffff;
-                font-size: 14px;
-                box-sizing: border-box;
-                transition: border-color 0.3s ease;
-            }
-            input:focus, textarea:focus, select:focus {
-                outline: none;
-                border-color: #4a9eff;
-                box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2);
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             }
             /* Quill Editor Dark Theme Styles */
             #editor {
@@ -802,118 +765,59 @@ class _DashboardViewState extends State<DashboardView> {
             .ql-toolbar button.ql-active {
                 background-color: #4a9eff;
             }
-            .button-group {
-                display: flex;
-                gap: 12px;
-                justify-content: flex-end;
-                margin-top: 24px;
-                padding-top: 16px;
-                border-top: 1px solid #555;
+            /* Custom dark form styles */
+            .form-control {
+                background-color: #2a2a2a !important;
+                border-color: #555 !important;
+                color: #ffffff !important;
             }
-            .btn {
-                padding: 12px 24px;
-                border: none;
-                border-radius: 8px;
-                cursor: pointer;
-                font-size: 14px;
+            .form-control:focus {
+                background-color: #2a2a2a !important;
+                border-color: #4a9eff !important;
+                box-shadow: 0 0 0 0.2rem rgba(74, 158, 255, 0.25) !important;
+                color: #ffffff !important;
+            }
+            .form-label {
+                color: #b0b0b0 !important;
                 font-weight: 500;
-                transition: all 0.2s ease;
-            }
-            .btn-primary {
-                background-color: #4a9eff;
-                color: #ffffff;
-            }
-            .btn-primary:hover {
-                background-color: #357abd;
-                transform: translateY(-1px);
-            }
-            .btn-secondary {
-                background-color: #6a6a6a;
-                color: #ffffff;
-            }
-            .btn-secondary:hover {
-                background-color: #5a5a5a;
             }
         </style>
     </head>
-    <body>
-        <div class="form-container">
-            <form id="composeForm">
-            <div class="form-group">
-                <label for="to">To:</label>
-                <input type="email" id="to" name="to" placeholder="recipient@example.com" required>
+    <body class="bg-transparent text-white">
+        <div class="container-fluid p-5">
+            <div class="card bg-dark border-secondary shadow">
+                <div class="card-body p-4">
+                    <form id="composeForm">
+                        <div class="mb-3">
+                            <label for="to" class="form-label">To:</label>
+                            <input type="email" id="to" name="to" class="form-control" placeholder="recipient@example.com" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="subject" class="form-label">Subject:</label>
+                            <input type="text" id="subject" name="subject" class="form-control" placeholder="Enter subject" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="message" class="form-label">Message:</label>
+                            <div id="editor"></div>
+                            <input type="hidden" id="message" name="message">
+                        </div>
+                        
+                        <div class="d-flex justify-content-end gap-3 pt-3 border-top border-secondary">
+                            <button type="submit" class="btn btn-primary">Send Message</button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            
-            <div class="form-group">
-                <label for="subject">Subject:</label>
-                <input type="text" id="subject" name="subject" placeholder="Enter subject" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="message">Message:</label>
-                <div id="editor"></div>
-                <input type="hidden" id="message" name="message">
-            </div>
-            
-            <div class="button-group">
-                <button type="button" class="btn btn-secondary" onclick="cancelCompose()">Cancel</button>
-                <button type="submit" class="btn btn-primary">Send Message</button>
-            </div>
-            </form>
         </div>
-
-        <!-- Quill JS -->
-        <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
-        <script>
-            // Initialize Quill editor
-            var quill = new Quill('#editor', {
-                theme: 'snow',
-                placeholder: 'Type your message here...',
-                modules: {
-                    toolbar: [
-                        [{ 'header': [1, 2, 3, false] }],
-                        ['bold', 'italic', 'underline', 'strike'],
-                        [{ 'color': [] }, { 'background': [] }],
-                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                        [{ 'align': [] }],
-                        ['link', 'blockquote', 'code-block'],
-                        ['clean']
-                    ]
-                }
-            });
-
-            function cancelCompose() {
-                if (confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
-                    // Reset form
-                    document.getElementById('composeForm').reset();
-                    quill.setContents([]);
-                    
-                    // Notify Flutter to exit compose mode
-                    window.flutter_inappwebview.callHandler('exitCompose');
-                }
-            }
-
-            document.getElementById('composeForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                // Get Quill content as HTML
-                const messageContent = quill.root.innerHTML;
-                
-                const formData = new FormData(this);
-                const messageData = {
-                    to: formData.get('to'),
-                    subject: formData.get('subject'),
-                    message: messageContent
-                };
-                
-                // Send data to Flutter
-                window.flutter_inappwebview.callHandler('sendMessage', messageData);
-            });
-        </script>
     </body>
     </html>
     ''';
-
+    if (kIsWeb) {
+      composeHtml =
+          '$composeHtml<script>${dashboardController.formHandlingJS}</script>';
+    }
     return Container(
       color: Colors.grey[800], // Flutter background
       child: Column(
@@ -947,19 +851,23 @@ class _DashboardViewState extends State<DashboardView> {
               ],
             ),
           ),
+
           // InAppWebView with form only
           Expanded(
             child: InAppWebView(
               initialData: InAppWebViewInitialData(data: composeHtml),
               onWebViewCreated: (controller) {
-                  // Add handlers for communication with the web view
+                // Add handlers for communication with the web view
+                if (!kIsWeb) {
                   controller.addJavaScriptHandler(
-                    handlerName: 'sendMessage',
+                    handlerName: 'onFormSubmit',
                     callback: (args) {
-                      // Handle message sending
-                      final messageData = args[0] as Map<String, dynamic>;
-                      print('Sending message: $messageData');
-                      
+
+                      String jsonString = args[0];
+                      print('Received JSON string: $jsonString');
+                      Map<String, dynamic> formData = jsonDecode(jsonString);
+                      print('Received JSON: $formData');
+
                       // Show success message
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -967,25 +875,40 @@ class _DashboardViewState extends State<DashboardView> {
                           backgroundColor: Colors.green,
                         ),
                       );
-                      
+
                       // Exit compose mode
                       setState(() {
                         isComposeMode = false;
                       });
                     },
                   );
-                  
-                  controller.addJavaScriptHandler(
-                    handlerName: 'exitCompose',
-                    callback: (args) {
-                      // Handle cancel/exit
-                      setState(() {
-                        isComposeMode = false;
-                      });
-                    },
-                  );
-                },
-              ),
+                } else {
+                  handleWebMessage();
+                  final stream = handleWebMessage();
+                  stream.listen((jsonString) {
+                    print('Received JSON: $jsonString');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Message sent successfully!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+
+                    // Exit compose mode
+                    setState(() {
+                      isComposeMode = false;
+                    });
+                  });
+                }
+              },
+              onLoadStop: (controller, url) async {
+                // Inject Bootstrap 5 and Quill CSS/JS
+                if (!kIsWeb) {
+                  await controller.evaluateJavascript(
+                      source: dashboardController.formHandlingJS);
+                }
+              },
+            ),
           ),
         ],
       ),
@@ -1569,19 +1492,19 @@ class _DashboardViewState extends State<DashboardView> {
           children: [
             if (selectedChannelIndex != null &&
                 channels[selectedChannelIndex!]["actorsequence"] == "1")
-            ListTile(
-              leading: const Icon(Icons.qr_code, color: Colors.white),
-              title: Text(
-                'Show QR Code for ${channels[index]["channelname"]}',
-                style: const TextStyle(color: Colors.white),
+              ListTile(
+                leading: const Icon(Icons.qr_code, color: Colors.white),
+                title: Text(
+                  'Show QR Code for ${channels[index]["channelname"]}',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  String qrData =
+                      qrurl + selectedEntity + channels[index]["channelname"];
+                  showQrDialog(context, qrData, index);
+                },
               ),
-              onTap: () {
-                Navigator.pop(context);
-                String qrData =
-                    qrurl + selectedEntity + channels[index]["channelname"];
-                showQrDialog(context, qrData, index);
-              },
-            ),
             const SizedBox(height: 10),
 
             // Create Tag Button
@@ -1832,7 +1755,7 @@ class _DashboardViewState extends State<DashboardView> {
               ),
               child: ListTile(
                 contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 // leading: CircleAvatar(
                 //   backgroundColor: Colors.blueAccent,
                 //   child: Text(
@@ -1846,7 +1769,8 @@ class _DashboardViewState extends State<DashboardView> {
                   height: 40,
                   decoration: BoxDecoration(
                     color: Colors.blueAccent,
-                    borderRadius: BorderRadius.circular(8), // Square with rounded corners
+                    borderRadius:
+                        BorderRadius.circular(8), // Square with rounded corners
                   ),
                   child: Center(
                     child: Text(
@@ -1874,22 +1798,27 @@ class _DashboardViewState extends State<DashboardView> {
     // final chatTitle = isActorSequenceOne
     //     ? tr("Chat in") + " ${docs[selectedDocIndex!]["docname"]}"
     //     : tr("Chat in") + " ${joinedTags[selectedjoinedTagIndex!]["tagId"]}";
-    
+
     // Determine the title based on what's selected
     String chatTitle = "Please select a document";
     if (selectedChannelIndex != null) {
-      final isChannelOwner = channels[selectedChannelIndex!]["actorsequence"] == "1";
+      final isChannelOwner =
+          channels[selectedChannelIndex!]["actorsequence"] == "1";
       if (isChannelOwner && selectedDocIndex != null && docs.isNotEmpty) {
-        chatTitle = "Document: ${docs[selectedDocIndex!]["docname"] ?? "Unknown"}";
-      } else if (!isChannelOwner && selectedjoinedTagIndex != null && joinedTags.isNotEmpty) {
-        chatTitle = "Job: ${joinedTags[selectedjoinedTagIndex!]["tagId"] ?? "Unknown"}";
+        chatTitle =
+            "Document: ${docs[selectedDocIndex!]["docname"] ?? "Unknown"}";
+      } else if (!isChannelOwner &&
+          selectedjoinedTagIndex != null &&
+          joinedTags.isNotEmpty) {
+        chatTitle =
+            "Job: ${joinedTags[selectedjoinedTagIndex!]["tagId"] ?? "Unknown"}";
       } else if (isChannelOwner) {
         chatTitle = "Select a document to chat";
       } else {
         chatTitle = "Select a job to chat";
       }
     }
-    
+
     return Column(
       children: [
         // Header with consistent styling like compose view
@@ -2303,7 +2232,7 @@ class _DashboardViewState extends State<DashboardView> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isMobile = constraints.maxWidth <= 768;
-          
+
           if (isMobile) {
             return _buildMobileLayout(hasChannels);
           } else {
@@ -2330,7 +2259,8 @@ class _DashboardViewState extends State<DashboardView> {
                     child: hasChannels
                         ? DropdownButton<int>(
                             value: selectedChannelIndex,
-                            hint: const Text('Select Channel', style: TextStyle(color: Colors.white)),
+                            hint: const Text('Select Channel',
+                                style: TextStyle(color: Colors.white)),
                             dropdownColor: Colors.grey[800],
                             style: const TextStyle(color: Colors.white),
                             underline: Container(),
@@ -2341,7 +2271,8 @@ class _DashboardViewState extends State<DashboardView> {
                               return DropdownMenuItem<int>(
                                 value: index,
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16.0),
                                   child: Text(
                                     channel["channelname"],
                                     style: const TextStyle(color: Colors.white),
@@ -2357,26 +2288,31 @@ class _DashboardViewState extends State<DashboardView> {
                                   selectedDocIndex = null;
                                   docs = [];
                                   currentChatMessages = [];
-                                  isComposeMode = false; // Reset compose mode when switching channels
+                                  isComposeMode =
+                                      false; // Reset compose mode when switching channels
                                 });
                                 fetchDocs(channels[newIndex]["channelname"]);
-                                fetchJoinedTags(channels[newIndex]["channelname"]);
+                                fetchJoinedTags(
+                                    channels[newIndex]["channelname"]);
                               }
                             },
                           )
                         : const Center(
                             child: Text(
                               "No Channels",
-                              style: TextStyle(color: Colors.white, fontSize: 12),
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 12),
                             ),
                           ),
                   ),
-                    if (selectedChannelIndex != null)
+                  if (selectedChannelIndex != null)
                     IconButton(
                       onPressed: () async {
                         // if (channels[selectedChannelIndex!]["actorsequence"] == "1") {
-                          await fetchTags(channels[selectedChannelIndex!]["channelname"]);
-                          _showChannelOptionsBottomSheet(context, selectedChannelIndex!);
+                        await fetchTags(
+                            channels[selectedChannelIndex!]["channelname"]);
+                        _showChannelOptionsBottomSheet(
+                            context, selectedChannelIndex!);
                         // }
                       },
                       icon: const Icon(Icons.more_vert, color: Colors.white),
@@ -2394,7 +2330,6 @@ class _DashboardViewState extends State<DashboardView> {
                     ),
                   ),
                   // Menu button for channel options
-                
                 ],
               ),
             ),
@@ -2420,24 +2355,34 @@ class _DashboardViewState extends State<DashboardView> {
                             child: Column(
                               children: [
                                 // Show compose button if "Sent" channel is selected actorsequence
-                                // if (selectedChannelIndex != null && 
+                                // if (selectedChannelIndex != null &&
                                 //     channels[selectedChannelIndex!]["channelname"] == "Sent")
-                                    if (selectedChannelIndex != null && 
-                                    channels[selectedChannelIndex!]["actorsequence"] == "0")
+                                if (selectedChannelIndex != null &&
+                                    channels[selectedChannelIndex!]
+                                            ["actorsequence"] ==
+                                        "0")
                                   Container(
                                     padding: const EdgeInsets.all(8.0),
                                     child: ElevatedButton.icon(
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.blue[600],
-                                        minimumSize: const Size(double.infinity, 40),
+                                        minimumSize:
+                                            const Size(double.infinity, 40),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                         ),
                                       ),
-                                      icon: Icon(isComposeMode ? Icons.close : Icons.edit, color: Colors.white, size: 18),
+                                      icon: Icon(
+                                          isComposeMode
+                                              ? Icons.close
+                                              : Icons.edit,
+                                          color: Colors.white,
+                                          size: 18),
                                       label: Text(
                                         isComposeMode ? 'Close' : 'Compose',
-                                        style: const TextStyle(fontSize: 14, color: Colors.white),
+                                        style: const TextStyle(
+                                            fontSize: 14, color: Colors.white),
                                       ),
                                       onPressed: () {
                                         setState(() {
@@ -2459,41 +2404,54 @@ class _DashboardViewState extends State<DashboardView> {
                             child: isComposeMode
                                 ? buildComposeView()
                                 : ((selectedChannelIndex != null &&
-                                        channels[selectedChannelIndex!]["actorsequence"] == "1"
-                                    ? isDocsLoading
-                                    : isjoinedTagsLoading))
-                                ? const Center(child: CircularProgressIndicator())
-                                : ((selectedChannelIndex != null &&
-                                            channels[selectedChannelIndex!]["actorsequence"] == "1"
-                                        ? (selectedDocIndex == null)
-                                        : (selectedjoinedTagIndex == null)))
+                                            channels[selectedChannelIndex!]
+                                                    ["actorsequence"] ==
+                                                "1"
+                                        ? isDocsLoading
+                                        : isjoinedTagsLoading))
                                     ? const Center(
-                                        child: Text(
-                                          "Please select a doc",
-                                          style: TextStyle(color: Colors.white),
-                                        ),
-                                      )
-                                    : Stack(
-                                        children: [
-                                          buildChatColumn(),
-                                          if (selectedChannelIndex != null &&
-                                              (channels[selectedChannelIndex!]["actorsequence"] == "1"
-                                                  ? selectedDocIndex != null
-                                                  : selectedjoinedTagIndex != null))
-                                            Positioned(
-                                              top: 10,
-                                              right: 10,
-                                              child: IconButton(
-                                                icon: const Icon(Icons.menu_open, color: Colors.white),
-                                                onPressed: () {
-                                                  setState(() {
-                                                    showRightSidebar = true;
-                                                  });
-                                                },
-                                              ),
+                                        child: CircularProgressIndicator())
+                                    : ((selectedChannelIndex != null &&
+                                                channels[selectedChannelIndex!]
+                                                        ["actorsequence"] ==
+                                                    "1"
+                                            ? (selectedDocIndex == null)
+                                            : (selectedjoinedTagIndex == null)))
+                                        ? const Center(
+                                            child: Text(
+                                              "Please select a doc",
+                                              style: TextStyle(
+                                                  color: Colors.white),
                                             ),
-                                        ],
-                                      ),
+                                          )
+                                        : Stack(
+                                            children: [
+                                              buildChatColumn(),
+                                              if (selectedChannelIndex !=
+                                                      null &&
+                                                  (channels[selectedChannelIndex!]
+                                                              [
+                                                              "actorsequence"] ==
+                                                          "1"
+                                                      ? selectedDocIndex != null
+                                                      : selectedjoinedTagIndex !=
+                                                          null))
+                                                Positioned(
+                                                  top: 10,
+                                                  right: 10,
+                                                  child: IconButton(
+                                                    icon: const Icon(
+                                                        Icons.menu_open,
+                                                        color: Colors.white),
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        showRightSidebar = true;
+                                                      });
+                                                    },
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
                           ),
                         ),
                       ],
@@ -2537,7 +2495,8 @@ class _DashboardViewState extends State<DashboardView> {
                             child: SingleChildScrollView(
                               child: Padding(
                                 padding: const EdgeInsets.all(16.0),
-                                child: buildDocStatusTree(currentDocStatus: "underprocess"),
+                                child: buildDocStatusTree(
+                                    currentDocStatus: "underprocess"),
                               ),
                             ),
                           ),
@@ -2574,12 +2533,14 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  Widget _buildTabletDesktopLayout(bool hasChannels, BoxConstraints constraints) {
+  Widget _buildTabletDesktopLayout(
+      bool hasChannels, BoxConstraints constraints) {
     final sidebarWidth = 70.0; // Same width for all screen sizes
     final docsWidth = constraints.maxWidth > 1200 ? 250.0 : 200.0;
     // Calculate channel size to maintain square proportions relative to sidebar width
-    final channelSize = sidebarWidth * 0.7; // 70% of sidebar width for perfect square appearance
-    
+    final channelSize = sidebarWidth *
+        0.7; // 70% of sidebar width for perfect square appearance
+
     return Stack(
       children: [
         Row(
@@ -2612,7 +2573,8 @@ class _DashboardViewState extends State<DashboardView> {
                             itemBuilder: (context, index) {
                               bool isSelected = selectedChannelIndex == index;
                               return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 6.0),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 6.0),
                                 child: Stack(
                                   children: [
                                     GestureDetector(
@@ -2622,67 +2584,85 @@ class _DashboardViewState extends State<DashboardView> {
                                           selectedDocIndex = null;
                                           docs = [];
                                           currentChatMessages = [];
-                                          isComposeMode = false; // Reset compose mode when switching channels
+                                          isComposeMode =
+                                              false; // Reset compose mode when switching channels
                                         });
-                                        fetchDocs(channels[index]["channelname"]);
-                                        fetchJoinedTags(channels[index]["channelname"]);
+                                        fetchDocs(
+                                            channels[index]["channelname"]);
+                                        fetchJoinedTags(
+                                            channels[index]["channelname"]);
                                       },
                                       child: Tooltip(
                                         message: channels[index]["channelname"],
                                         child: Container(
                                           decoration: BoxDecoration(
-                                            color: isSelected ? Colors.blueAccent : Colors.grey[800],
-                                            borderRadius: BorderRadius.circular(12),
+                                            color: isSelected
+                                                ? Colors.blueAccent
+                                                : Colors.grey[800],
+                                            borderRadius:
+                                                BorderRadius.circular(12),
                                           ),
-                                          margin: const EdgeInsets.symmetric(horizontal: 10),
+                                          margin: const EdgeInsets.symmetric(
+                                              horizontal: 10),
                                           width: channelSize,
                                           height: channelSize,
                                           alignment: Alignment.center,
                                           child: Text(
-                                            dashboardController.getChannelInitials(
-                                                channels[index]["channelname"]),
+                                            dashboardController
+                                                .getChannelInitials(
+                                                    channels[index]
+                                                        ["channelname"]),
                                             style: TextStyle(
                                                 color: Colors.white,
                                                 fontWeight: FontWeight.bold,
-                                                fontSize: constraints.maxWidth > 1200 ? 14 : 12),
+                                                fontSize:
+                                                    constraints.maxWidth > 1200
+                                                        ? 14
+                                                        : 12),
                                           ),
                                         ),
                                       ),
                                     ),
                                     // Three dots menu button
                                     // if (channels[index]["actorsequence"] == "1")
-                                      Positioned(
-                                        top: 2,
-                                        right: 12,
-                                        child: GestureDetector(
-                                          onTap: () async {
-                                            // Set the channel as selected if not already
-                                            if (selectedChannelIndex != index) {
-                                              setState(() {
-                                                selectedChannelIndex = index;
-                                                selectedDocIndex = null;
-                                                docs = [];
-                                                currentChatMessages = [];
-                                                isComposeMode = false;
-                                              });
-                                            }
-                                            await fetchTags(channels[index]["channelname"]);
-                                            _showChannelOptionsBottomSheet(context, index);
-                                          },
-                                          child: Container(
-                                            padding: const EdgeInsets.all(2),
-                                            decoration: BoxDecoration(
-                                              color: Colors.black.withOpacity(0.3),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Icon(
-                                              Icons.more_vert,
-                                              color: Colors.white,
-                                              size: constraints.maxWidth > 1200 ? 12 : 10,
-                                            ),
+                                    Positioned(
+                                      top: 2,
+                                      right: 12,
+                                      child: GestureDetector(
+                                        onTap: () async {
+                                          // Set the channel as selected if not already
+                                          if (selectedChannelIndex != index) {
+                                            setState(() {
+                                              selectedChannelIndex = index;
+                                              selectedDocIndex = null;
+                                              docs = [];
+                                              currentChatMessages = [];
+                                              isComposeMode = false;
+                                            });
+                                          }
+                                          await fetchTags(
+                                              channels[index]["channelname"]);
+                                          _showChannelOptionsBottomSheet(
+                                              context, index);
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(2),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                Colors.black.withOpacity(0.3),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: Icon(
+                                            Icons.more_vert,
+                                            color: Colors.white,
+                                            size: constraints.maxWidth > 1200
+                                                ? 12
+                                                : 10,
                                           ),
                                         ),
                                       ),
+                                    ),
                                   ],
                                 ),
                               );
@@ -2691,7 +2671,8 @@ class _DashboardViewState extends State<DashboardView> {
                         : const Center(
                             child: Text(
                               "No Channels",
-                              style: TextStyle(color: Colors.white, fontSize: 12),
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 12),
                             ),
                           ),
                   ),
@@ -2707,8 +2688,8 @@ class _DashboardViewState extends State<DashboardView> {
                         ),
                         width: channelSize,
                         height: channelSize,
-                        child: Icon(Icons.add, 
-                            color: Colors.white, 
+                        child: Icon(Icons.add,
+                            color: Colors.white,
                             size: constraints.maxWidth > 1200 ? 24 : 20),
                       ),
                     ),
@@ -2723,9 +2704,9 @@ class _DashboardViewState extends State<DashboardView> {
               child: Column(
                 children: [
                   // Show compose button if "Sent" channel is selected
-                  // if (selectedChannelIndex != null && 
+                  // if (selectedChannelIndex != null &&
                   //     channels[selectedChannelIndex!]["channelname"] == "Sent")
-                  if (selectedChannelIndex != null && 
+                  if (selectedChannelIndex != null &&
                       channels[selectedChannelIndex!]["actorsequence"] == "0")
                     Container(
                       padding: const EdgeInsets.all(16.0),
@@ -2737,10 +2718,12 @@ class _DashboardViewState extends State<DashboardView> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        icon: Icon(isComposeMode ? Icons.close : Icons.edit, color: Colors.white),
+                        icon: Icon(isComposeMode ? Icons.close : Icons.edit,
+                            color: Colors.white),
                         label: Text(
                           isComposeMode ? 'Close' : 'Document',
-                          style: const TextStyle(fontSize: 16, color: Colors.white),
+                          style: const TextStyle(
+                              fontSize: 16, color: Colors.white),
                         ),
                         onPressed: () {
                           // Toggle compose mode
@@ -2768,23 +2751,28 @@ class _DashboardViewState extends State<DashboardView> {
                             ),
                           )
                         : isComposeMode
-                        ? buildComposeView()
-                        : ((selectedChannelIndex != null &&
-                                    channels[selectedChannelIndex!]["actorsequence"] == "1"
-                                ? isDocsLoading
-                                : isjoinedTagsLoading))
-                            ? const Center(child: CircularProgressIndicator())
+                            ? buildComposeView()
                             : ((selectedChannelIndex != null &&
-                                        channels[selectedChannelIndex!]["actorsequence"] == "1"
-                                    ? (selectedDocIndex == null)
-                                    : (selectedjoinedTagIndex == null)))
+                                        channels[selectedChannelIndex!]
+                                                ["actorsequence"] ==
+                                            "1"
+                                    ? isDocsLoading
+                                    : isjoinedTagsLoading))
                                 ? const Center(
-                                    child: Text(
-                                      "Please select a doc",
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                  )
-                                : buildChatColumn(),
+                                    child: CircularProgressIndicator())
+                                : ((selectedChannelIndex != null &&
+                                            channels[selectedChannelIndex!]
+                                                    ["actorsequence"] ==
+                                                "1"
+                                        ? (selectedDocIndex == null)
+                                        : (selectedjoinedTagIndex == null)))
+                                    ? const Center(
+                                        child: Text(
+                                          "Please select a doc",
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                      )
+                                    : buildChatColumn(),
                   ),
                   // Top-Right Button (Menu button for right sidebar)
                   if (selectedChannelIndex != null &&
@@ -2819,7 +2807,8 @@ class _DashboardViewState extends State<DashboardView> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.close, color: Colors.white),
+                              icon:
+                                  const Icon(Icons.close, color: Colors.white),
                               onPressed: () {
                                 setState(() {
                                   showRightSidebar = false;
@@ -2830,7 +2819,8 @@ class _DashboardViewState extends State<DashboardView> {
                               child: SingleChildScrollView(
                                 child: Padding(
                                   padding: const EdgeInsets.all(16.0),
-                                  child: buildDocStatusTree(currentDocStatus: "underprocess"),
+                                  child: buildDocStatusTree(
+                                      currentDocStatus: "underprocess"),
                                 ),
                               ),
                             ),

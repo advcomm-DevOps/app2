@@ -114,6 +114,78 @@ class DashboardController {
   ];
 
   final String formHandlingJS = '''
+    (function() {
+                    // Check if Bootstrap CSS is already loaded
+                    if (!document.querySelector('link[href*="bootstrap"]')) {
+                      const bootstrapCSS = document.createElement('link');
+                      bootstrapCSS.rel = 'stylesheet';
+                      bootstrapCSS.href = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css';
+                      document.head.appendChild(bootstrapCSS);
+                    }
+                    
+                    // Check if Quill CSS is already loaded
+                    if (!document.querySelector('link[href*="quill.snow.css"]')) {
+                      const quillCSS = document.createElement('link');
+                      quillCSS.rel = 'stylesheet';
+                      quillCSS.href = 'https://cdn.quilljs.com/1.3.6/quill.snow.css';
+                      document.head.appendChild(quillCSS);
+                    }
+                    
+                    // Check if Bootstrap JS is already loaded
+                    if (!document.querySelector('script[src*="bootstrap"]')) {
+                      const bootstrapJS = document.createElement('script');
+                      bootstrapJS.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js';
+                      document.body.appendChild(bootstrapJS);
+                    }
+                    
+                    // Check if Quill JS is already loaded
+                    if (!document.querySelector('script[src*="quill.min.js"]') && !window.Quill) {
+                      const quillJS = document.createElement('script');
+                      quillJS.src = 'https://cdn.quilljs.com/1.3.6/quill.min.js';
+                      quillJS.onload = function() {
+                        // Initialize Quill editor after the library loads
+                        if (window.Quill && document.getElementById('editor')) {
+                          window.quill = new Quill('#editor', {
+                            theme: 'snow',
+                            placeholder: 'Type your message here...',
+                            modules: {
+                              toolbar: [
+                                [{ 'header': [1, 2, 3, false] }],
+                                ['bold', 'italic', 'underline', 'strike'],
+                                [{ 'color': [] }, { 'background': [] }],
+                                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                [{ 'align': [] }],
+                                ['link', 'blockquote', 'code-block'],
+                                ['clean']
+                              ]
+                            }
+                          });
+                          console.log('Quill editor initialized successfully');
+                        }
+                      };
+                      document.body.appendChild(quillJS);
+                    } else if (window.Quill && document.getElementById('editor') && !window.quill) {
+                      // Quill is already loaded, just initialize the editor
+                      window.quill = new Quill('#editor', {
+                        theme: 'snow',
+                        placeholder: 'Type your message here...',
+                        modules: {
+                          toolbar: [
+                            [{ 'header': [1, 2, 3, false] }],
+                            ['bold', 'italic', 'underline', 'strike'],
+                            [{ 'color': [] }, { 'background': [] }],
+                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                            [{ 'align': [] }],
+                            ['link', 'blockquote', 'code-block'],
+                            ['clean']
+                          ]
+                        }
+                      });
+                      console.log('Quill editor initialized successfully');
+                    }
+                    
+                    console.log('Bootstrap 5 and Quill injected successfully');
+                  })();
   console.log("🔥 JavaScript code injected and running");
   
   function processFormData(form) {
@@ -157,8 +229,11 @@ class DashboardController {
       event.preventDefault();
       
       const nestedData = processFormData(form);
+      const quillData = window.quill ? window.quill.root.innerHTML : '';
+      if (quillData.trim() !== '') {
+        nestedData.quillData = quillData; // Add to the object if not empty
+      }
       const jsonString = JSON.stringify(nestedData, null, 2);
-      
       if (window.flutter_inappwebview) {
         window.flutter_inappwebview.callHandler('onFormSubmit', jsonString);
       } else {
