@@ -40,7 +40,8 @@ class _DashboardViewState extends State<DashboardView> {
 
   final dio = Dio();
   final String apiUrl = 'http://localhost:3000';
-  final String qrurl = 'http://localhost:3001/c/';
+  final String qrurl = 'xdoc://c/';
+  // final String qrurl = 'http://localhost:3001/c/';
   // final String qrurl = 'https://s.xdoc.app/c/';
   List<Map<String, dynamic>> channels = [];
   List<Map<String, dynamic>> docs = [];
@@ -801,7 +802,6 @@ class _DashboardViewState extends State<DashboardView> {
                         <div class="mb-3">
                             <label for="message" class="form-label">Message:</label>
                             <div id="editor"></div>
-                            <input type="hidden" id="message" name="message">
                         </div>
                         
                         <div class="d-flex justify-content-end gap-3 pt-3 border-top border-secondary">
