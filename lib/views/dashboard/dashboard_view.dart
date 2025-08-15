@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter_starter/custom/services/X25519.dart';
+import 'package:flutter_starter/custom/services/rsa.dart';
 import 'package:flutter_starter/custom/services/sso.dart';
 import 'package:flutter_starter/views/dashboard/dashboard_model.dart';
 import 'package:flutter_starter/views/dashboard/form_resume.dart';
@@ -117,7 +117,7 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   Future<void> initSetup() async {
-    await generateX25519KeyPair();
+    await generateRSAKeyPair();
   }
 
   Future<void> fetchChannels() async {
@@ -144,6 +144,7 @@ class _DashboardViewState extends State<DashboardView> {
   void validateSection() async {
     secQr = widget.section;
     final tagid = widget.tagid;
+    String? tagname = '';
     if (secQr == null) return;
 
     final details = await dashboardController.getChannelDetailsForJoin(
@@ -153,6 +154,7 @@ class _DashboardViewState extends State<DashboardView> {
     );
     if (details != null && details["channelDetails"] != null) {
       newSecQr = details["channelDetails"]["newChannelName"];
+      tagname = details["channelDetails"]["tagName"];
     }
 
     final exists =
@@ -205,7 +207,7 @@ class _DashboardViewState extends State<DashboardView> {
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
               onPressed: () {
-                joinNewChannel(secQr!, entityQr!, tagid);
+                joinNewChannel(secQr!, entityQr!, tagid,tagname);
                 Navigator.of(context).pop();
               },
               child: const Text(
@@ -221,7 +223,9 @@ class _DashboardViewState extends State<DashboardView> {
           oldEntityId: entityQr!,
           tagId: tagid!,
           oldChannelName: secQr!,
-          newChannelName: newSecQr!);
+          newChannelName: newSecQr!,
+          tagName: tagname!,
+      );
       setState(() {
         selectedChannelIndex = index;
         selectedDocIndex = null;
@@ -232,9 +236,9 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
-  void joinNewChannel(String sectionName, String entityName, String? tagid) {
+  void joinNewChannel(String sectionName, String entityName, String? tagid,String? tagname) {
     dashboardController
-        .joinChannel(entityName, sectionName, tagid)
+        .joinChannel(entityName, sectionName, tagid, tagname)
         .then((joined) {
       if (joined) {
         fetchChannels();
@@ -1718,7 +1722,7 @@ class _DashboardViewState extends State<DashboardView> {
 
           // Display name logic preserved
           final displayName = isTag
-              ? "Job ${item["tagId"]}"
+              ? item["tagName"] ?? "Tag ${item["tagId"]}"
               : (item["docname"] ?? "Doc ${index - tagsList.length}");
 
           return GestureDetector(
@@ -1810,8 +1814,9 @@ class _DashboardViewState extends State<DashboardView> {
       } else if (!isChannelOwner &&
           selectedjoinedTagIndex != null &&
           joinedTags.isNotEmpty) {
+            // item["tagName"] ?? "Tag ${item["tagId"]}
         chatTitle =
-            "Job: ${joinedTags[selectedjoinedTagIndex!]["tagId"] ?? "Unknown"}";
+            "Job: ${joinedTags[selectedjoinedTagIndex!]["tagName"] ?? "Unknown"}";
       } else if (isChannelOwner) {
         chatTitle = "Select a document to chat";
       } else {

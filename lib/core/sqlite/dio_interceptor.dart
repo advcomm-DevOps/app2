@@ -28,8 +28,9 @@ class DioClient {
                   await secureStorage.write(key: "DatabaseName", value: tenant);
                   print('Initializing database for tenant: $tenant');
                   await DatabaseSetup.initialize();
-                  // await SSEManager.initializeSSE('http://192.168.0.87:3000');
-                  await SSEManager.initializeSSE('http://$audDomain');
+                  await SSEManager.initializeSSE('http://192.168.0.87:3000', response.data['Token']);
+                  //SSEManager.initializeSSE('http://$audDomain', response.data['Token']);
+                  // await SSEManager.initializeSSE('http://$audDomain');
                   print('Database initialized successfully.');
                 }
               } catch (e) {
@@ -43,7 +44,7 @@ class DioClient {
           handler.next(response); // Continue with the response
         },
         onError: (DioError e, handler) {
-          // Handle errors globally or for the specific endpoint
+          // Handle errors globally or for the specific endpoint 
           if (e.requestOptions.path.contains('$authUrl/aud')) {
             print('Error for /aud endpoint: ${e.message}');
             if (e.response != null) {

@@ -6,7 +6,7 @@ const String tblchannels = '''
     ChannelDescription VARCHAR(63) NOT NULL,
     EntityRoles VARCHAR(63) NOT NULL DEFAULT 'all',
     ActorSequence BIGINT NOT NULL,
-    InitialActorID BIGINT, 
+    InitialActorID BIGINT,
     OtherActorID BIGINT,
     ContextTemplate TEXT,
     IsTagRequired BOOLEAN NOT NULL DEFAULT FALSE
@@ -18,7 +18,7 @@ const String tblchanneltags = '''
     ChannelID BIGINT NOT NULL REFERENCES tblchannels(ChannelID),
     Tag VARCHAR(63) NOT NULL,
     TagDescription VARCHAR(255),
-    ExpireAt TIMESTAMP NULL, 
+    ExpireAt TIMESTAMP NULL,
     UNIQUE(ChannelID, Tag)
 );
 ''';
@@ -44,12 +44,17 @@ const String tblxdocs = '''
 const String tblxdocactors = '''
   CREATE TABLE IF NOT EXISTS tblxdocactors(
     XDocActorID BIGSERIAL PRIMARY KEY,
-    XDocID BIGINT NOT NULL REFERENCES tblxdocs(XDocID),
     ActorID BIGINT NOT NULL,
     ChannelID BIGINT NOT NULL REFERENCES tblchannels(ChannelID),
     EncryptedSymmetricKey BLOB  NULL, -- Encrypted symmetric key for the document
-    UNIQUE(XDocID, ActorID)
+    XDocID BIGSERIAL PRIMARY KEY,
+    InterconnectID BIGINT,
+    DocName VARCHAR(63) NOT NULL,
+    ContextData JSONB NOT NULL,
+    StartTime TIMESTAMP NOT NULL DEFAULT (now()),
+    CompletionTime TIMESTAMP
 );
+ 
 ''';
 const String tblxdocevents = '''
   CREATE TABLE IF NOT EXISTS tblxdocevents(

@@ -26,7 +26,7 @@ class DashboardController {
   ];
 
   final Map<String, List<Map<String, dynamic>>> documentChats = {
-    "8": [
+    "invoice": [
       {"sender": "User A", "message": "Hello!"},
       {"sender": "User B", "message": "Hi there! How can I help?"},
       {"sender": "User A", "message": "I have a question about the document."},
@@ -362,8 +362,8 @@ class DashboardController {
     return entity ?? '';
   }
 
-  Future<bool> joinChannel(
-      String entityId, String channelName, String? tagid) async {
+  Future<bool> joinChannel(String entityId, String channelName, String? tagid,
+      String? tagname) async {
     String token = await getJwt();
     print(
         'Joining channel with entityId: $entityId, channelName: $channelName, tagid: $tagid');
@@ -410,6 +410,7 @@ class DashboardController {
     required String tagId,
     required String oldChannelName,
     required String newChannelName,
+    required String tagName,
   }) async {
     String parentEntity = await getSelectedEntity();
 
@@ -419,6 +420,7 @@ class DashboardController {
           existingData != null ? jsonDecode(existingData) : [];
 
       Map<String, dynamic> tagData = {
+        "tagName": tagName,
         "old": {
           "entityId": oldEntityId,
           "channelName": oldChannelName,
@@ -523,39 +525,51 @@ class DashboardController {
 
   Future<List<Map<String, String>>> getTagList(
       {required String channelName}) async {
-    //await secureStorage.delete( key: "xdoc_tagsList");
-    // Read existing data
+    // await secureStorage.delete( key: "xdoc_tagsList");
     String parentEntity = await getSelectedEntity();
     String? existingData = await secureStorage.read(key: "xdoc_tagsList");
     print('Fetching existing xdoc_tagsList from secure storage: $existingData');
-    List<Map<String, String>> results = [];
 
-    if (existingData != null) {
-      List<dynamic> tagsList = jsonDecode(existingData);
+    final List<Map<String, String>> results = [];
 
-      // Find the parent entity
-      Map<String, dynamic>? parentEntry = tagsList.firstWhere(
-          (item) => item.containsKey(parentEntity),
-          orElse: () => null);
+    if (existingData == null) return results;
 
-      if (parentEntry != null) {
-        Map<String, dynamic> parentData = parentEntry[parentEntity];
+    final List<dynamic> tagsList = jsonDecode(existingData);
 
-        // Check if channel exists
-        if (parentData.containsKey(channelName)) {
-          Map<String, dynamic> channelData = parentData[channelName];
-
-          channelData.forEach((tagId, tagInfo) {
-            results.add({
-              "tagId": tagId,
-              "channelName": channelName,
-              "oldChannelName": tagInfo["old"]["channelName"],
-              "oldEntityId": tagInfo["old"]["entityId"],
-            });
-          });
-        }
+    // Find the parent entity entry safely
+    Map<String, dynamic>? parentEntry;
+    for (final item in tagsList) {
+      if (item is Map<String, dynamic> && item.containsKey(parentEntity)) {
+        parentEntry = item;
+        break;
       }
     }
+
+    if (parentEntry == null) return results;
+
+    final parentData = parentEntry[parentEntity];
+    if (parentData is! Map<String, dynamic>) return results;
+
+    // Check if channel exists
+    if (!parentData.containsKey(channelName)) return results;
+
+    final channelData = parentData[channelName];
+    if (channelData is! Map<String, dynamic>) return results;
+
+    channelData.forEach((tagId, tagInfo) {
+      if (tagInfo is Map<String, dynamic>) {
+        final old = (tagInfo["old"] is Map<String, dynamic>)
+            ? tagInfo["old"] as Map<String, dynamic>
+            : const {};
+        results.add({
+          "tagId": tagId.toString(),
+          "tagName": tagInfo["tagName"]?.toString() ?? "", // ← added
+          "channelName": channelName,
+          "oldChannelName": old["channelName"]?.toString() ?? "",
+          "oldEntityId": old["entityId"]?.toString() ?? "",
+        });
+      }
+    });
 
     return results;
   }
@@ -688,7 +702,8 @@ class DashboardController {
   }
 
   Future<Map<String, dynamic>?> getDocumentDetails(String docId) async {
-    String token = await getJwt(); // If you use JWT like in your other calls
+    final token = await getJwt();
+
     try {
       dio.options.headers = {
         "Authorization": "Bearer $token",
@@ -698,105 +713,120 @@ class DashboardController {
 
       final response = await dio.get(
         '$apiUrl/document/$docId/details',
-        options: Options(
-          contentType: 'application/json',
-        ),
+        options: Options(contentType: 'application/json'),
       );
 
-      if (response.statusCode == 200) {
-        print("Fetched document details successfully:");
-        if (response.data != null && response.data["documentDetails"] != null) {
-          var sk = List<int>.from(response.data["documentDetails"]
-              ["current_user_encryptedsymmetrickey"]["data"]);
+      if (response.statusCode != 200) return response.data;
 
-          List<dynamic> pkList =
-              response.data["documentDetails"]["other_actor_publickey"]["data"];
-          Uint8List pkUint8List = Uint8List.fromList(pkList.cast<int>());
+      final data = response.data;
+      if (data == null) return null;
 
-          var currentUserEncryptedsymmetrickey =
-              jsonDecode(dartMapStringToJson(utf8.decode(sk)));
-
-          print(currentUserEncryptedsymmetrickey);
-
-          final senderKeys = await getSelectedEntityX25519Keys();
-          if (senderKeys == null) {
-            print("❌ Sender keys not found.");
-            return response.data;
-          }
-          final senderPrivateKeyBytes = base64Decode(senderKeys["privateKey"]!);
-
-          final decrypted = await decryptTextFromSender(
-            cipherText: currentUserEncryptedsymmetrickey['cipherText']!,
-            nonce: currentUserEncryptedsymmetrickey['nonce']!,
-            mac: currentUserEncryptedsymmetrickey['mac']!,
-            senderPublicKeyBytes: pkUint8List,
-            recipientPrivateKeyBytes: senderPrivateKeyBytes,
-          );
-          print('Decrypted symmetric key: $decrypted');
-
-          print(response.data["documentDetails"]["contextdata"]['cipherText']);
-          List<dynamic> tempList = jsonDecode(decrypted);
-          List<int> intList = tempList.cast<int>();
-          final decrypted1 = await decryptWithSymmetrickey(
-            symmetrickey: intList,
-            cipherText: response.data["documentDetails"]["contextdata"]
-                ['cipherText']!,
-            nonce: response.data["documentDetails"]["contextdata"]['nonce']!,
-            mac: response.data["documentDetails"]["contextdata"]['mac']!,
-          );
-          return {
-            "data": response.data,
-            "jsonData": decrypted1,
-            "htmlTheme": response.data["documentDetails"]["contexttemplate"],
-          };
-        }
-        print("Document details fetched successfully: ${response.data}");
-        return response.data;
+      final details = data["documentDetails"] as Map<String, dynamic>?;
+      if (details == null) {
+        print("❌ documentDetails is null");
+        return data;
       }
+
+      print("Fetched document details successfully");
+
+      // ---- 1) Read the Buffer that holds a Base64 STRING ----
+      // The server gave: { type: "Buffer", data: [85,52,56,55,...] }
+      final keyBuf = details["current_user_encryptedsymmetrickey"]
+          as Map<String, dynamic>?;
+      if (keyBuf == null) {
+        print("❌ current_user_encryptedsymmetrickey is null");
+        return data;
+      }
+
+      final codes = keyBuf["data"] as List?;
+      if (codes == null) {
+        print("❌ current_user_encryptedsymmetrickey.data is null");
+        return data;
+      }
+
+      // Char codes -> Base64 string
+      final encryptedKeyBase64 = String.fromCharCodes(List<int>.from(codes));
+
+      // (Optional) If you need raw bytes:
+      final Uint8List encryptedKeyBytes = base64.decode(encryptedKeyBase64);
+
+      print("Encrypted key (base64) length: ${encryptedKeyBase64.length}");
+      print("Encrypted key (bytes) length:  ${encryptedKeyBytes.length}");
+
+      // ---- 2) Get your private key ----
+      final senderKeys = await getSelectedEntityX25519Keys();
+      if (senderKeys == null) {
+        print("❌ Sender keys not found.");
+        return data;
+      }
+      final privateKeyPem = senderKeys["privateKey"]!;
+
+      // ---- 3) RSA decrypt the symmetric key ----
+      // Choose ONE of these, depending on your rsaDecryption signature:
+
+      // A) If rsaDecryption expects a Base64-encoded string of the ciphertext:
+      final decrypted = await rsaDecryption(encryptedKeyBase64, privateKeyPem);
+
+      // B) If rsaDecryption expects raw bytes (Uint8List), use this instead:
+      // final decrypted = await rsaDecryption(encryptedKeyBytes, privateKeyPem);
+
+      print('Decrypted symmetric key (as text): $decrypted');
+
+      // Your backend returns the symmetric key as a JSON array of ints (e.g. "[1,2,3...]")
+      final List<dynamic> tempList = jsonDecode(decrypted);
+      final List<int> symmetricKey = tempList.cast<int>();
+
+      // ---- 4) Decrypt the document with that symmetric key ----
+      final ctx = details["contextdata"] as Map<String, dynamic>?;
+      if (ctx == null) {
+        print("❌ contextdata is null");
+        return {
+          "data": data,
+          "jsonData": null,
+          "htmlTheme": details["contexttemplate"]
+        };
+      }
+
+      final cipherText = ctx['cipherText'];
+      final nonce = ctx['nonce'];
+      final mac = ctx['mac'];
+
+      if (cipherText == null || nonce == null || mac == null) {
+        print("❌ Missing cipherText/nonce/mac in contextdata");
+        return {
+          "data": data,
+          "jsonData": null,
+          "htmlTheme": details["contexttemplate"]
+        };
+      }
+
+      final decryptedDoc = await decryptWithSymmetrickey(
+        symmetrickey: symmetricKey,
+        cipherText: cipherText,
+        nonce: nonce,
+        mac: mac,
+      );
+
+      return {
+        "data": data,
+        "jsonData": decryptedDoc,
+        "htmlTheme": details["contexttemplate"],
+      };
     } on DioException catch (e) {
       print("Dio error fetching document details: ${e.message}");
       print("Response: ${e.response?.data}");
       return e.response?.data;
     } catch (e) {
       print("Error fetching document details: $e");
+      return null;
     }
-    return null;
   }
 
-  String dartMapStringToJson(String input) {
-    // Step 1: Remove starting and ending curly braces
-    String trimmed = input.trim();
-    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-      trimmed = trimmed.substring(1, trimmed.length - 1);
-    }
-
-    // Step 2: Split by comma for each key-value pair
-    final pairs = trimmed.split(',');
-
-    // Step 3: Add double quotes around keys and values
-    final entries = pairs
-        .map((pair) {
-          final kv = pair.split(':');
-          if (kv.length < 2) return null;
-          final key = kv[0].trim();
-          // If value contains ":" (e.g., in base64) join them back
-          final value = kv.sublist(1).join(':').trim();
-          return '"$key":"$value"';
-        })
-        .where((e) => e != null)
-        .toList();
-
-    // Step 4: Build JSON string
-    final jsonString = '{${entries.join(',')}}';
-    return jsonString;
-  }
-
-  Future<bool> uploadPublicKey(
-      String publicKeyBase64, String privateKeyBase64) async {
+  Future<bool> uploadPublicKey(String publicKey, String privateKey) async {
     String token = await getJwt();
     try {
       final data = {
-        "publicKey": publicKeyBase64,
+        "publicKey": publicKey,
       };
 
       // Set headers including Content-Type
@@ -816,7 +846,7 @@ class DashboardController {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         String parentEntity = await getSelectedEntity();
-        addOrUpdateEntityKeys(parentEntity, publicKeyBase64, privateKeyBase64);
+        addOrUpdateEntityKeys(parentEntity, publicKey, privateKey);
         print("Public key uploaded successfully: ${response.data}");
         return true;
       }
@@ -831,7 +861,7 @@ class DashboardController {
 
   Future<void> addOrUpdateEntityKeys(
       String parentEntity, String publicKey, String privateKey) async {
-    String? existing = await secureStorage.read(key: "entityKeys");
+    String? existing = await secureStorage.read(key: "entityRSAKeys");
     Map<String, dynamic> keysMap = {};
 
     if (existing != null) {
@@ -844,13 +874,13 @@ class DashboardController {
       "privateKey": privateKey,
     };
 
-    await secureStorage.write(key: "entityKeys", value: jsonEncode(keysMap));
+    await secureStorage.write(key: "entityRSAKeys", value: jsonEncode(keysMap));
   }
 
   Future<Map<String, String>?> getSelectedEntityX25519Keys(
       [String? parentEntity]) async {
     parentEntity ??= await getSelectedEntity();
-    String? existing = await secureStorage.read(key: "entityKeys");
+    String? existing = await secureStorage.read(key: "entityRSAKeys");
 
     if (existing != null) {
       Map<String, dynamic> keysMap = jsonDecode(existing);
@@ -880,39 +910,30 @@ class DashboardController {
       symmetrickey: symmetrickey,
       plainText: submittedData,
     );
-    print('Encrypted Symmetrickey..............$encryptedContextData');
     print(
-        'Encrypted Symmetrickey to string..............${encryptedContextData.toString()}');
+        'Encrypted Symmetrickey submitted data..............$encryptedContextData');
+    print(
+        'Encrypted Symmetrickey submitted data to string..............${encryptedContextData.toString()}');
     final senderKeys = await getSelectedEntityX25519Keys();
     if (senderKeys == null) {
       print("❌ Sender keys not found.");
       return false;
     }
-    final senderPrivateKeyBytes = base64Decode(senderKeys["privateKey"]!);
-    final senderPublicKeyBytes = base64Decode(senderKeys["publicKey"]!);
+    final senderPublicKeyPem = senderKeys["publicKey"]!;
 
     final recipientKeys = await getSelectedEntityX25519Keys(entityName);
     if (recipientKeys == null) {
       print("❌ Recipient keys not found.");
       return false;
     }
-    final recipientPrivateKeyBytes = base64Decode(recipientKeys["privateKey"]!);
-    final recipientPublicKeyBytes = base64Decode(recipientKeys["publicKey"]!);
+    final recipientPublicPem = recipientKeys["publicKey"]!;
 
-    final primaryEntitySymmetricKey = await encryptTextForRecipient(
-      plainText: symmetrickey.toString(),
-      senderPrivateKeyBytes: senderPrivateKeyBytes,
-      senderPublicKeyBytes: senderPublicKeyBytes,
-      recipientPublicKeyBytes: recipientPublicKeyBytes,
-    );
+    final primaryEntitySymmetricKey =
+        await rsaEncryption(symmetrickey.toString(), senderPublicKeyPem);
     print(
         'Encrypted primaryEntitySymmetricKey..............${primaryEntitySymmetricKey}');
-    final otherActorSymmetricKey = await encryptTextForRecipient(
-      plainText: symmetrickey.toString(),
-      senderPrivateKeyBytes: recipientPrivateKeyBytes,
-      senderPublicKeyBytes: recipientPublicKeyBytes,
-      recipientPublicKeyBytes: senderPublicKeyBytes,
-    );
+    final otherActorSymmetricKey =
+        await rsaEncryption(symmetrickey.toString(), recipientPublicPem);
     print(
         'Encrypted otherActorSymmetricKey..............${otherActorSymmetricKey}');
     String encryptedEventSchema = '';
