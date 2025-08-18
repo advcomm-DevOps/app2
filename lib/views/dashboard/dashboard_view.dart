@@ -207,7 +207,7 @@ class _DashboardViewState extends State<DashboardView> {
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
               onPressed: () {
-                joinNewChannel(secQr!, entityQr!, tagid,tagname);
+                joinNewChannel(secQr!, entityQr!, tagid, tagname);
                 Navigator.of(context).pop();
               },
               child: const Text(
@@ -220,11 +220,11 @@ class _DashboardViewState extends State<DashboardView> {
       );
     } else {
       dashboardController.addTagIfNotExists(
-          oldEntityId: entityQr!,
-          tagId: tagid!,
-          oldChannelName: secQr!,
-          newChannelName: newSecQr!,
-          tagName: tagname!,
+        oldEntityId: entityQr!,
+        tagId: tagid!,
+        oldChannelName: secQr!,
+        newChannelName: newSecQr!,
+        tagName: tagname!,
       );
       setState(() {
         selectedChannelIndex = index;
@@ -236,7 +236,8 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
-  void joinNewChannel(String sectionName, String entityName, String? tagid,String? tagname) {
+  void joinNewChannel(
+      String sectionName, String entityName, String? tagid, String? tagname) {
     dashboardController
         .joinChannel(entityName, sectionName, tagid, tagname)
         .then((joined) {
@@ -277,6 +278,30 @@ class _DashboardViewState extends State<DashboardView> {
       );
       fetchDocs(channels[selectedChannelIndex!]["channelname"]);
       fetchJoinedTags(channels[selectedChannelIndex!]["channelname"]);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Submitted.')),
+      );
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('failed')),
+      );
+    }
+  }
+    void updateEncryptedEvent(
+    String action,
+    String docid,
+    String submittedData,
+  ) async {
+    bool isUpdated = await dashboardController.updateEncryptedEvent(
+      actionName: action,
+      docid: docid,
+      submittedData: submittedData,
+    );
+
+    if (isUpdated) {
+      // fetchDocs(channels[selectedChannelIndex!]["channelname"]);
+      // fetchJoinedTags(channels[selectedChannelIndex!]["channelname"]);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Submitted.')),
       );
@@ -866,7 +891,6 @@ class _DashboardViewState extends State<DashboardView> {
                   controller.addJavaScriptHandler(
                     handlerName: 'onFormSubmit',
                     callback: (args) {
-
                       String jsonString = args[0];
                       print('Received JSON string: $jsonString');
                       Map<String, dynamic> formData = jsonDecode(jsonString);
@@ -1103,7 +1127,7 @@ class _DashboardViewState extends State<DashboardView> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text(
-            'Form Preview',
+            'Form Actions',
             style: TextStyle(color: Colors.white),
           ),
           backgroundColor: Colors.grey[800],
@@ -1117,18 +1141,15 @@ class _DashboardViewState extends State<DashboardView> {
                 if (!kIsWeb) {
                   controller.addJavaScriptHandler(
                     handlerName: 'onFormSubmit',
+                    //aaaaaaaaaaaaaaaaa
                     callback: (args) {
                       String jsonString = args[0];
                       print('Received JSON string: $jsonString');
-                      Map<String, dynamic> formData = jsonDecode(jsonString);
-                      print('Received JSON: $formData');
-                      setState(() {
-                        currentChatMessages.add({
-                          "sender": "System",
-                          "message":
-                              "You $action the file: ${fileName.split(':').last.trim()}",
-                        });
-                      });
+                      updateEncryptedEvent(
+                        action,
+                        docs[selectedDocIndex!]["docid"],
+                        jsonString
+                      );
                     },
                   );
                 } else {
@@ -1640,9 +1661,14 @@ class _DashboardViewState extends State<DashboardView> {
           actionButtons.addAll(
             availableEvents.map<Map<String, String>>((event) {
               final eventName = event['event_name']?.toString() ?? "Unknown";
+              // return {
+              //   "label": eventName,
+              //   "html": "<button>$eventName</button>",
+              // };
               return {
                 "label": eventName,
-                "html": "<button>$eventName</button>",
+                "html":
+                    "<form><input type='text' required name='${eventName}' placeholder='Enter text...' /><br><button type='submit'>${eventName}</button></form>",
               };
             }).toList(),
           );
@@ -1814,7 +1840,7 @@ class _DashboardViewState extends State<DashboardView> {
       } else if (!isChannelOwner &&
           selectedjoinedTagIndex != null &&
           joinedTags.isNotEmpty) {
-            // item["tagName"] ?? "Tag ${item["tagId"]}
+        // item["tagName"] ?? "Tag ${item["tagId"]}
         chatTitle =
             "Job: ${joinedTags[selectedjoinedTagIndex!]["tagName"] ?? "Unknown"}";
       } else if (isChannelOwner) {

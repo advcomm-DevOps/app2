@@ -978,6 +978,131 @@ class DashboardController {
     }
   }
 
+  Future<bool> updateEncryptedEvent({
+    required String actionName,
+    required String docid,
+    required String submittedData,
+  }) async {
+    try {
+      String token = await getJwt();
+      print(submittedData);
+      print('Updating document with ID: $docid');
+
+      dio.options.headers = {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      };
+
+      final response = await dio.get(
+        '$apiUrl/document/$docid/details',
+        options: Options(contentType: 'application/json'),
+      );
+
+      if (response.statusCode != 200) return false;
+
+      final data = response.data;
+      if (data == null) return false;
+
+      final details = data["documentDetails"] as Map<String, dynamic>?;
+      if (details == null) {
+        print("❌ documentDetails is null");
+        return false;
+      }
+
+      print("Fetched document details successfully");
+
+      // ---- 1) Read the Buffer that holds a Base64 STRING ----
+      final keyBuf = details["current_user_encryptedsymmetrickey"]
+          as Map<String, dynamic>?;
+      if (keyBuf == null) {
+        print("❌ current_user_encryptedsymmetrickey is null");
+        return false;
+      }
+
+      final codes = keyBuf["data"] as List?;
+      if (codes == null) {
+        print("❌ current_user_encryptedsymmetrickey.data is null");
+        return false;
+      }
+
+      // Char codes -> Base64 string
+      final encryptedKeyBase64 = String.fromCharCodes(List<int>.from(codes));
+
+      // (Optional) If you need raw bytes:
+      final Uint8List encryptedKeyBytes = base64.decode(encryptedKeyBase64);
+
+      print("Encrypted key (base64) length: ${encryptedKeyBase64.length}");
+      print("Encrypted key (bytes) length:  ${encryptedKeyBytes.length}");
+
+      // ---- 2) Get your private key ----
+      final senderKeys = await getSelectedEntityX25519Keys();
+      if (senderKeys == null) {
+        print("❌ Sender keys not found.");
+        return false;
+      }
+      final privateKeyPem = senderKeys["privateKey"]!;
+
+      // ---- 3) RSA decrypt the symmetric key ----
+      final decryptedBase64 =
+          await rsaDecryption(encryptedKeyBase64, privateKeyPem);
+
+      // Parse string "[71, 190, ...]" → List<int>
+      final List<int> decryptedBytes = decryptedBase64
+          .replaceAll('[', '')
+          .replaceAll(']', '')
+          .split(',')
+          .map((s) => int.parse(s.trim()))
+          .toList();
+
+      final Uint8List symmetrickey = Uint8List.fromList(decryptedBytes);
+
+      print('Decrypted symmetric key (bytes): $symmetrickey');
+
+      final encryptedEventSchema = await encryptWithSymmetrickey(
+        symmetrickey: symmetrickey,
+        plainText: submittedData,
+      );
+
+      final body = {
+        "xdocId": docid,
+        "encryptedContextData": details["contextdata"],
+        "eventName": actionName,
+        "encryptedEventSchema": encryptedEventSchema,
+      };
+
+      dio.options.headers = {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      };
+
+      print('Request body...........................: $body');
+
+      final updateResponse = await dio.put(
+        '$apiUrl/update-encrypted-document',
+        data: jsonEncode(body),
+      );
+
+      if (updateResponse.statusCode == 200 ||
+          updateResponse.statusCode == 201) {
+        print("Document updated successfully: ${updateResponse.data}");
+        return true;
+      } else {
+        print("Failed to create document: ${updateResponse.statusCode}");
+        print("Error: ${updateResponse.data}");
+        return false;
+      }
+    } on DioException catch (e) {
+      print("Dio error creating document: ${e.message}");
+      print("Response: ${e.response?.data}");
+      return false;
+    } catch (e) {
+      print("Error creating document: $e");
+      return false;
+    }
+  }
+
   Future<dynamic> getChannelDetailsForJoin({
     required String entityId,
     required String channelName,
