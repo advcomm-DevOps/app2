@@ -19,9 +19,9 @@ dependencies:
   signals: ^6.0.2
   flutter_inappwebview: ^6.1.5
   uids_io_sdk_flutter: ^0.0.6
-  # tenant_replication: ^0.0.2
-  tenant_replication: 
-    path: "../../LMS_flutter/tenant_replication"
+  tenant_replication: ^0.0.3
+  # tenant_replication: 
+  #   path: "../../LMS_flutter/tenant_replication"
   sqflite_common_ffi: ^2.3.3
   sqflite_common_ffi_web: ^1.0.0
   easy_localization: ^3.0.7+1
