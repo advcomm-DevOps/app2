@@ -39,7 +39,7 @@ class _DashboardViewState extends State<DashboardView> {
   bool showRightSidebar = false;
 
   final dio = Dio();
-  final String apiUrl = 'http://localhost:3000';
+  final String apiUrl = 'http://192.168.0.87:3000';
   final String qrurl = 'xdoc://c/';
   // final String qrurl = 'http://localhost:3001/c/';
   // final String qrurl = 'https://s.xdoc.app/c/';

@@ -8,7 +8,7 @@ import 'dart:typed_data';
 
 class DashboardController {
   final Dio dio = Dio();
-  final String apiUrl = 'http://localhost:3000';
+  final String apiUrl = 'http://192.168.0.87:3000';
   final String qrurl = 'https://s.xdoc.app/c/';
   final FlutterSecureStorage secureStorage = FlutterSecureStorage();
   final List<Map<String, dynamic>> statusJson = [
@@ -122,7 +122,7 @@ class DashboardController {
                       bootstrapCSS.href = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css';
                       document.head.appendChild(bootstrapCSS);
                     }
-                    
+
                     // Check if Quill CSS is already loaded
                     if (!document.querySelector('link[href*="quill.snow.css"]')) {
                       const quillCSS = document.createElement('link');
@@ -130,14 +130,14 @@ class DashboardController {
                       quillCSS.href = 'https://cdn.quilljs.com/1.3.6/quill.snow.css';
                       document.head.appendChild(quillCSS);
                     }
-                    
+
                     // Check if Bootstrap JS is already loaded
                     if (!document.querySelector('script[src*="bootstrap"]')) {
                       const bootstrapJS = document.createElement('script');
                       bootstrapJS.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js';
                       document.body.appendChild(bootstrapJS);
                     }
-                    
+
                     // Check if Quill JS is already loaded
                     if (!document.querySelector('script[src*="quill.min.js"]') && !window.Quill) {
                       const quillJS = document.createElement('script');
@@ -183,23 +183,23 @@ class DashboardController {
                       });
                       console.log('Quill editor initialized successfully');
                     }
-                    
+
                     console.log('Bootstrap 5 and Quill injected successfully');
                   })();
   console.log("🔥 JavaScript code injected and running");
-  
+
   function processFormData(form) {
     const formData = new FormData(form);
     const data = {};
-    
+
     // Convert FormData to nested object
     for (let [key, value] of formData.entries()) {
       const keys = key.match(/(\\w+)/g); // Split by brackets and dots
       let current = data;
-      
+
       for (let i = 0; i < keys.length; i++) {
         const k = keys[i];
-        
+
         // If this is the last key, set the value
         if (i === keys.length - 1) {
           current[k] = value;
@@ -219,7 +219,7 @@ class DashboardController {
         }
       }
     }
-    
+
     // Remove the clean function to keep all fields
     return data;
   }
@@ -227,7 +227,7 @@ class DashboardController {
   document.querySelectorAll('form').forEach(form => {
     form.addEventListener('submit', function(event) {
       event.preventDefault();
-      
+
       const nestedData = processFormData(form);
       const quillData = window.quill ? window.quill.root.innerHTML : '';
       if (quillData.trim() !== '') {
@@ -525,7 +525,7 @@ class DashboardController {
 
   Future<List<Map<String, String>>> getTagList(
       {required String channelName}) async {
-    // await secureStorage.delete( key: "xdoc_tagsList");
+    //  await secureStorage.delete( key: "xdoc_tagsList");
     String parentEntity = await getSelectedEntity();
     String? existingData = await secureStorage.read(key: "xdoc_tagsList");
     print('Fetching existing xdoc_tagsList from secure storage: $existingData');
@@ -729,8 +729,6 @@ class DashboardController {
 
       print("Fetched document details successfully");
 
-      // ---- 1) Read the Buffer that holds a Base64 STRING ----
-      // The server gave: { type: "Buffer", data: [85,52,56,55,...] }
       final keyBuf = details["current_user_encryptedsymmetrickey"]
           as Map<String, dynamic>?;
       if (keyBuf == null) {
@@ -738,18 +736,24 @@ class DashboardController {
         return data;
       }
 
-      final codes = keyBuf["data"] as List?;
-      if (codes == null) {
-        print("❌ current_user_encryptedsymmetrickey.data is null");
-        return data;
-      }
+      // Step 1: get the bytes
+      final List<int> rawBytes = List<int>.from(keyBuf["data"]);
 
-      // Char codes -> Base64 string
-      final encryptedKeyBase64 = String.fromCharCodes(List<int>.from(codes));
+      // Step 2: turn into a JSON string
+      final jsonStr = String.fromCharCodes(rawBytes);
 
-      // (Optional) If you need raw bytes:
+      // Step 3: parse JSON
+      final Map<String, dynamic> codesMap = json.decode(jsonStr);
+
+      // Step 4: extract values into a List<int>
+      final codes = codesMap.values.map((e) => e as int).toList();
+
+      // Step 5: convert char codes -> base64 string
+      final encryptedKeyBase64 = String.fromCharCodes(codes);
+      print("Encrypted key (base64): $encryptedKeyBase64");
+
+      // Step 6: decode base64 into bytes
       final Uint8List encryptedKeyBytes = base64.decode(encryptedKeyBase64);
-
       print("Encrypted key (base64) length: ${encryptedKeyBase64.length}");
       print("Encrypted key (bytes) length:  ${encryptedKeyBytes.length}");
 
@@ -904,6 +908,8 @@ class DashboardController {
     required String tagId,
     required String submittedData,
   }) async {
+    print(
+        'Creating encrypted document with entityName: $entityName, channelName: $channelName, tagId: $tagId');
     final symmetrickey = generate32BytesRandom();
     print('Symmetrickey..............$symmetrickey');
     final encryptedContextData = await encryptWithSymmetrickey(
@@ -1020,18 +1026,24 @@ class DashboardController {
         return false;
       }
 
-      final codes = keyBuf["data"] as List?;
-      if (codes == null) {
-        print("❌ current_user_encryptedsymmetrickey.data is null");
-        return false;
-      }
+      // Step 1: get the bytes
+      final List<int> rawBytes = List<int>.from(keyBuf["data"]);
 
-      // Char codes -> Base64 string
-      final encryptedKeyBase64 = String.fromCharCodes(List<int>.from(codes));
+      // Step 2: turn into a JSON string
+      final jsonStr = String.fromCharCodes(rawBytes);
 
-      // (Optional) If you need raw bytes:
+      // Step 3: parse JSON
+      final Map<String, dynamic> codesMap = json.decode(jsonStr);
+
+      // Step 4: extract values into a List<int>
+      final codes = codesMap.values.map((e) => e as int).toList();
+
+      // Step 5: convert char codes -> base64 string
+      final encryptedKeyBase64 = String.fromCharCodes(codes);
+      print("Encrypted key (base64): $encryptedKeyBase64");
+
+      // Step 6: decode base64 into bytes
       final Uint8List encryptedKeyBytes = base64.decode(encryptedKeyBase64);
-
       print("Encrypted key (base64) length: ${encryptedKeyBase64.length}");
       print("Encrypted key (bytes) length:  ${encryptedKeyBytes.length}");
 

@@ -71,7 +71,5 @@ const List<String> createTableQueries = [
   tblchannels,
   tblchanneltags,
   tblchanneltagMapping,
-  tblxdocs,
-  tblxdocactors,
-  tblxdocevents
+  tblxdocs
 ];
