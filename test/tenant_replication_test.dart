@@ -45,7 +45,7 @@ setUp(() {
 
   test('testing code..........', () async {
     await DatabaseSetup.initialize();
-    await SSEManager.initializeSSE('http://192.168.0.87:3000');
+    await SSEManager.initializeSSE('http://192.168.0.87:3000','');
     expect(true, true);
   });
 }

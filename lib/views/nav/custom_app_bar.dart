@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_starter/core/routing/route_names.dart';
 import 'package:flutter_starter/core/services/entity_selection_service.dart';
 import 'package:flutter_starter/custom/services/sso.dart';
+import 'package:flutter_starter/views/dashboard/dashboard_controller.dart';
+import 'package:flutter_starter/config/environment.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uids_io_sdk_flutter/auth_logout.dart';
 import 'package:uids_io_sdk_flutter/services/pk_service.dart';
@@ -159,7 +161,17 @@ class _CustomAppBarState extends State<CustomAppBar> {
               },
             ),
           ),
-
+        // Delete Tags button - only show in development
+        if (Environment.isDevelopment)
+          IconButton(
+            icon: Icon(Icons.delete),
+            color: Colors.red,
+            tooltip: "Delete Tags",
+            onPressed: () {
+              DashboardController dashboardController = DashboardController();
+              dashboardController.deleteTagsList();
+            },
+          ),
         // Logout button
         IconButton(
           icon: Icon(Icons.logout),

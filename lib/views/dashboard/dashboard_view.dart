@@ -39,7 +39,7 @@ class _DashboardViewState extends State<DashboardView> {
   bool showRightSidebar = false;
 
   final dio = Dio();
-  final String apiUrl = 'http://192.168.0.87:3000';
+  final String apiUrl = 'http://localhost:3000';
   final String qrurl = 'xdoc://c/';
   // final String qrurl = 'http://localhost:3001/c/';
   // final String qrurl = 'https://s.xdoc.app/c/';
@@ -122,15 +122,10 @@ class _DashboardViewState extends State<DashboardView> {
 
   Future<void> fetchChannels() async {
     try {
-      String token = await dashboardController.getJwt();
-      dio.options.headers["Authorization"] = "Bearer $token";
-      final response = await dio.get('$apiUrl/channels');
-      if (response.data != null &&
-          response.data is List &&
-          (response.data as List).isNotEmpty) {
-        // print("Fetched channels: ${response.data}");
+      final data = await dashboardController.fetchChannels();
+      if (data.isNotEmpty) {
         setState(() {
-          channels = List<Map<String, dynamic>>.from(response.data);
+          channels = data;
         });
       } else {
         print("No channels found.");
@@ -288,7 +283,8 @@ class _DashboardViewState extends State<DashboardView> {
       );
     }
   }
-    void updateEncryptedEvent(
+
+  void updateEncryptedEvent(
     String action,
     String docid,
     String submittedData,
@@ -988,15 +984,14 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
-  Future<void> fetchTags(String channelName) async {
+  Future<void> fetchTags(int channelId) async {
     try {
       setState(() {
         isTagsLoading = true;
         tags = [];
         selectedTagIndex = null;
       });
-
-      final tagsList = await dashboardController.getTags(channelName);
+      final tagsList = await dashboardController.getTags(channelId);
       setState(() {
         tags = List<Map<String, dynamic>>.from(tagsList);
         isTagsLoading = false;
@@ -1146,10 +1141,7 @@ class _DashboardViewState extends State<DashboardView> {
                       String jsonString = args[0];
                       print('Received JSON string: $jsonString');
                       updateEncryptedEvent(
-                        action,
-                        docs[selectedDocIndex!]["docid"],
-                        jsonString
-                      );
+                          action, docs[selectedDocIndex!]["docid"], jsonString);
                     },
                   );
                 } else {
@@ -1187,6 +1179,7 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   void showQrDialog(BuildContext context, String qrData, int index) {
+    print('QR Data..................: $qrData index: $index');
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1516,7 +1509,7 @@ class _DashboardViewState extends State<DashboardView> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (selectedChannelIndex != null &&
-                channels[selectedChannelIndex!]["actorsequence"] == "1")
+                channels[selectedChannelIndex!]["actorsequence"] == 1)
               ListTile(
                 leading: const Icon(Icons.qr_code, color: Colors.white),
                 title: Text(
@@ -1534,7 +1527,7 @@ class _DashboardViewState extends State<DashboardView> {
 
             // Create Tag Button
             if (selectedChannelIndex != null &&
-                channels[selectedChannelIndex!]["actorsequence"] == "1")
+                channels[selectedChannelIndex!]["actorsequence"] == 1)
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green[600],
@@ -1569,8 +1562,7 @@ class _DashboardViewState extends State<DashboardView> {
                     String qrData = qrurl +
                         selectedEntity +
                         channels[index]["channelname"] +
-                        "/" +
-                        tag["tagid"];
+                        "/" +tag["channeltagid"].toString();
                     showQrDialog(context, qrData, index);
                   },
                 );
@@ -2341,7 +2333,7 @@ class _DashboardViewState extends State<DashboardView> {
                       onPressed: () async {
                         // if (channels[selectedChannelIndex!]["actorsequence"] == "1") {
                         await fetchTags(
-                            channels[selectedChannelIndex!]["channelname"]);
+                            channels[selectedChannelIndex!]["channelid"]);
                         _showChannelOptionsBottomSheet(
                             context, selectedChannelIndex!);
                         // }
@@ -2391,7 +2383,7 @@ class _DashboardViewState extends State<DashboardView> {
                                 if (selectedChannelIndex != null &&
                                     channels[selectedChannelIndex!]
                                             ["actorsequence"] ==
-                                        "0")
+                                        0)
                                   Container(
                                     padding: const EdgeInsets.all(8.0),
                                     child: ElevatedButton.icon(
@@ -2407,11 +2399,11 @@ class _DashboardViewState extends State<DashboardView> {
                                       icon: Icon(
                                           isComposeMode
                                               ? Icons.close
-                                              : Icons.edit,
+                                              : Icons.add,
                                           color: Colors.white,
                                           size: 18),
                                       label: Text(
-                                        isComposeMode ? 'Close' : 'Compose',
+                                        isComposeMode ? 'Close' : 'Document',
                                         style: const TextStyle(
                                             fontSize: 14, color: Colors.white),
                                       ),
@@ -2672,7 +2664,7 @@ class _DashboardViewState extends State<DashboardView> {
                                             });
                                           }
                                           await fetchTags(
-                                              channels[index]["channelname"]);
+                                              channels[index]["channelid"]);
                                           _showChannelOptionsBottomSheet(
                                               context, index);
                                         },
@@ -2738,7 +2730,8 @@ class _DashboardViewState extends State<DashboardView> {
                   // if (selectedChannelIndex != null &&
                   //     channels[selectedChannelIndex!]["channelname"] == "Sent")
                   if (selectedChannelIndex != null &&
-                      channels[selectedChannelIndex!]["actorsequence"] == "0")
+                      channels[selectedChannelIndex!]["actorsequence"] == 0)
+
                     Container(
                       padding: const EdgeInsets.all(16.0),
                       child: ElevatedButton.icon(
@@ -2749,7 +2742,7 @@ class _DashboardViewState extends State<DashboardView> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        icon: Icon(isComposeMode ? Icons.close : Icons.edit,
+                        icon: Icon(isComposeMode ? Icons.close : Icons.add,
                             color: Colors.white),
                         label: Text(
                           isComposeMode ? 'Close' : 'Document',

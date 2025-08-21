@@ -4,11 +4,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_starter/custom/services/sso.dart';
 import 'package:flutter_starter/custom/services/encryption.dart';
+import 'package:flutter_starter/views/dashboard/dashboard_replication.dart';
 import 'dart:typed_data';
+import 'package:tenant_replication/tenant_replication.dart';
 
 class DashboardController {
   final Dio dio = Dio();
-  final String apiUrl = 'http://192.168.0.87:3000';
+  final String apiUrl = 'http://localhost:3000';
   final String qrurl = 'https://s.xdoc.app/c/';
   final FlutterSecureStorage secureStorage = FlutterSecureStorage();
   final List<Map<String, dynamic>> statusJson = [
@@ -307,6 +309,26 @@ class DashboardController {
     }
     return publicInterconnects;
   }
+  
+  Future<void> loadData(String tableName) async {
+    try {
+      String token = await getJwt(); 
+      final sseManager = SSEManager();
+      await sseManager.loadData(
+        url: "$apiUrl/mtdd/load",
+        token: token,
+        tableName: tableName
+      );
+
+    } catch (e) {
+      print("Error fetching channels: $e");
+    }
+  }
+  Future<List<Map<String, dynamic>>> fetchChannels() async {
+    await loadData("tblchannels");
+    final channels = await DashboardReplication.getChannels();
+    return channels;
+  }
 
   Future<List<dynamic>> getRespondentActors(String interconnectId) async {
     List<dynamic> actors = [];
@@ -522,7 +544,14 @@ class DashboardController {
       }
     }
   }
-
+  Future<void> deleteTagsList() async {
+    try {
+      await secureStorage.delete(key: "xdoc_tagsList");
+      print("🗑️ Deleted key: xdoc_tagsList");
+    } catch (e) {
+      print("❌ Error deleting key xdoc_tagsList: $e");
+    }
+  }
   Future<List<Map<String, String>>> getTagList(
       {required String channelName}) async {
     //  await secureStorage.delete( key: "xdoc_tagsList");
@@ -612,31 +641,10 @@ class DashboardController {
     return false;
   }
 
-  Future<List<dynamic>> getTags(String channelName) async {
-    String token = await getJwt();
-    try {
-      dio.options.headers = {
-        "Authorization": "Bearer $token",
-        "Accept": "application/json",
-      };
-
-      final response = await dio.get(
-        '$apiUrl/channel/$channelName/tags',
-      );
-
-      if (response.statusCode == 200) {
-        print("Tags fetched successfully: ${response.data}");
-        return response.data; // assuming your API returns a JSON array
-      } else {
-        print("Failed to fetch tags. Status code: ${response.statusCode}");
-      }
-    } on DioException catch (e) {
-      print("Dio error fetching tags: ${e.message}");
-      print("Response: ${e.response?.data}");
-    } catch (e) {
-      print("Error fetching tags: $e");
-    }
-    return [];
+  Future<List<dynamic>> getTags(int channelid) async {
+    await loadData("tblchanneltags");
+    final channelTags = await DashboardReplication.getChannelTags(channelid);
+    return channelTags;
   }
 
   Future<List<dynamic>> getDocs(String channelName) async {

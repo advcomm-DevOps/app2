@@ -31,17 +31,17 @@ class DatabaseSetup {
       final columns = await db.rawQuery("PRAGMA table_info($tableName);");
       final existingColumns = columns.map((c) => c['name']).toSet();
 
-      if (!existingColumns.contains('LastUpdatedTXID')) {
-        print("⚡ Adding missing 'LastUpdatedTXID' to $tableName");
-        await db.execute('ALTER TABLE $tableName ADD COLUMN LastUpdatedTXID INTEGER DEFAULT 0;');
+      if (!existingColumns.contains('lastupdatedtxid')) {
+        print("⚡ Adding missing 'lastupdatedtxid' to $tableName");
+        await db.execute('ALTER TABLE $tableName ADD COLUMN lastupdatedtxid INTEGER DEFAULT 0;');
       }
-      if (!existingColumns.contains('LastUpdated')) {
-        print("⚡ Adding missing 'LastUpdated' to $tableName");
-        await db.execute('ALTER TABLE $tableName ADD COLUMN LastUpdated TEXT;');
+      if (!existingColumns.contains('lastupdated')) {
+        print("⚡ Adding missing 'lastupdated' to $tableName");
+        await db.execute('ALTER TABLE $tableName ADD COLUMN lastupdated TEXT;');
       }
-      if (!existingColumns.contains('DeletedTXID')) {
-        print("⚡ Adding missing 'DeletedTXID' to $tableName");
-        await db.execute('ALTER TABLE $tableName ADD COLUMN DeletedTXID INTEGER DEFAULT NULL;');
+      if (!existingColumns.contains('deletedtxid')) {
+        print("⚡ Adding missing 'deletedtxid' to $tableName");
+        await db.execute('ALTER TABLE $tableName ADD COLUMN deletedtxid INTEGER DEFAULT NULL;');
       }
     }
   }

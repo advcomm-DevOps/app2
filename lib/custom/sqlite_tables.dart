@@ -1,75 +1,70 @@
 // lib/database/create_tables.dart
 const String tblchannels = '''
   CREATE TABLE IF NOT EXISTS tblchannels(
-    ChannelID INT PRIMARY KEY,
-    ChannelName VARCHAR(63) NOT NULL,
-    ChannelDescription VARCHAR(63) NOT NULL,
-    EntityRoles VARCHAR(63) NOT NULL DEFAULT 'all',
-    ActorSequence BIGINT NOT NULL,
-    InitialActorID BIGINT,
-    OtherActorID BIGINT,
-    ContextTemplate TEXT,
-    IsTagRequired BOOLEAN NOT NULL DEFAULT FALSE
-);
+    channelid INT PRIMARY KEY,
+    channelname VARCHAR(63) NOT NULL,
+    channeldescription VARCHAR(63) NOT NULL,
+    entityroles VARCHAR(63) NOT NULL DEFAULT 'all',
+    actorsequence BIGINT NOT NULL,
+    initialactorid BIGINT, 
+    otheractorid BIGINT,
+    contexttemplate TEXT,
+    istagrequired BOOLEAN NOT NULL DEFAULT FALSE
+  );
 ''';
 const String tblchanneltags = '''
   CREATE TABLE IF NOT EXISTS tblchanneltags(
-    ChannelTagID BIGSERIAL PRIMARY KEY,
-    ChannelID BIGINT NOT NULL REFERENCES tblchannels(ChannelID),
-    Tag VARCHAR(63) NOT NULL,
-    TagDescription VARCHAR(255),
-    ExpireAt TIMESTAMP NULL,
-    UNIQUE(ChannelID, Tag)
-);
+    channeltagid BIGSERIAL PRIMARY KEY,
+    channelid BIGINT NOT NULL REFERENCES tblchannels(channelid),
+    tag VARCHAR(63) NOT NULL,
+    tagdescription VARCHAR(255),
+    expireat TIMESTAMP NULL, 
+    UNIQUE(channelid, tag)
+  );
 ''';
-const String tblchanneltagMapping = '''
-  CREATE TABLE IF NOT EXISTS tblchanneltagMapping(
-    MappingID INTEGER PRIMARY KEY,
-    TagId INTEGER,
-    OldChannelEntityId VARCHAR(63),
-    OldChannelName VARCHAR(63),
-    NewChannelName VARCHAR(63)
-);
-''';
-const String tblxdocs = '''
-  CREATE TABLE IF NOT EXISTS tblxdocs(
-    XDocID BIGSERIAL PRIMARY KEY,
-    InterconnectID BIGINT,
-    DocName VARCHAR(63) NOT NULL,
-    ContextData JSONB NOT NULL,
-    StartTime TIMESTAMP NOT NULL DEFAULT (now()),
-    CompletionTime TIMESTAMP
-);
-''';
+
 const String tblxdocactors = '''
-  CREATE TABLE IF NOT EXISTS tblxdocactors(
-    XDocActorID BIGSERIAL PRIMARY KEY,
-    ActorID BIGINT NOT NULL,
-    ChannelID BIGINT NOT NULL REFERENCES tblchannels(ChannelID),
-    EncryptedSymmetricKey BLOB  NULL, -- Encrypted symmetric key for the document
-    XDocID BIGSERIAL PRIMARY KEY,
-    InterconnectID BIGINT,
-    DocName VARCHAR(63) NOT NULL,
-    ContextData JSONB NOT NULL,
-    StartTime TIMESTAMP NOT NULL DEFAULT (now()),
-    CompletionTime TIMESTAMP
-);
- 
+   CREATE TABLE IF NOT EXISTS tblxdocactors(
+    xdocactorid BIGSERIAL PRIMARY KEY,
+    xdocid BIGINT NOT NULL,
+    actorid BIGINT NOT NULL,
+    channelid BIGINT NOT NULL REFERENCES tblchannels(channelid),
+    encryptedsymmetrickey BLOB  NULL, -- Encrypted symmetric key for the document
+    interconnectid BIGINT,
+    docname VARCHAR(63) NOT NULL,
+    contextdata JSONB NOT NULL,
+    starttime TIMESTAMP NOT NULL DEFAULT (now()),
+    completiontime TIMESTAMP,
+    UNIQUE(xdocid, actorid)
+  );
 ''';
+
 const String tblxdocevents = '''
   CREATE TABLE IF NOT EXISTS tblxdocevents(
-    XDocEventID BIGSERIAL PRIMARY KEY,
-    XDocActorID BIGINT NOT NULL REFERENCES tblxdocactors(XDocActorID),
-    XDocID BIGINT REFERENCES tblxdocs(XDocID), -- Denormalized
-    ActorID BIGINT, -- Denormalized
-    EventPayload TEXT NOT NULL,
-    ContextData TEXT NOT NULL DEFAULT '{}' -- Context data for the event
-);
+    xdoc_eventid BIGSERIAL PRIMARY KEY,
+    xdoc_actorid BIGINT NOT NULL REFERENCES tblxdocactors(xdoc_actorid),
+    xdocid BIGINT REFERENCES tblxdocs(xdocid), -- Denormalized
+    actorid BIGINT, -- Denormalized
+    eventpayload TEXT NOT NULL,
+    contextdata TEXT NOT NULL DEFAULT '{}', -- Context data for the event
+    entityroles VARCHAR(63) NOT NULL
+  );
+''';
+const String tblxdocstatetransitions = '''
+  CREATE TABLE IF NOT EXISTS tblxdocstatetransitions(
+    xdoc_statetransitionid BIGSERIAL PRIMARY KEY,
+    channelstatename VARCHAR(63) NOT NULL,
+    xdoc_actorid BIGINT NOT NULL REFERENCES tblxdocactors(xdoc_actorid),
+    channelstateid BIGINT REFERENCES tblchannelstates(channelstateid),
+    entrytime TIMESTAMP NOT NULL,
+    exittime TIMESTAMP
+  );
 ''';
 // Optionally: List of all table creations
 const List<String> createTableQueries = [
   tblchannels,
   tblchanneltags,
-  tblchanneltagMapping,
-  tblxdocs
+  tblxdocactors,
+  tblxdocevents,
+  tblxdocstatetransitions
 ];
