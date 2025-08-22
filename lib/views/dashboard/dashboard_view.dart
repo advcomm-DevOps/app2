@@ -41,7 +41,10 @@ class _DashboardViewState extends State<DashboardView> {
 
   final dio = Dio();
   final String apiUrl = 'https://$audDomain';
-  final String qrurl = 'https://web.xdoc.app/c/';
+  final String qrurl = kIsWeb 
+    ? 'https://web.xdoc.app/c/'   // If running on Web
+    : 'app2://c/'; 
+  // final String qrurl = 'https://web.xdoc.app/c/';
   // final String qrurl = 'xdoc://c/';
   // final String qrurl = 'http://localhost:3001/c/';
   List<Map<String, dynamic>> channels = [];
@@ -119,6 +122,7 @@ class _DashboardViewState extends State<DashboardView> {
 
   Future<void> initSetup() async {
     await generateRSAKeyPair();
+    await testRSAKeyGeneration();
   }
 
   Future<void> fetchChannels() async {

@@ -3,7 +3,7 @@ AppName=XDoc
 AppVersion=1.0.0
 AppPublisher=XDoc App
 AppPublisherURL=https://xdocapp.com
-DefaultDirName={autopf}\XDoc
+DefaultDirName=C:\XDoc
 DefaultGroupName=XDoc
 AllowNoIcons=yes
 OutputDir=.
@@ -23,6 +23,7 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 
 [Files]
 Source: "..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "launch_xdoc.bat"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\XDoc"; Filename: "{app}\flutter_starter.exe"; IconFilename: "{app}\flutter_starter.exe"
@@ -32,7 +33,8 @@ Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\XDoc"; Filename: "
 [Registry]
 Root: HKCR; Subkey: "xdoc"; ValueType: string; ValueName: ""; ValueData: "URL:XDoc Protocol"; Flags: uninsdeletekey
 Root: HKCR; Subkey: "xdoc"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""; Flags: uninsdeletekey
-Root: HKCR; Subkey: "xdoc\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\flutter_starter.exe"" ""%1"""; Flags: uninsdeletekey
+Root: HKCR; Subkey: "xdoc"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "xdoc\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\launch_xdoc.bat"""; Flags: uninsdeletekey
 
 [Run]
 Filename: "{app}\flutter_starter.exe"; Description: "{cm:LaunchProgram,XDoc}"; Flags: nowait postinstall skipifsilent
