@@ -38,11 +38,12 @@ FROM alpine:latest
 # Create the target directory
 RUN mkdir -p /var/www/html-podman/xdoc-web
 
-# Copy the built web app to the target directory
-COPY --from=build /app/build/web /var/www/html-podman/xdoc-web
+# Copy the built web app to a temporary location
+COPY --from=build /app/build/web /tmp/web-build
 
-# Set proper permissions
-RUN chmod -R 755 /var/www/html-podman/xdoc-web
+# Copy entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# Keep container running
-CMD ["tail", "-f", "/dev/null"]
+# Use entrypoint script
+ENTRYPOINT ["/entrypoint.sh"]
