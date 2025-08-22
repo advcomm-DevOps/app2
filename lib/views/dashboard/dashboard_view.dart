@@ -122,7 +122,6 @@ class _DashboardViewState extends State<DashboardView> {
 
   Future<void> initSetup() async {
     await generateRSAKeyPair();
-    await testRSAKeyGeneration();
   }
 
   Future<void> fetchChannels() async {
