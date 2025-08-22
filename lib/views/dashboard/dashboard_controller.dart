@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_starter/custom/constants.dart';
 import 'package:flutter_starter/custom/services/sso.dart';
 import 'package:flutter_starter/custom/services/encryption.dart';
 import 'package:flutter_starter/views/dashboard/dashboard_replication.dart';
@@ -10,8 +11,11 @@ import 'package:tenant_replication/tenant_replication.dart';
 
 class DashboardController {
   final Dio dio = Dio();
-  final String apiUrl = 'http://localhost:3000';
-  final String qrurl = 'https://s.xdoc.app/c/';
+  final String apiUrl = 'https://$audDomain';
+  final String qrurl = 'https://web.xdoc.app/c/';
+  // final String apiUrl = 'http://localhost:3000';
+  // final String qrurl = 'https://s.xdoc.app/c/';
+
   final FlutterSecureStorage secureStorage = FlutterSecureStorage();
   final List<Map<String, dynamic>> statusJson = [
     {
@@ -326,6 +330,7 @@ class DashboardController {
   }
   Future<List<Map<String, dynamic>>> fetchChannels() async {
     await loadData("tblchannels");
+    await loadData("tblxdocactors");
     final channels = await DashboardReplication.getChannels();
     return channels;
   }
@@ -758,12 +763,11 @@ class DashboardController {
 
       // Step 5: convert char codes -> base64 string
       final encryptedKeyBase64 = String.fromCharCodes(codes);
-      print("Encrypted key (base64): $encryptedKeyBase64");
 
       // Step 6: decode base64 into bytes
-      final Uint8List encryptedKeyBytes = base64.decode(encryptedKeyBase64);
-      print("Encrypted key (base64) length: ${encryptedKeyBase64.length}");
-      print("Encrypted key (bytes) length:  ${encryptedKeyBytes.length}");
+      // final Uint8List encryptedKeyBytes = base64.decode(encryptedKeyBase64);
+      // print("Encrypted key (base64) length: ${encryptedKeyBase64.length}");
+      // print("Encrypted key (bytes) length:  ${encryptedKeyBytes.length}");
 
       // ---- 2) Get your private key ----
       final senderKeys = await getSelectedEntityX25519Keys();
@@ -782,7 +786,7 @@ class DashboardController {
       // B) If rsaDecryption expects raw bytes (Uint8List), use this instead:
       // final decrypted = await rsaDecryption(encryptedKeyBytes, privateKeyPem);
 
-      print('Decrypted symmetric key (as text): $decrypted');
+      // print('Decrypted symmetric key (as text): $decrypted');
 
       // Your backend returns the symmetric key as a JSON array of ints (e.g. "[1,2,3...]")
       final List<dynamic> tempList = jsonDecode(decrypted);
@@ -916,18 +920,12 @@ class DashboardController {
     required String tagId,
     required String submittedData,
   }) async {
-    print(
-        'Creating encrypted document with entityName: $entityName, channelName: $channelName, tagId: $tagId');
+    print('Creating encrypted document with entityName: $entityName, channelName: $channelName, tagId: $tagId');
     final symmetrickey = generate32BytesRandom();
-    print('Symmetrickey..............$symmetrickey');
     final encryptedContextData = await encryptWithSymmetrickey(
       symmetrickey: symmetrickey,
       plainText: submittedData,
     );
-    print(
-        'Encrypted Symmetrickey submitted data..............$encryptedContextData');
-    print(
-        'Encrypted Symmetrickey submitted data to string..............${encryptedContextData.toString()}');
     final senderKeys = await getSelectedEntityX25519Keys();
     if (senderKeys == null) {
       print("❌ Sender keys not found.");
@@ -944,12 +942,8 @@ class DashboardController {
 
     final primaryEntitySymmetricKey =
         await rsaEncryption(symmetrickey.toString(), senderPublicKeyPem);
-    print(
-        'Encrypted primaryEntitySymmetricKey..............${primaryEntitySymmetricKey}');
     final otherActorSymmetricKey =
         await rsaEncryption(symmetrickey.toString(), recipientPublicPem);
-    print(
-        'Encrypted otherActorSymmetricKey..............${otherActorSymmetricKey}');
     String encryptedEventSchema = '';
     String token = await getJwt(); // Get your JWT token
     try {
@@ -975,7 +969,7 @@ class DashboardController {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print("Document created successfully: ${response.data}");
+        // print("Document created successfully: ${response.data}");
         return true;
       } else {
         print("Failed to create document: ${response.statusCode}");
@@ -1051,9 +1045,9 @@ class DashboardController {
       print("Encrypted key (base64): $encryptedKeyBase64");
 
       // Step 6: decode base64 into bytes
-      final Uint8List encryptedKeyBytes = base64.decode(encryptedKeyBase64);
-      print("Encrypted key (base64) length: ${encryptedKeyBase64.length}");
-      print("Encrypted key (bytes) length:  ${encryptedKeyBytes.length}");
+      // final Uint8List encryptedKeyBytes = base64.decode(encryptedKeyBase64);
+      // print("Encrypted key (base64) length: ${encryptedKeyBase64.length}");
+      // print("Encrypted key (bytes) length:  ${encryptedKeyBytes.length}");
 
       // ---- 2) Get your private key ----
       final senderKeys = await getSelectedEntityX25519Keys();

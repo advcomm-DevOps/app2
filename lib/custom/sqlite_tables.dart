@@ -33,7 +33,7 @@ const String tblxdocactors = '''
     interconnectid BIGINT,
     docname VARCHAR(63) NOT NULL,
     contextdata JSONB NOT NULL,
-    starttime TIMESTAMP NOT NULL DEFAULT (now()),
+    starttime TIMESTAMP NOT NULL,
     completiontime TIMESTAMP,
     UNIQUE(xdocid, actorid)
   );
