@@ -41,9 +41,9 @@ class _DashboardViewState extends State<DashboardView> {
 
   final dio = Dio();
   final String apiUrl = 'https://$audDomain';
-  final String qrurl = kIsWeb 
-    ? 'https://web.xdoc.app/c/'   // If running on Web
-    : 'app2://c/'; 
+  final String qrurl = kIsWeb
+      ? 'https://web.xdoc.app/c/' // If running on Web
+      : 'app2://c/';
   // final String qrurl = 'https://web.xdoc.app/c/';
   // final String qrurl = 'xdoc://c/';
   // final String qrurl = 'http://localhost:3001/c/';
@@ -103,10 +103,21 @@ class _DashboardViewState extends State<DashboardView> {
     });
   }
 
+  Future<void> _checkToken() async {
+    String token = await dashboardController.getJwt();
+    print('JWT Token in Dashboard: $token');
+    if (token.trim().isEmpty) {
+      print('JWT Token in Dashboard.......: $token');
+      Navigator.pushReplacementNamed(context, '/');
+      return;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     initSetup();
+    _checkToken();
     secQr = widget.section;
     entityQr = widget.entity;
     dashboardController.onboardEntity().then((result) {
@@ -1566,7 +1577,8 @@ class _DashboardViewState extends State<DashboardView> {
                     String qrData = qrurl +
                         selectedEntity +
                         channels[index]["channelname"] +
-                        "/" +tag["channeltagid"].toString();
+                        "/" +
+                        tag["channeltagid"].toString();
                     showQrDialog(context, qrData, index);
                   },
                 );
@@ -2735,7 +2747,6 @@ class _DashboardViewState extends State<DashboardView> {
                   //     channels[selectedChannelIndex!]["channelname"] == "Sent")
                   if (selectedChannelIndex != null &&
                       channels[selectedChannelIndex!]["actorsequence"] == 0)
-
                     Container(
                       padding: const EdgeInsets.all(16.0),
                       child: ElevatedButton.icon(

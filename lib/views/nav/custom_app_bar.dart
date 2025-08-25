@@ -7,7 +7,7 @@ import 'package:flutter_starter/views/dashboard/dashboard_controller.dart';
 import 'package:flutter_starter/config/environment.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uids_io_sdk_flutter/auth_logout.dart';
-import 'package:uids_io_sdk_flutter/services/pk_service.dart';
+// import 'package:uids_io_sdk_flutter/services/pk_service.dart';
 
 import '../../custom/routing/route_names.dart';
 
@@ -46,8 +46,8 @@ class _CustomAppBarState extends State<CustomAppBar> {
   }
 
   Future<void> _fetchEntities() async {
-    print("Generated PK: ");
-    print(PK.getPK());
+    // print("Generated PK: ");
+    // print(PK.getPK());
     List<dynamic> fetchedEntities = await _spService.getEntitiesList();
     final defaultEntity = await getSelectedEntity();
     setState(() {
