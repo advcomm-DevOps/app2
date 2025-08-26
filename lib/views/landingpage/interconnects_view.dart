@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_starter/views/landingpage/actors_view.dart';
+import 'package:xdoc/views/landingpage/actors_view.dart';
 
 class InterconnectsView extends StatelessWidget {
   final List<Map<String, dynamic>> interconnectors = [

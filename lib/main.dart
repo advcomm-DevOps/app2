@@ -49,7 +49,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'Vendor APP',
+      title: 'XDoc',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         textTheme: Theme.of(context).textTheme.apply(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';  // Make sure you're using go_router
-import 'package:flutter_starter/core/routing/route_names.dart';
+import 'package:xdoc/core/routing/route_names.dart';
 
 class ActorsView extends StatelessWidget {
   final String title;

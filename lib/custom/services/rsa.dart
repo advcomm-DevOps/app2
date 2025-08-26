@@ -1,6 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-// import 'package:flutter_starter/custom/services/encryption.dart';
-import 'package:flutter_starter/views/dashboard/dashboard_controller.dart';
+// import 'package:xdoc/custom/services/encryption.dart';
+import 'package:xdoc/views/dashboard/dashboard_controller.dart';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:pointycastle/export.dart' as pc;

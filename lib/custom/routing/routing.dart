@@ -1,9 +1,9 @@
-import 'package:flutter_starter/views/dashboard/dashboard_view.dart';
-import 'package:flutter_starter/views/landingpage/interconnects_view.dart';
+import 'package:xdoc/views/dashboard/dashboard_view.dart';
+import 'package:xdoc/views/landingpage/interconnects_view.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/routing/routing.dart';
-import 'package:flutter_starter/views/about/about_view.dart';
-import 'package:flutter_starter/views/profile/profile_view.dart';
+import 'package:xdoc/views/about/about_view.dart';
+import 'package:xdoc/views/profile/profile_view.dart';
 
 import 'route_names.dart';
 

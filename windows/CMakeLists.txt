@@ -1,10 +1,10 @@
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
-project(flutter_starter LANGUAGES CXX)
+project(xdoc LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "flutter_starter")
+set(BINARY_NAME "xdoc")
 
 # Disable specific warnings globally (applies to plugins too)
 add_compile_options(/wd4244 /wd4458)

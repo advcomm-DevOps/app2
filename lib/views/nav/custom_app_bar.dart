@@ -1,10 +1,10 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_starter/core/routing/route_names.dart';
-import 'package:flutter_starter/core/services/entity_selection_service.dart';
-import 'package:flutter_starter/custom/services/sso.dart';
-import 'package:flutter_starter/views/dashboard/dashboard_controller.dart';
-import 'package:flutter_starter/config/environment.dart';
+import 'package:xdoc/core/routing/route_names.dart';
+import 'package:xdoc/core/services/entity_selection_service.dart';
+import 'package:xdoc/custom/services/sso.dart';
+import 'package:xdoc/views/dashboard/dashboard_controller.dart';
+import 'package:xdoc/config/environment.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uids_io_sdk_flutter/auth_logout.dart';
 // import 'package:uids_io_sdk_flutter/services/pk_service.dart';

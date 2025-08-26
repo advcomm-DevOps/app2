@@ -2,10 +2,10 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter_starter/custom/constants.dart';
-import 'package:flutter_starter/custom/services/sso.dart';
-import 'package:flutter_starter/custom/services/encryption.dart';
-import 'package:flutter_starter/views/dashboard/dashboard_replication.dart';
+import 'package:xdoc/custom/constants.dart';
+import 'package:xdoc/custom/services/sso.dart';
+import 'package:xdoc/custom/services/encryption.dart';
+import 'package:xdoc/views/dashboard/dashboard_replication.dart';
 import 'dart:typed_data';
 import 'package:tenant_replication/tenant_replication.dart';
 

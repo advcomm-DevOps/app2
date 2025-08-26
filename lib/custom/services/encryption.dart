@@ -4,7 +4,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:encrypt/encrypt.dart';
 import 'package:pointycastle/asymmetric/api.dart';
-import 'package:flutter_starter/views/dashboard/dashboard_controller.dart';
+import 'package:xdoc/views/dashboard/dashboard_controller.dart';
 
 Uint8List generate32BytesRandom() {
   final random = Random.secure();
