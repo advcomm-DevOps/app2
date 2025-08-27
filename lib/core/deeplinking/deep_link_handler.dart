@@ -31,10 +31,19 @@ class DeepLinkHandler {
 
     String routePath;
 
-    if (uri.host.isNotEmpty) {
+    // For web URLs (http/https), use only the path part
+    // For custom schemes, use the host as part of the path
+    if (uri.scheme == 'http' || uri.scheme == 'https') {
+      routePath = uri.path;
+    } else if (uri.host.isNotEmpty) {
       routePath = '/' + uri.host + uri.path;
     } else {
       routePath = uri.path;
+    }
+
+    // Default to dashboard route if path is empty or just "/"
+    if (routePath.isEmpty || routePath == '/') {
+      routePath = '/';
     }
 
     print("Navigating to: $routePath");

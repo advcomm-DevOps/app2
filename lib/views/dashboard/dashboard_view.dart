@@ -2574,11 +2574,10 @@ class _DashboardViewState extends State<DashboardView> {
 
   Widget _buildTabletDesktopLayout(
       bool hasChannels, BoxConstraints constraints) {
-    final sidebarWidth = 70.0; // Same width for all screen sizes
+    // Dynamic sidebar width based on screen size - show full names for all non-mobile screens
+    final sidebarWidth = 200.0; // Always use wider sidebar for tablet/desktop
     final docsWidth = constraints.maxWidth > 1200 ? 250.0 : 200.0;
-    // Calculate channel size to maintain square proportions relative to sidebar width
-    final channelSize = sidebarWidth *
-        0.7; // 70% of sidebar width for perfect square appearance
+    // No need for channelSize since we're always showing full names
 
     return Stack(
       children: [
@@ -2643,21 +2642,20 @@ class _DashboardViewState extends State<DashboardView> {
                                           ),
                                           margin: const EdgeInsets.symmetric(
                                               horizontal: 10),
-                                          width: channelSize,
-                                          height: channelSize,
+                                          width: sidebarWidth - 20,
+                                          height: 50,
                                           alignment: Alignment.center,
+                                          padding: const EdgeInsets.symmetric(horizontal: 12),
                                           child: Text(
-                                            dashboardController
-                                                .getChannelInitials(
-                                                    channels[index]
-                                                        ["channelname"]),
-                                            style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize:
-                                                    constraints.maxWidth > 1200
-                                                        ? 14
-                                                        : 12),
+                                            channels[index]["channelname"],
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 2,
                                           ),
                                         ),
                                       ),
@@ -2695,9 +2693,7 @@ class _DashboardViewState extends State<DashboardView> {
                                           child: Icon(
                                             Icons.more_vert,
                                             color: Colors.white,
-                                            size: constraints.maxWidth > 1200
-                                                ? 12
-                                                : 10,
+                                            size: 16,
                                           ),
                                         ),
                                       ),
@@ -2725,11 +2721,23 @@ class _DashboardViewState extends State<DashboardView> {
                           color: Colors.green,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        width: channelSize,
-                        height: channelSize,
-                        child: Icon(Icons.add,
-                            color: Colors.white,
-                            size: constraints.maxWidth > 1200 ? 24 : 20),
+                        width: sidebarWidth - 20,
+                        height: 50,
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add, color: Colors.white, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'Add Channel',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
