@@ -41,12 +41,7 @@ class _DashboardViewState extends State<DashboardView> {
 
   final dio = Dio();
   final String apiUrl = 'https://$audDomain';
-  final String qrurl = kIsWeb
-      ? 'https://web.xdoc.app/c/' // If running on Web
-      : 'app2://c/';
-  // final String qrurl = 'https://web.xdoc.app/c/';
-  // final String qrurl = 'xdoc://c/';
-  // final String qrurl = 'http://localhost:3001/c/';
+  final String qrurl = "https://d.xdoc.app?path=c";
   List<Map<String, dynamic>> channels = [];
   List<Map<String, dynamic>> docs = [];
   List<Map<String, dynamic>> joinedTags = [];
@@ -99,7 +94,7 @@ class _DashboardViewState extends State<DashboardView> {
     final ssoService = SSOService();
     final entity = await ssoService.getSelectedEntity();
     setState(() {
-      selectedEntity = '${entity ?? ''}/';
+      selectedEntity = entity ?? '';
     });
   }
 
@@ -141,6 +136,19 @@ class _DashboardViewState extends State<DashboardView> {
       if (data.isNotEmpty) {
         setState(() {
           channels = data;
+          // Auto-select "Inbox" channel if present
+          final inboxIndex = channels.indexWhere(
+            (channel) => channel['channelname']?.toLowerCase() == 'inbox',
+          );
+          if (inboxIndex != -1) {
+            selectedChannelIndex = inboxIndex;
+            selectedDocIndex = null;
+            docs = [];
+            currentChatMessages = [];
+            isComposeMode = false;
+            fetchDocs(channels[inboxIndex]["channelname"]);
+            fetchJoinedTags(channels[inboxIndex]["channelname"]);
+          }
         });
       } else {
         print("No channels found.");
@@ -1533,8 +1541,8 @@ class _DashboardViewState extends State<DashboardView> {
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  String qrData =
-                      qrurl + selectedEntity + channels[index]["channelname"];
+                  String qrData = "$qrurl&entity=$selectedEntity"
+                  "&channel=${channels[index]["channelname"]}";
                   showQrDialog(context, qrData, index);
                 },
               ),
@@ -1574,15 +1582,13 @@ class _DashboardViewState extends State<DashboardView> {
                   ),
                   onTap: () {
                     Navigator.pop(context);
-                    String qrData = qrurl +
-                        selectedEntity +
-                        channels[index]["channelname"] +
-                        "/" +
-                        tag["channeltagid"].toString();
+                    String qrData = "$qrurl&entity=$selectedEntity"
+                    "&channel=${channels[index]["channelname"]}"
+                    "&id=${tag["channeltagid"]}";
                     showQrDialog(context, qrData, index);
                   },
                 );
-              }).toList()
+              })
             else
               const Padding(
                 padding: EdgeInsets.all(16.0),
@@ -1732,7 +1738,7 @@ class _DashboardViewState extends State<DashboardView> {
       return const Expanded(
         child: Center(
           child: Text(
-            "No data found",
+            "No document found",
             style: TextStyle(color: Colors.white),
           ),
         ),
@@ -2590,15 +2596,19 @@ class _DashboardViewState extends State<DashboardView> {
               child: Column(
                 children: [
                   // Logo or App Icon at top (optional)
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: CircleAvatar(
-                      radius: constraints.maxWidth > 1200 ? 24 : 20,
-                      backgroundColor: Colors.transparent,
-                      child: SvgPicture.asset(
-                        'assets/images/xdoc_logo.svg',
-                        width: constraints.maxWidth > 1200 ? 40 : 32,
-                        height: constraints.maxWidth > 1200 ? 40 : 32,
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Padding(
+                      // padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.only(left: 16.0, right: 8.0, top: 8.0), // left and right padding
+                      child: CircleAvatar(
+                        radius: constraints.maxWidth > 1200 ? 24 : 20,
+                        backgroundColor: Colors.transparent,
+                        child: SvgPicture.asset(
+                          'assets/images/xdoc_logo.svg',
+                          width: constraints.maxWidth > 1200 ? 40 : 32,
+                          height: constraints.maxWidth > 1200 ? 40 : 32,
+                        ),
                       ),
                     ),
                   ),
