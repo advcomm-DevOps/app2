@@ -77,5 +77,5 @@ msix_config:
   logo_path: assets/images/xdoc_logo.png
   certificate_path: certs/xdoc_test_cert.pfx
   certificate_password: P@ssw0rd
-
+  install_certificate: false
 
