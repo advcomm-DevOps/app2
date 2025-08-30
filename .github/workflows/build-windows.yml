@@ -1,0 +1,56 @@
+name: Build Windows App
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.22.0'
+        channel: 'stable'
+    
+    - name: Enable Windows desktop
+      run: flutter config --enable-windows-desktop
+    
+    - name: Get dependencies
+      run: flutter pub get
+    
+    - name: Run tests
+      run: flutter test
+      continue-on-error: true
+    
+    - name: Build Windows app
+      run: flutter build windows --release
+    
+    - name: Create build info
+      run: |
+        echo "Build completed at: $(Get-Date)" > build/windows/x64/runner/Release/build-info.txt
+        echo "App: XDoc" >> build/windows/x64/runner/Release/build-info.txt
+        echo "Version: 1.0.0+8" >> build/windows/x64/runner/Release/build-info.txt
+        echo "Commit: ${{ github.sha }}" >> build/windows/x64/runner/Release/build-info.txt
+    
+    - name: Upload Windows build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: xdoc-windows-${{ github.run_number }}
+        path: build/windows/x64/runner/Release/
+        retention-days: 30
+    
+    - name: Upload executable only
+      uses: actions/upload-artifact@v4
+      with:
+        name: xdoc-exe-${{ github.run_number }}
+        path: build/windows/x64/runner/Release/xdoc.exe
+        retention-days: 30
