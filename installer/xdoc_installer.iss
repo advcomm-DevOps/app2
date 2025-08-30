@@ -12,7 +12,7 @@ Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
-UninstallDisplayIcon={app}\flutter_starter.exe
+UninstallDisplayIcon={app}\xdoc.exe
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -26,9 +26,9 @@ Source: "..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignore
 Source: "launch_xdoc.bat"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\XDoc"; Filename: "{app}\flutter_starter.exe"; IconFilename: "{app}\flutter_starter.exe"
-Name: "{autodesktop}\XDoc"; Filename: "{app}\flutter_starter.exe"; Tasks: desktopicon; IconFilename: "{app}\flutter_starter.exe"
-Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\XDoc"; Filename: "{app}\flutter_starter.exe"; Tasks: quicklaunchicon; IconFilename: "{app}\flutter_starter.exe"
+Name: "{group}\XDoc"; Filename: "{app}\xdoc.exe"; IconFilename: "{app}\xdoc.exe"
+Name: "{autodesktop}\XDoc"; Filename: "{app}\xdoc.exe"; Tasks: desktopicon; IconFilename: "{app}\xdoc.exe"
+Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\XDoc"; Filename: "{app}\xdoc.exe"; Tasks: quicklaunchicon; IconFilename: "{app}\xdoc.exe"
 
 [Registry]
 Root: HKCR; Subkey: "xdoc"; ValueType: string; ValueName: ""; ValueData: "URL:XDoc Protocol"; Flags: uninsdeletekey
@@ -37,7 +37,7 @@ Root: HKCR; Subkey: "xdoc"; ValueType: string; ValueName: "InstallPath"; ValueDa
 Root: HKCR; Subkey: "xdoc\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\launch_xdoc.bat"""; Flags: uninsdeletekey
 
 [Run]
-Filename: "{app}\flutter_starter.exe"; Description: "{cm:LaunchProgram,XDoc}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\xdoc.exe"; Description: "{cm:LaunchProgram,XDoc}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
