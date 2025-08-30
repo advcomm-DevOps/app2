@@ -81,4 +81,5 @@ msix:
   icons_background_color: transparent
   architecture: x64
   capabilities: 'internetClient,location,microphone,webcam'
-
+  certificate_path: certs/xdoc_test_cert.pfx
+  certificate_password: P@ssw0rd
