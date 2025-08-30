@@ -51,7 +51,7 @@ dev_dependencies:
   flutter_lints: ^3.0.0
   build_runner: ^2.0.0
   flutter_launcher_icons: ^0.14.3
-  msix: ^3.16.8
+  msix: ^3.16.12
 
 
 flutter:
@@ -66,20 +66,16 @@ flutter:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/images/app_icon.png"
+  image_path: "assets/images/xdoc_logo.png"
 
-msix:
-  display_name: XDoc
-  publisher_display_name: XDoc App
-  identity_name: com.xdocapp.xdoc
-  msix_version: 1.0.8.0
-  description: XDoc - Document Management System
-  publisher: CN=XDoc App
+msix_config:
+  display_name: XDoc Test
+  msix_version: 1.0.0.0
+  publisher_display_name: XDoc Testing
+  identity_name: com.xdocapp.test
+  publisher: CN=XDoc Test
   logo_path: assets/images/xdoc_logo.png
-  start_menu_icon_path: assets/images/xdoc_logo.png
-  tile_icon_path: assets/images/xdoc_logo.png
-  icons_background_color: transparent
-  architecture: x64
-  capabilities: 'internetClient,location,microphone,webcam'
   certificate_path: certs/xdoc_test_cert.pfx
   certificate_password: P@ssw0rd
+
+
