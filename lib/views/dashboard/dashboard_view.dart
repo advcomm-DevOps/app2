@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -75,6 +76,9 @@ class _DashboardViewState extends State<DashboardView> {
 
   List<Map<String, dynamic>> currentChatMessages = [];
 
+  // Stream subscription for channels
+  StreamSubscription<List<Map<String, dynamic>>>? _channelsSubscription;
+
   bool get isLastFile {
     if (currentChatMessages.isEmpty) return false;
     final lastMessage = currentChatMessages.last;
@@ -144,30 +148,46 @@ class _DashboardViewState extends State<DashboardView> {
 
   Future<void> fetchChannels() async {
     try {
-      final data = await dashboardController.fetchChannels();
-      if (data.isNotEmpty) {
-        setState(() {
-          channels = data;
-          // Auto-select "Inbox" channel if present
-          final inboxIndex = channels.indexWhere(
-            (channel) => channel['channelname']?.toLowerCase() == 'inbox',
-          );
-          if (inboxIndex != -1) {
-            selectedChannelIndex = inboxIndex;
-            selectedDocIndex = null;
-            docs = [];
-            currentChatMessages = [];
-            isComposeMode = false;
-            fetchDocs(channels[inboxIndex]["channelname"]);
-            fetchJoinedTags(channels[inboxIndex]["channelname"]);
+      // Cancel any existing subscription
+      await _channelsSubscription?.cancel();
+      
+      // Listen to the channels stream for real-time updates
+      _channelsSubscription = dashboardController.fetchChannelsStream().listen(
+        (data) {
+          if (mounted && data.isNotEmpty) {
+            setState(() {
+              channels = data;
+              // Auto-select "Inbox" channel if present and no channel is currently selected
+              if (selectedChannelIndex == null) {
+                final inboxIndex = channels.indexWhere(
+                  (channel) => channel['channelname']?.toLowerCase() == 'inbox',
+                );
+                if (inboxIndex != -1) {
+                  selectedChannelIndex = inboxIndex;
+                  selectedDocIndex = null;
+                  docs = [];
+                  currentChatMessages = [];
+                  isComposeMode = false;
+                  fetchDocs(channels[inboxIndex]["channelname"]);
+                  fetchJoinedTags(channels[inboxIndex]["channelname"]);
+                }
+              }
+            });
+          } else if (mounted) {
+            print("No channels found.");
           }
-        });
-      } else {
-        print("No channels found.");
-      }
-      validateSection();
+          if (mounted) {
+            validateSection();
+          }
+        },
+        onError: (error) {
+          if (mounted) {
+            print("Error in channels stream: $error");
+          }
+        },
+      );
     } catch (e) {
-      print("Error fetching channels: $e");
+      print("Error setting up channels stream: $e");
     }
   }
 
@@ -3112,5 +3132,19 @@ class _DashboardViewState extends State<DashboardView> {
           ),
       ],
     );
+  }
+
+  @override
+  void dispose() {
+    // Cancel the channels stream subscription
+    _channelsSubscription?.cancel();
+    
+    // Dispose other controllers and resources
+    messageController.dispose();
+    _urlController.dispose();
+    _htmlController.dispose();
+    _channelNameController.dispose();
+    
+    super.dispose();
   }
 }

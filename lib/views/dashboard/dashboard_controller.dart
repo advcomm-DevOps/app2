@@ -335,6 +335,16 @@ class DashboardController {
     return channels;
   }
 
+  /// Streaming version of fetchChannels that watches for database changes
+  Stream<List<Map<String, dynamic>>> fetchChannelsStream() async* {
+    // Load initial data from server (non-blocking)
+    loadData("tblchannels");
+    loadData("tblxdocactors");
+    
+    // Stream channels from the database with real-time updates
+    yield* DashboardReplication.watchChannels();
+  }
+
   Future<List<dynamic>> getRespondentActors(String interconnectId) async {
     List<dynamic> actors = [];
     try {

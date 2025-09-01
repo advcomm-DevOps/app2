@@ -48,9 +48,10 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^3.0.0
   build_runner: ^2.0.0
   flutter_launcher_icons: ^0.14.3
+  msix: ^3.16.12
 
 
 flutter:
@@ -65,5 +66,16 @@ flutter:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/images/app_icon.png"
+  image_path: "assets/images/xdoc_logo.png"
+
+msix_config:
+  display_name: XDoc Test
+  msix_version: 1.0.0.0
+  publisher_display_name: XDoc Testing
+  identity_name: com.xdocapp.test
+  publisher: CN=XDoc Test
+  logo_path: assets/images/xdoc_logo.png
+  certificate_path: certs/xdoc_test_cert.pfx
+  certificate_password: P@ssw0rd
+  install_certificate: false
 
