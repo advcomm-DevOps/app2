@@ -167,7 +167,6 @@ class _DashboardViewState extends State<DashboardView> {
                   selectedDocIndex = null;
                   docs = [];
                   currentChatMessages = [];
-                  isComposeMode = false;
                   fetchDocs(channels[inboxIndex]["channelname"]);
                   fetchJoinedTags(channels[inboxIndex]["channelname"]);
                 }
@@ -923,9 +922,7 @@ class _DashboardViewState extends State<DashboardView> {
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.white),
                   onPressed: () {
-                    setState(() {
-                      isComposeMode = false;
-                    });
+                    Navigator.of(context).pop();
                   },
                 ),
               ],
@@ -955,10 +952,8 @@ class _DashboardViewState extends State<DashboardView> {
                         ),
                       );
 
-                      // Exit compose mode
-                      setState(() {
-                        isComposeMode = false;
-                      });
+                      // Close the dialog
+                      Navigator.of(context).pop();
                     },
                   );
                 } else {
@@ -973,10 +968,8 @@ class _DashboardViewState extends State<DashboardView> {
                       ),
                     );
 
-                    // Exit compose mode
-                    setState(() {
-                      isComposeMode = false;
-                    });
+                    // Close the dialog
+                    Navigator.of(context).pop();
                   });
                 }
               },
@@ -1472,6 +1465,28 @@ class _DashboardViewState extends State<DashboardView> {
                   style: TextStyle(color: Colors.white)),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  void _showComposeDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(20),
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.9,
+            height: MediaQuery.of(context).size.height * 0.8,
+            decoration: BoxDecoration(
+              color: surfaceColor,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: buildComposeView(),
+          ),
         );
       },
     );
@@ -2336,7 +2351,6 @@ class _DashboardViewState extends State<DashboardView> {
                 selectedDocIndex = null;
                 docs = [];
                 currentChatMessages = [];
-                isComposeMode = false; // Reset compose mode when switching channels
               });
               fetchDocs(channels[index]["channelname"]);
               fetchJoinedTags(channels[index]["channelname"]);
@@ -2396,7 +2410,6 @@ class _DashboardViewState extends State<DashboardView> {
                     selectedDocIndex = null;
                     docs = [];
                     currentChatMessages = [];
-                    isComposeMode = false;
                   });
                 }
                 await fetchTags(channels[index]["channelid"]);
@@ -2696,18 +2709,15 @@ class _DashboardViewState extends State<DashboardView> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        icon: Icon(isComposeMode ? Icons.close : Icons.add,
-                            color: Colors.white),
-                        label: Text(
-                          isComposeMode ? 'Close' : 'Document',
-                          style: const TextStyle(
+                        icon: const Icon(Icons.edit, color: Colors.white),
+                        label: const Text(
+                          'Compose',
+                          style: TextStyle(
                               fontSize: 16, color: Colors.white),
                         ),
                         onPressed: () {
-                          // Toggle compose mode
-                          setState(() {
-                            isComposeMode = !isComposeMode;
-                          });
+                          // Show compose dialog instead of toggling mode
+                          _showComposeDialog(context);
                         },
                       ),
                     ),
@@ -2733,9 +2743,7 @@ class _DashboardViewState extends State<DashboardView> {
                               style: TextStyle(color: textColor),
                             ),
                           )
-                        : isComposeMode
-                            ? buildComposeView()
-                            : ((selectedChannelIndex != null &&
+                        : ((selectedChannelIndex != null &&
                                         channels[selectedChannelIndex!]
                                                 ["actorsequence"] ==
                                             "1"
