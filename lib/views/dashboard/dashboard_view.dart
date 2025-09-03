@@ -271,13 +271,12 @@ class _DashboardViewState extends State<DashboardView> {
         ),
       );
     } else {
-      dashboardController.addTagIfNotExists(
+      addTagIfNotExist(
         oldEntityId: entityQr!,
         tagId: tagid!,
         oldChannelName: secQr!,
         newChannelName: newSecQr!,
-        tagName: tagname!,
-      );
+        tagName: tagname!);
       setState(() {
         selectedChannelIndex = index;
         selectedDocIndex = null;
@@ -285,9 +284,23 @@ class _DashboardViewState extends State<DashboardView> {
         currentChatMessages = [];
       });
       fetchDocs(channels[index]["channelname"]);
+      fetchJoinedTags(channels[index]["channelname"]);
     }
   }
-
+  void addTagIfNotExist(
+      {required String oldEntityId,
+      required String tagId,
+      required String oldChannelName,
+      required String newChannelName,
+      required String tagName}) {
+    dashboardController.addTagIfNotExists(
+      oldEntityId: oldEntityId,
+      tagId: tagId,
+      oldChannelName: oldChannelName,
+      newChannelName: newChannelName,
+      tagName: tagName,
+    );
+  }
   void joinNewChannel(String entityName,String sectionName, String? tagid, String? tagname,String? newSecQr) {
     dashboardController
         .joinChannel(entityName, sectionName, tagid, tagname,newSecQr)
