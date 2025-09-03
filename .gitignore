@@ -47,3 +47,4 @@ windows/flutter/generated_plugin_registrant.h
 windows/flutter/generated_plugins.cmake
 linux/flutter/generated_plugin_registrant.cc
 linux/flutter/generated_plugin_registrant.h
+pubspec.lock
