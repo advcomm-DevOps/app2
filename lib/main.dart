@@ -15,7 +15,7 @@ import 'custom/constants.dart';
 void main() async {
   setPathUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
-  setupDatabaseFactory();
+  await setupDatabaseFactory();
   await EasyLocalization.ensureInitialized();
   // await initializeSsoSdk('https://auth1.3u.gg', 'api.3u.gg');
   await initializeSsoSdk(authUrl, audDomain);
