@@ -400,7 +400,7 @@ class DashboardController {
   }
 
   Future<bool> joinChannel(String entityId, String channelName, String? tagid,
-      String? tagname) async {
+      String? tagname,String? newSecQr) async {
     String token = await getJwt();
     print(
         'Joining channel with entityId: $entityId, channelName: $channelName, tagid: $tagid');
@@ -424,9 +424,13 @@ class DashboardController {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         print("Joined channel successfully: ${response.data}");
-        // String updatedChannelName =
-        //     response.data['newChannelName'] ?? channelName;
-        // addTagIfNotExists(entityId, updatedChannelName, tagid ?? "defaultTagId");
+        addTagIfNotExists(
+          oldEntityId: entityId,
+          tagId: tagid!,
+          oldChannelName: channelName,
+          newChannelName: newSecQr!,
+          tagName: tagname!,
+        );
         return true;
       } else {
         print("Failed to join channel: ${response.statusCode}");

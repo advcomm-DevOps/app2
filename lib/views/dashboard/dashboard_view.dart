@@ -69,6 +69,9 @@ class _DashboardViewState extends State<DashboardView> {
   final TextEditingController _urlController = TextEditingController();
   final TextEditingController _htmlController = TextEditingController();
   final TextEditingController _channelNameController = TextEditingController();
+  final TextEditingController _entityController = TextEditingController();
+  final TextEditingController _composeChannelController = TextEditingController();
+  final TextEditingController _tagIdController = TextEditingController();
 
   String htmlForm = getResumeForm();
   String htmlResume = "";
@@ -256,7 +259,7 @@ class _DashboardViewState extends State<DashboardView> {
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
               onPressed: () {
-                joinNewChannel(secQr!, entityQr!, tagid, tagname);
+                joinNewChannel(entityQr!, secQr!, tagid, tagname,newSecQr!);
                 Navigator.of(context).pop();
               },
               child: const Text(
@@ -285,10 +288,9 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
-  void joinNewChannel(
-      String sectionName, String entityName, String? tagid, String? tagname) {
+  void joinNewChannel(String entityName,String sectionName, String? tagid, String? tagname,String? newSecQr) {
     dashboardController
-        .joinChannel(entityName, sectionName, tagid, tagname)
+        .joinChannel(entityName, sectionName, tagid, tagname,newSecQr)
         .then((joined) {
       if (joined) {
         fetchChannels();
@@ -773,217 +775,6 @@ class _DashboardViewState extends State<DashboardView> {
           },
         );
       },
-    );
-  }
-
-  Widget buildComposeView() {
-    String composeHtml = '''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Compose Message</title>
-        <style>
-            body {
-                background-color: transparent;
-                color: #ffffff;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            }
-            /* Quill Editor Dark Theme Styles */
-            #editor {
-                height: 300px;
-                background-color: #2a2a2a;
-                border: 1px solid #555;
-                border-radius: 8px;
-                color: #ffffff;
-            }
-            .ql-toolbar {
-                background-color: #3a3a3a;
-                border: 1px solid #555;
-                border-bottom: none;
-                border-radius: 8px 8px 0 0;
-            }
-            .ql-container {
-                background-color: #2a2a2a;
-                border: 1px solid #555;
-                border-top: none;
-                border-radius: 0 0 8px 8px;
-                color: #ffffff;
-            }
-            .ql-editor {
-                color: #ffffff;
-                font-size: 14px;
-            }
-            .ql-editor.ql-blank::before {
-                color: #999;
-                font-style: italic;
-            }
-            /* Toolbar button styles */
-            .ql-toolbar .ql-stroke {
-                stroke: #ffffff;
-            }
-            .ql-toolbar .ql-fill {
-                fill: #ffffff;
-            }
-            .ql-toolbar .ql-picker-label {
-                color: #ffffff;
-            }
-            .ql-toolbar .ql-picker-options {
-                background-color: #3a3a3a;
-                border: 1px solid #555;
-            }
-            .ql-toolbar .ql-picker-item {
-                color: #ffffff;
-            }
-            .ql-toolbar .ql-picker-item:hover {
-                background-color: #4a4a4a;
-            }
-            .ql-toolbar button:hover {
-                background-color: #4a4a4a;
-            }
-            .ql-toolbar button.ql-active {
-                background-color: #4a9eff;
-            }
-            /* Custom dark form styles */
-            .form-control {
-                background-color: #2a2a2a !important;
-                border-color: #555 !important;
-                color: #ffffff !important;
-            }
-            .form-control:focus {
-                background-color: #2a2a2a !important;
-                border-color: #4a9eff !important;
-                box-shadow: 0 0 0 0.2rem rgba(74, 158, 255, 0.25) !important;
-                color: #ffffff !important;
-            }
-            .form-label {
-                color: #b0b0b0 !important;
-                font-weight: 500;
-            }
-        </style>
-    </head>
-    <body class="bg-transparent text-white">
-        <div class="container-fluid p-5">
-            <div class="card bg-dark border-secondary shadow">
-                <div class="card-body p-4">
-                    <form id="composeForm">
-                        <div class="mb-3">
-                            <label for="to" class="form-label">To:</label>
-                            <input type="email" id="to" name="to" class="form-control" placeholder="recipient@example.com" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="subject" class="form-label">Subject:</label>
-                            <input type="text" id="subject" name="subject" class="form-control" placeholder="Enter subject" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="message" class="form-label">Message:</label>
-                            <div id="editor"></div>
-                        </div>
-                        
-                        <div class="d-flex justify-content-end gap-3 pt-3 border-top border-secondary">
-                            <button type="submit" class="btn btn-primary">Send Message</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </body>
-    </html>
-    ''';
-    if (kIsWeb) {
-      composeHtml =
-          '$composeHtml<script>${dashboardController.formHandlingJS}</script>';
-    }
-    return Container(
-      color: Colors.grey[800], // Flutter background
-      child: Column(
-        children: [
-          // Flutter Header
-          Container(
-            padding: const EdgeInsets.all(10.0),
-            decoration: BoxDecoration(
-              color: Colors.grey[900],
-              border: Border(bottom: BorderSide(color: Colors.grey[700]!)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Compose Message',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ],
-            ),
-          ),
-
-          // InAppWebView with form only
-          Expanded(
-            child: InAppWebView(
-              initialData: InAppWebViewInitialData(data: composeHtml),
-              onWebViewCreated: (controller) {
-                // Add handlers for communication with the web view
-                if (!kIsWeb) {
-                  controller.addJavaScriptHandler(
-                    handlerName: 'onFormSubmit',
-                    callback: (args) {
-                      String jsonString = args[0];
-                      print('Received JSON string: $jsonString');
-                      Map<String, dynamic> formData = jsonDecode(jsonString);
-                      print('Received JSON: $formData');
-
-                      // Show success message
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Message sent successfully!'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-
-                      // Close the dialog
-                      Navigator.of(context).pop();
-                    },
-                  );
-                } else {
-                  handleWebMessage();
-                  final stream = handleWebMessage();
-                  stream.listen((jsonString) {
-                    print('Received JSON: $jsonString');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Message sent successfully!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-
-                    // Close the dialog
-                    Navigator.of(context).pop();
-                  });
-                }
-              },
-              onLoadStop: (controller, url) async {
-                // Inject Bootstrap 5 and Quill CSS/JS
-                if (!kIsWeb) {
-                  await controller.evaluateJavascript(
-                      source: dashboardController.formHandlingJS);
-                }
-              },
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -1473,20 +1264,162 @@ class _DashboardViewState extends State<DashboardView> {
   void _showComposeDialog(BuildContext context) {
     showDialog(
       context: context,
-      barrierDismissible: false,
       builder: (BuildContext context) {
-        return Dialog(
-          insetPadding: const EdgeInsets.all(20),
-          backgroundColor: Colors.transparent,
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.9,
-            height: MediaQuery.of(context).size.height * 0.8,
-            decoration: BoxDecoration(
-              color: surfaceColor,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: buildComposeView(),
-          ),
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              backgroundColor: surfaceColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Text(
+                'Create New Item',
+                style: TextStyle(
+                  color: textColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Entity field
+                    TextField(
+                      controller: _entityController,
+                      decoration: InputDecoration(
+                        labelText: 'Entity *',
+                        labelStyle: const TextStyle(color: Colors.white70),
+                        hintText: 'Enter entity name',
+                        hintStyle: const TextStyle(color: Colors.white54),
+                        filled: true,
+                        fillColor: Colors.grey[800],
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Colors.grey),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Colors.blue),
+                        ),
+                      ),
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Channel field
+                    TextField(
+                      controller: _composeChannelController,
+                      decoration: InputDecoration(
+                        labelText: 'Channel *',
+                        labelStyle: const TextStyle(color: Colors.white70),
+                        hintText: 'Enter channel name',
+                        hintStyle: const TextStyle(color: Colors.white54),
+                        filled: true,
+                        fillColor: Colors.grey[800],
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Colors.grey),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Colors.blue),
+                        ),
+                      ),
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Tag ID field
+                    TextField(
+                      controller: _tagIdController,
+                      decoration: InputDecoration(
+                        labelText: 'Tag ID *',
+                        labelStyle: const TextStyle(color: Colors.white70),
+                        hintText: 'Enter tag ID',
+                        hintStyle: const TextStyle(color: Colors.white54),
+                        filled: true,
+                        fillColor: Colors.grey[800],
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Colors.grey),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Colors.blue),
+                        ),
+                      ),
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+              actionsPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              actionsAlignment: MainAxisAlignment.spaceBetween,
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                  ),
+                  onPressed: () {
+                    if (_entityController.text.isEmpty ||
+                        _composeChannelController.text.isEmpty ||
+                        _tagIdController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please fill in all required fields.'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    // Process the form data
+                    Map<String, String> formData = {
+                      'entity': _entityController.text.trim(),
+                      'channel': _composeChannelController.text.trim(),
+                      'tagId': _tagIdController.text.trim(),
+                    };
+
+                    // Clear the form
+                    _entityController.clear();
+                    _composeChannelController.clear();
+                    _tagIdController.clear();
+
+                    // Show success message
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Item created successfully!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+
+                    // Close the dialog
+                    Navigator.of(context).pop();
+
+                    // You can add your custom logic here to handle the form data
+                    print('Form Data: $formData');
+                  },
+                  child: const Text(
+                    'Create',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -2711,7 +2644,7 @@ class _DashboardViewState extends State<DashboardView> {
                         ),
                         icon: const Icon(Icons.edit, color: Colors.white),
                         label: const Text(
-                          'Compose',
+                          'Document',
                           style: TextStyle(
                               fontSize: 16, color: Colors.white),
                         ),
