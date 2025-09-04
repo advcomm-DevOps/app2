@@ -70,7 +70,8 @@ class _DashboardViewState extends State<DashboardView> {
   final TextEditingController _htmlController = TextEditingController();
   final TextEditingController _channelNameController = TextEditingController();
   final TextEditingController _entityController = TextEditingController();
-  final TextEditingController _composeChannelController = TextEditingController();
+  final TextEditingController _composeChannelController =
+      TextEditingController();
   final TextEditingController _tagIdController = TextEditingController();
 
   String htmlForm = getResumeForm();
@@ -89,14 +90,21 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   // Theme color getters - Warmer, less white light theme
-  Color get backgroundColor => isDarkMode ? Colors.grey[900]! : const Color(0xFFF0F2F5);
-  Color get surfaceColor => isDarkMode ? Colors.grey[850]! : const Color(0xFFF8F9FA);
-  Color get cardColor => isDarkMode ? Colors.grey[800]! : const Color(0xFFEDF2F7);
+  Color get backgroundColor =>
+      isDarkMode ? Colors.grey[900]! : const Color(0xFFF0F2F5);
+  Color get surfaceColor =>
+      isDarkMode ? Colors.grey[850]! : const Color(0xFFF8F9FA);
+  Color get cardColor =>
+      isDarkMode ? Colors.grey[800]! : const Color(0xFFEDF2F7);
   Color get textColor => isDarkMode ? Colors.white : const Color(0xFF2D3748);
-  Color get subtitleColor => isDarkMode ? Colors.white70 : const Color(0xFF4A5568);
-  Color get primaryAccent => isDarkMode ? Colors.blueAccent : const Color(0xFF2B6CB0);
-  Color get secondaryAccent => isDarkMode ? Colors.blue[300]! : const Color(0xFF4299E1);
-  Color get borderColor => isDarkMode ? Colors.grey[700]! : const Color(0xFFCBD5E0);
+  Color get subtitleColor =>
+      isDarkMode ? Colors.white70 : const Color(0xFF4A5568);
+  Color get primaryAccent =>
+      isDarkMode ? Colors.blueAccent : const Color(0xFF2B6CB0);
+  Color get secondaryAccent =>
+      isDarkMode ? Colors.blue[300]! : const Color(0xFF4299E1);
+  Color get borderColor =>
+      isDarkMode ? Colors.grey[700]! : const Color(0xFFCBD5E0);
 
   @override
   void didChangeDependencies() {
@@ -153,7 +161,7 @@ class _DashboardViewState extends State<DashboardView> {
     try {
       // Cancel any existing subscription
       await _channelsSubscription?.cancel();
-      
+
       // Listen to the channels stream for real-time updates
       _channelsSubscription = dashboardController.fetchChannelsStream().listen(
         (data) {
@@ -259,7 +267,7 @@ class _DashboardViewState extends State<DashboardView> {
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
               onPressed: () {
-                joinNewChannel(entityQr!, secQr!, tagid, tagname,newSecQr!);
+                joinNewChannel(entityQr!, secQr!, tagid, tagname, newSecQr!);
                 Navigator.of(context).pop();
               },
               child: const Text(
@@ -272,11 +280,11 @@ class _DashboardViewState extends State<DashboardView> {
       );
     } else {
       addTagIfNotExist(
-        oldEntityId: entityQr!,
-        tagId: tagid!,
-        oldChannelName: secQr!,
-        newChannelName: newSecQr!,
-        tagName: tagname!);
+          oldEntityId: entityQr!,
+          tagId: tagid!,
+          oldChannelName: secQr!,
+          newChannelName: newSecQr!,
+          tagName: tagname!);
       setState(() {
         selectedChannelIndex = index;
         selectedDocIndex = null;
@@ -287,6 +295,7 @@ class _DashboardViewState extends State<DashboardView> {
       fetchJoinedTags(channels[index]["channelname"]);
     }
   }
+
   void addTagIfNotExist(
       {required String oldEntityId,
       required String tagId,
@@ -301,9 +310,11 @@ class _DashboardViewState extends State<DashboardView> {
       tagName: tagName,
     );
   }
-  void joinNewChannel(String entityName,String sectionName, String? tagid, String? tagname,String? newSecQr) {
+
+  void joinNewChannel(String entityName, String sectionName, String? tagid,
+      String? tagname, String? newSecQr) {
     dashboardController
-        .joinChannel(entityName, sectionName, tagid, tagname,newSecQr)
+        .joinChannel(entityName, sectionName, tagid, tagname, newSecQr)
         .then((joined) {
       if (joined) {
         fetchChannels();
@@ -320,6 +331,34 @@ class _DashboardViewState extends State<DashboardView> {
         );
       }
     });
+  }
+
+  void createTemporaryDocument(Map<String, String> formData) async {
+    print('Creating temporary document with data: $formData');
+    String? tagname = '';
+    final details = await dashboardController.getChannelDetailsForJoin(
+      entityId: formData['entity']!,
+      channelName: formData['channel']!,
+      tagId: formData['tagId']!,
+    );
+
+    if (details != null && details["channelDetails"] != null) {
+      newSecQr = details["channelDetails"]["newChannelName"];
+      tagname = details["channelDetails"]["tagName"];
+      addTagIfNotExist(
+          oldEntityId: formData['entity']!,
+          tagId: formData['tagId']!,
+          oldChannelName: formData['channel']!,
+          newChannelName: channels[selectedChannelIndex!]["channelname"],
+          tagName: tagname!);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Document created successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 
   void createEncryptedDocument(
@@ -1144,8 +1183,7 @@ class _DashboardViewState extends State<DashboardView> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Enter Form URL',
-              style: TextStyle(color: textColor)),
+          title: Text('Enter Form URL', style: TextStyle(color: textColor)),
           backgroundColor: surfaceColor,
           content: TextField(
             controller: _urlController,
@@ -1158,8 +1196,7 @@ class _DashboardViewState extends State<DashboardView> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child:
-                  Text('Cancel', style: TextStyle(color: subtitleColor)),
+              child: Text('Cancel', style: TextStyle(color: subtitleColor)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
@@ -1185,8 +1222,7 @@ class _DashboardViewState extends State<DashboardView> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Enter HTML Form',
-              style: TextStyle(color: textColor)),
+          title: Text('Enter HTML Form', style: TextStyle(color: textColor)),
           backgroundColor: surfaceColor,
           content: SizedBox(
             width: double.maxFinite,
@@ -1204,8 +1240,7 @@ class _DashboardViewState extends State<DashboardView> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child:
-                  Text('Cancel', style: TextStyle(color: subtitleColor)),
+              child: Text('Cancel', style: TextStyle(color: subtitleColor)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
@@ -1249,8 +1284,7 @@ class _DashboardViewState extends State<DashboardView> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child:
-                  Text('Close', style: TextStyle(color: subtitleColor)),
+              child: Text('Close', style: TextStyle(color: subtitleColor)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
@@ -1399,7 +1433,7 @@ class _DashboardViewState extends State<DashboardView> {
                       return;
                     }
 
-                    // Process the form data
+                    // Create the form data
                     Map<String, String> formData = {
                       'entity': _entityController.text.trim(),
                       'channel': _composeChannelController.text.trim(),
@@ -1411,19 +1445,11 @@ class _DashboardViewState extends State<DashboardView> {
                     _composeChannelController.clear();
                     _tagIdController.clear();
 
-                    // Show success message
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Item created successfully!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-
                     // Close the dialog
                     Navigator.of(context).pop();
 
-                    // You can add your custom logic here to handle the form data
-                    print('Form Data: $formData');
+                    // Call the new function with form data
+                    createTemporaryDocument(formData);
                   },
                   child: const Text(
                     'Create',
@@ -1535,7 +1561,7 @@ class _DashboardViewState extends State<DashboardView> {
                 onTap: () {
                   Navigator.pop(context);
                   String qrData = "$qrurl&entity=$selectedEntity"
-                  "&channel=${channels[index]["channelname"]}";
+                      "&channel=${channels[index]["channelname"]}";
                   showQrDialog(context, qrData, index);
                 },
               ),
@@ -1576,8 +1602,8 @@ class _DashboardViewState extends State<DashboardView> {
                   onTap: () {
                     Navigator.pop(context);
                     String qrData = "$qrurl&entity=$selectedEntity"
-                    "&channel=${channels[index]["channelname"]}"
-                    "&id=${tag["channeltagid"]}";
+                        "&channel=${channels[index]["channelname"]}"
+                        "&id=${tag["channeltagid"]}";
                     showQrDialog(context, qrData, index);
                   },
                 );
@@ -1779,21 +1805,24 @@ class _DashboardViewState extends State<DashboardView> {
             child: Container(
               margin: const EdgeInsets.symmetric(vertical: 6),
               decoration: BoxDecoration(
-                color: isSelected 
-                    ? (isDarkMode ? Colors.blueGrey[700] : secondaryAccent.withOpacity(0.2)) 
+                color: isSelected
+                    ? (isDarkMode
+                        ? Colors.blueGrey[700]
+                        : secondaryAccent.withOpacity(0.2))
                     : (isDarkMode ? Colors.grey[800] : surfaceColor),
                 borderRadius: BorderRadius.circular(12),
-                border: !isDarkMode 
+                border: !isDarkMode
                     ? Border.all(
-                        color: isSelected ? secondaryAccent : borderColor, 
-                        width: isSelected ? 2 : 1
-                      )
+                        color: isSelected ? secondaryAccent : borderColor,
+                        width: isSelected ? 2 : 1)
                     : null,
                 boxShadow: [
                   if (isSelected || !isDarkMode)
                     BoxShadow(
-                      color: isSelected 
-                          ? (isDarkMode ? Colors.black.withOpacity(0.3) : secondaryAccent.withOpacity(0.2))
+                      color: isSelected
+                          ? (isDarkMode
+                              ? Colors.black.withOpacity(0.3)
+                              : secondaryAccent.withOpacity(0.2))
                           : Colors.grey.withOpacity(0.1),
                       blurRadius: isSelected ? 8 : 4,
                       offset: const Offset(0, 2),
@@ -1815,14 +1844,16 @@ class _DashboardViewState extends State<DashboardView> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: isSelected 
-                        ? (isDarkMode ? Colors.white.withOpacity(0.2) : primaryAccent.withOpacity(0.15))
+                    color: isSelected
+                        ? (isDarkMode
+                            ? Colors.white.withOpacity(0.2)
+                            : primaryAccent.withOpacity(0.15))
                         : (isDarkMode ? Colors.grey[700] : borderColor),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     isTag ? Icons.label_outline : Icons.description_outlined,
-                    color: isSelected 
+                    color: isSelected
                         ? (isDarkMode ? Colors.white : primaryAccent)
                         : subtitleColor,
                     size: 20,
@@ -1831,7 +1862,7 @@ class _DashboardViewState extends State<DashboardView> {
                 title: Text(
                   displayName,
                   style: TextStyle(
-                    color: isSelected 
+                    color: isSelected
                         ? (isDarkMode ? Colors.white : primaryAccent)
                         : textColor,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
@@ -1882,13 +1913,15 @@ class _DashboardViewState extends State<DashboardView> {
           decoration: BoxDecoration(
             color: surfaceColor,
             border: Border(bottom: BorderSide(color: borderColor, width: 1)),
-            boxShadow: !isDarkMode ? [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ] : null,
+            boxShadow: !isDarkMode
+                ? [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2229,7 +2262,9 @@ class _DashboardViewState extends State<DashboardView> {
     List<StatusNode> roots = parseStatusTree(dashboardController.statusJson);
     Widget statusNodeWidget(StatusNode node, {double indent = 0}) {
       bool active = currentDocStatus == node.value;
-      Color nodeColor = active ? Colors.blueAccent : (isDarkMode ? Colors.grey[600]! : Colors.grey[500]!);
+      Color nodeColor = active
+          ? Colors.blueAccent
+          : (isDarkMode ? Colors.grey[600]! : Colors.grey[500]!);
       FontWeight nodeFontWeight = active ? FontWeight.bold : FontWeight.normal;
 
       return Padding(
@@ -2246,7 +2281,9 @@ class _DashboardViewState extends State<DashboardView> {
                   decoration: BoxDecoration(
                     color: nodeColor,
                     shape: BoxShape.circle,
-                    border: Border.all(color: isDarkMode ? Colors.white : Colors.grey[700]!, width: 2),
+                    border: Border.all(
+                        color: isDarkMode ? Colors.white : Colors.grey[700]!,
+                        width: 2),
                   ),
                 ),
                 Text(
@@ -2274,9 +2311,7 @@ class _DashboardViewState extends State<DashboardView> {
           child: Text(
             "Document Status",
             style: TextStyle(
-                fontSize: 20, 
-                color: textColor, 
-                fontWeight: FontWeight.bold),
+                fontSize: 20, color: textColor, fontWeight: FontWeight.bold),
           ),
         ),
         ...roots.map((node) => statusNodeWidget(node)).toList(),
@@ -2307,28 +2342,36 @@ class _DashboardViewState extends State<DashboardView> {
                 decoration: BoxDecoration(
                   color: isSelected ? primaryAccent : cardColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: !isSelected && !isDarkMode 
+                  border: !isSelected && !isDarkMode
                       ? Border.all(color: borderColor, width: 1)
                       : null,
-                  boxShadow: isSelected ? [
-                    BoxShadow(
-                      color: primaryAccent.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ] : null,
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: primaryAccent.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
                 ),
                 margin: const EdgeInsets.symmetric(horizontal: 10),
-                width: (isSidebarCollapsed ? 75.0 : (MediaQuery.of(context).size.width > 1200 ? 160.0 : 140.0)) - 20,
+                width: (isSidebarCollapsed
+                        ? 75.0
+                        : (MediaQuery.of(context).size.width > 1200
+                            ? 160.0
+                            : 140.0)) -
+                    20,
                 height: 50,
                 alignment: Alignment.center,
                 padding: EdgeInsets.symmetric(
-                  horizontal: isSidebarCollapsed ? 4 : 12
-                ),
+                    horizontal: isSidebarCollapsed ? 4 : 12),
                 child: Text(
-                  isSidebarCollapsed 
+                  isSidebarCollapsed
                       ? channels[index]["channelname"].length >= 2
-                          ? channels[index]["channelname"].substring(0, 2).toUpperCase()
+                          ? channels[index]["channelname"]
+                              .substring(0, 2)
+                              .toUpperCase()
                           : channels[index]["channelname"].toUpperCase()
                       : channels[index]["channelname"],
                   style: TextStyle(
@@ -2393,7 +2436,7 @@ class _DashboardViewState extends State<DashboardView> {
         children: [
           LayoutBuilder(
             builder: (context, constraints) {
-                return _buildMainLayout(hasChannels, constraints);
+              return _buildMainLayout(hasChannels, constraints);
             },
           ),
           // Floating Theme Toggle Button
@@ -2406,15 +2449,15 @@ class _DashboardViewState extends State<DashboardView> {
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
-                    color: isDarkMode 
+                    color: isDarkMode
                         ? Colors.black.withOpacity(0.3)
                         : Colors.grey.withOpacity(0.2),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
                 ],
-                border: isDarkMode 
-                    ? null 
+                border: isDarkMode
+                    ? null
                     : Border.all(color: const Color(0xFFE2E8F0), width: 1),
               ),
               child: Material(
@@ -2427,16 +2470,21 @@ class _DashboardViewState extends State<DashboardView> {
                     });
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 12),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 200),
                           child: Icon(
-                            isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                            isDarkMode
+                                ? Icons.light_mode_rounded
+                                : Icons.dark_mode_rounded,
                             key: ValueKey(isDarkMode),
-                            color: isDarkMode ? Colors.amber[400] : const Color(0xFF4A5568),
+                            color: isDarkMode
+                                ? Colors.amber[400]
+                                : const Color(0xFF4A5568),
                             size: 22,
                           ),
                         ),
@@ -2444,7 +2492,9 @@ class _DashboardViewState extends State<DashboardView> {
                         Text(
                           isDarkMode ? 'Light' : 'Dark',
                           style: TextStyle(
-                            color: isDarkMode ? Colors.white : const Color(0xFF2D3748),
+                            color: isDarkMode
+                                ? Colors.white
+                                : const Color(0xFF2D3748),
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
@@ -2461,13 +2511,12 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-
-  Widget _buildMainLayout(
-      bool hasChannels, BoxConstraints constraints) {
+  Widget _buildMainLayout(bool hasChannels, BoxConstraints constraints) {
     // Dynamic sidebar width based on screen size and collapse state
     final normalSidebarWidth = constraints.maxWidth > 1200 ? 160.0 : 140.0;
     final collapsedSidebarWidth = 75.0; // Width when collapsed
-    final sidebarWidth = isSidebarCollapsed ? collapsedSidebarWidth : normalSidebarWidth;
+    final sidebarWidth =
+        isSidebarCollapsed ? collapsedSidebarWidth : normalSidebarWidth;
     final docsWidth = constraints.maxWidth > 1200 ? 250.0 : 200.0;
     // No need for channelSize since we're always showing full names
 
@@ -2483,7 +2532,8 @@ class _DashboardViewState extends State<DashboardView> {
                 children: [
                   // Logo and Toggle Button Row
                   Padding(
-                    padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 8.0),
+                    padding:
+                        const EdgeInsets.only(left: 8.0, right: 8.0, top: 8.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -2510,7 +2560,9 @@ class _DashboardViewState extends State<DashboardView> {
                             color: textColor,
                             size: 20,
                           ),
-                          tooltip: isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar',
+                          tooltip: isSidebarCollapsed
+                              ? 'Expand Sidebar'
+                              : 'Collapse Sidebar',
                         ),
                       ],
                     ),
@@ -2524,37 +2576,43 @@ class _DashboardViewState extends State<DashboardView> {
                               // Separate channels by actorsequence
                               final channelsSeq0 = <int>[];
                               final channelsSeq1 = <int>[];
-                              
+
                               for (int i = 0; i < channels.length; i++) {
-                                final actorSequence = channels[i]["actorsequence"];
-                                if (actorSequence == 0 || actorSequence == "0") {
+                                final actorSequence =
+                                    channels[i]["actorsequence"];
+                                if (actorSequence == 0 ||
+                                    actorSequence == "0") {
                                   channelsSeq0.add(i);
-                                } else if (actorSequence == 1 || actorSequence == "1") {
+                                } else if (actorSequence == 1 ||
+                                    actorSequence == "1") {
                                   channelsSeq1.add(i);
                                 }
                               }
-                              
+
                               return ListView(
                                 children: [
                                   // Heading for actorsequence 0 (Sent Items)
                                   if (channelsSeq0.isNotEmpty)
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 8),
                                       child: Text(
                                         "Sent Items",
                                         style: TextStyle(
                                           color: subtitleColor,
-                                          fontSize: isSidebarCollapsed ? 10 : 12,
+                                          fontSize:
+                                              isSidebarCollapsed ? 10 : 12,
                                           fontWeight: FontWeight.w600,
                                           letterSpacing: 0.5,
                                         ),
                                         textAlign: TextAlign.left,
                                       ),
                                     ),
-                                  
+
                                   // Channels with actorsequence 0
-                                  ...channelsSeq0.map((index) => _buildChannelItem(index)),
-                                  
+                                  ...channelsSeq0
+                                      .map((index) => _buildChannelItem(index)),
+
                                   // Separator (only show if both groups have channels)
                                   // if (channelsSeq0.isNotEmpty && channelsSeq1.isNotEmpty)
                                   //   Padding(
@@ -2564,25 +2622,28 @@ class _DashboardViewState extends State<DashboardView> {
                                   //       color: borderColor,
                                   //     ),
                                   //   ),
-                                  
+
                                   // Heading for actorsequence 1 (Inboxes)
                                   if (channelsSeq1.isNotEmpty)
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 8),
                                       child: Text(
                                         "Inboxes",
                                         style: TextStyle(
                                           color: subtitleColor,
-                                          fontSize: isSidebarCollapsed ? 10 : 12,
+                                          fontSize:
+                                              isSidebarCollapsed ? 10 : 12,
                                           fontWeight: FontWeight.w600,
                                           letterSpacing: 0.5,
                                         ),
                                         textAlign: TextAlign.left,
                                       ),
                                     ),
-                                  
+
                                   // Channels with actorsequence 1
-                                  ...channelsSeq1.map((index) => _buildChannelItem(index)),
+                                  ...channelsSeq1
+                                      .map((index) => _buildChannelItem(index)),
                                 ],
                               );
                             },
@@ -2590,7 +2651,8 @@ class _DashboardViewState extends State<DashboardView> {
                         : Center(
                             child: Text(
                               "No Channels",
-                              style: TextStyle(color: subtitleColor, fontSize: 12),
+                              style:
+                                  TextStyle(color: subtitleColor, fontSize: 12),
                             ),
                           ),
                   ),
@@ -2606,23 +2668,25 @@ class _DashboardViewState extends State<DashboardView> {
                         ),
                         width: sidebarWidth - 20,
                         height: 50,
-                        child: isSidebarCollapsed 
-                          ? const Icon(Icons.add, color: Colors.white, size: 20)
-                          : const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.add, color: Colors.white, size: 20),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Add Channel',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
+                        child: isSidebarCollapsed
+                            ? const Icon(Icons.add,
+                                color: Colors.white, size: 20)
+                            : const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add,
+                                      color: Colors.white, size: 20),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Add Channel',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
+                                ],
+                              ),
                       ),
                     ),
                   ),
@@ -2655,11 +2719,10 @@ class _DashboardViewState extends State<DashboardView> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        icon: const Icon(Icons.edit, color: Colors.white),
+                        icon: const Icon(Icons.add, color: Colors.white),
                         label: const Text(
                           'Document',
-                          style: TextStyle(
-                              fontSize: 16, color: Colors.white),
+                          style: TextStyle(fontSize: 16, color: Colors.white),
                         ),
                         onPressed: () {
                           // Show compose dialog instead of toggling mode
@@ -2690,26 +2753,25 @@ class _DashboardViewState extends State<DashboardView> {
                             ),
                           )
                         : ((selectedChannelIndex != null &&
+                                    channels[selectedChannelIndex!]
+                                            ["actorsequence"] ==
+                                        "1"
+                                ? isDocsLoading
+                                : isjoinedTagsLoading))
+                            ? const Center(child: CircularProgressIndicator())
+                            : ((selectedChannelIndex != null &&
                                         channels[selectedChannelIndex!]
                                                 ["actorsequence"] ==
                                             "1"
-                                    ? isDocsLoading
-                                    : isjoinedTagsLoading))
-                                ? const Center(
-                                    child: CircularProgressIndicator())
-                                : ((selectedChannelIndex != null &&
-                                            channels[selectedChannelIndex!]
-                                                    ["actorsequence"] ==
-                                                "1"
-                                        ? (selectedDocIndex == null)
-                                        : (selectedjoinedTagIndex == null)))
-                                    ? Center(
-                                        child: Text(
-                                          "Please select a doc",
-                                          style: TextStyle(color: textColor),
-                                        ),
-                                      )
-                                    : buildChatColumn(),
+                                    ? (selectedDocIndex == null)
+                                    : (selectedjoinedTagIndex == null)))
+                                ? Center(
+                                    child: Text(
+                                      "Please select a doc",
+                                      style: TextStyle(color: textColor),
+                                    ),
+                                  )
+                                : buildChatColumn(),
                   ),
                   // Top-Right Button (Menu button for right sidebar)
                   if (selectedChannelIndex != null &&
@@ -2798,13 +2860,13 @@ class _DashboardViewState extends State<DashboardView> {
   void dispose() {
     // Cancel the channels stream subscription
     _channelsSubscription?.cancel();
-    
+
     // Dispose other controllers and resources
     messageController.dispose();
     _urlController.dispose();
     _htmlController.dispose();
     _channelNameController.dispose();
-    
+
     super.dispose();
   }
 }
