@@ -78,4 +78,6 @@ msix_config:
   certificate_path: certs/xdoc_test_cert.pfx
   certificate_password: P@ssw0rd
   install_certificate: false
+  capabilities: 'internetClient,privateNetworkClientServer,removableStorage'
+  file_extension: '.xdoc'
 
