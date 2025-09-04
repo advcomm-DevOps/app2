@@ -896,6 +896,18 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   Future<void> uploadFile() async {
+    // Check if we have valid indices and data before proceeding
+    if (selectedChannelIndex == null || 
+        selectedDocIndex == null || 
+        selectedDocIndex! < 0 || 
+        selectedDocIndex! >= docs.length ||
+        docs.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a valid document first')),
+      );
+      return;
+    }
+
     String token = await dashboardController.getJwt();
     try {
       // Pick a file
@@ -1031,8 +1043,15 @@ class _DashboardViewState extends State<DashboardView> {
                     callback: (args) {
                       String jsonString = args[0];
                       print('Received JSON string: $jsonString');
-                      updateEncryptedEvent(
-                          action, docs[selectedDocIndex!]["docid"], jsonString);
+                      // Add bounds checking before accessing docs array
+                      if (selectedDocIndex != null && 
+                          selectedDocIndex! >= 0 && 
+                          selectedDocIndex! < docs.length) {
+                        updateEncryptedEvent(
+                            action, docs[selectedDocIndex!]["docid"], jsonString);
+                      } else {
+                        print('Error: Invalid selectedDocIndex when handling form submit');
+                      }
                     },
                   );
                 } else {
@@ -1731,7 +1750,7 @@ class _DashboardViewState extends State<DashboardView> {
 
   Widget buildDocsListOrTagsList() {
     final isChannelOwner = selectedChannelIndex != null &&
-        channels[selectedChannelIndex!]["actorsequence"] == "1";
+        channels[selectedChannelIndex!]["actorsequence"] == 1;
 
     final bool isLoading = isChannelOwner ? isDocsLoading : isjoinedTagsLoading;
     final List<Map<String, dynamic>> tagsList =
@@ -1888,13 +1907,19 @@ class _DashboardViewState extends State<DashboardView> {
     String chatTitle = "Please select a document";
     if (selectedChannelIndex != null) {
       final isChannelOwner =
-          channels[selectedChannelIndex!]["actorsequence"] == "1";
-      if (isChannelOwner && selectedDocIndex != null && docs.isNotEmpty) {
+          channels[selectedChannelIndex!]["actorsequence"] == 1;
+      if (isChannelOwner && 
+          selectedDocIndex != null && 
+          docs.isNotEmpty && 
+          selectedDocIndex! >= 0 && 
+          selectedDocIndex! < docs.length) {
         chatTitle =
             "Document: ${docs[selectedDocIndex!]["docname"] ?? "Unknown"}";
       } else if (!isChannelOwner &&
           selectedjoinedTagIndex != null &&
-          joinedTags.isNotEmpty) {
+          joinedTags.isNotEmpty &&
+          selectedjoinedTagIndex! >= 0 &&
+          selectedjoinedTagIndex! < joinedTags.length) {
         // item["tagName"] ?? "Tag ${item["tagId"]}
         chatTitle =
             "Job: ${joinedTags[selectedjoinedTagIndex!]["tagName"] ?? "Unknown"}";
@@ -1980,15 +2005,22 @@ class _DashboardViewState extends State<DashboardView> {
                                           String jsonString = args[0];
                                           print(
                                               'Received JSON string: $jsonString');
-                                          createEncryptedDocument(
-                                            joinedTags[selectedjoinedTagIndex!]
-                                                ["oldEntityId"],
-                                            joinedTags[selectedjoinedTagIndex!]
-                                                ["oldChannelName"],
-                                            joinedTags[selectedjoinedTagIndex!]
-                                                ["tagId"],
-                                            jsonString,
-                                          );
+                                          // Add bounds checking before accessing joinedTags array
+                                          if (selectedjoinedTagIndex != null && 
+                                              selectedjoinedTagIndex! >= 0 && 
+                                              selectedjoinedTagIndex! < joinedTags.length) {
+                                            createEncryptedDocument(
+                                              joinedTags[selectedjoinedTagIndex!]
+                                                  ["oldEntityId"],
+                                              joinedTags[selectedjoinedTagIndex!]
+                                                  ["oldChannelName"],
+                                              joinedTags[selectedjoinedTagIndex!]
+                                                  ["tagId"],
+                                              jsonString,
+                                            );
+                                          } else {
+                                            print('Error: Invalid selectedjoinedTagIndex when handling form submit');
+                                          }
                                         },
                                       );
                                     } else {
@@ -2580,11 +2612,9 @@ class _DashboardViewState extends State<DashboardView> {
                               for (int i = 0; i < channels.length; i++) {
                                 final actorSequence =
                                     channels[i]["actorsequence"];
-                                if (actorSequence == 0 ||
-                                    actorSequence == "0") {
+                                if (actorSequence == 0) {
                                   channelsSeq0.add(i);
-                                } else if (actorSequence == 1 ||
-                                    actorSequence == "1") {
+                                } else if (actorSequence == 1) {
                                   channelsSeq1.add(i);
                                 }
                               }
@@ -2775,7 +2805,7 @@ class _DashboardViewState extends State<DashboardView> {
                   ),
                   // Top-Right Button (Menu button for right sidebar)
                   if (selectedChannelIndex != null &&
-                      (channels[selectedChannelIndex!]["actorsequence"] == "1"
+                      (channels[selectedChannelIndex!]["actorsequence"] == 1
                           ? selectedDocIndex != null
                           : selectedjoinedTagIndex != null))
                     Positioned(
