@@ -897,9 +897,9 @@ class _DashboardViewState extends State<DashboardView> {
 
   Future<void> uploadFile() async {
     // Check if we have valid indices and data before proceeding
-    if (selectedChannelIndex == null || 
-        selectedDocIndex == null || 
-        selectedDocIndex! < 0 || 
+    if (selectedChannelIndex == null ||
+        selectedDocIndex == null ||
+        selectedDocIndex! < 0 ||
         selectedDocIndex! >= docs.length ||
         docs.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1044,13 +1044,14 @@ class _DashboardViewState extends State<DashboardView> {
                       String jsonString = args[0];
                       print('Received JSON string: $jsonString');
                       // Add bounds checking before accessing docs array
-                      if (selectedDocIndex != null && 
-                          selectedDocIndex! >= 0 && 
+                      if (selectedDocIndex != null &&
+                          selectedDocIndex! >= 0 &&
                           selectedDocIndex! < docs.length) {
-                        updateEncryptedEvent(
-                            action, docs[selectedDocIndex!]["docid"], jsonString);
+                        updateEncryptedEvent(action,
+                            docs[selectedDocIndex!]["docid"], jsonString);
                       } else {
-                        print('Error: Invalid selectedDocIndex when handling form submit');
+                        print(
+                            'Error: Invalid selectedDocIndex when handling form submit');
                       }
                     },
                   );
@@ -1783,7 +1784,6 @@ class _DashboardViewState extends State<DashboardView> {
         ),
       );
     }
-
     return Expanded(
       child: ListView.builder(
         itemCount: combinedList.length,
@@ -1792,34 +1792,39 @@ class _DashboardViewState extends State<DashboardView> {
           final item = combinedList[index];
           final isTag = item["type"] == "tag";
 
-          // Keep correct selection index logic as original
-          final isSelected = isTag
-              ? (isChannelOwner ? false : selectedjoinedTagIndex == index)
-              : (isChannelOwner
-                  ? selectedDocIndex == (index - tagsList.length)
-                  : false);
+          // Compute correct relative index for docs
+          final docRelativeIndex = index - tagsList.length;
 
-          // Display name logic preserved
+          // Selection logic
+          final isSelected = isTag
+              ? selectedTagIndex == index // use real tag index
+              : selectedDocIndex == docRelativeIndex; // relative doc index
+
+          // Display name
           final displayName = isTag
               ? item["tagName"] ?? "Tag ${item["tagId"]}"
-              : (item["docname"] ?? "Doc ${index - tagsList.length}");
+              : item["docname"] ?? "Doc $docRelativeIndex";
 
           return GestureDetector(
             onTap: () {
               if (isTag) {
+                setState(() {
+                  selectedTagIndex = index;
+                  selectedDocIndex = -1; // reset doc selection
+                });
                 getContextAndPublicKey(
                   item["oldEntityId"],
                   item["oldChannelName"],
                   item["tagId"],
-                  false, // because it's a tag
+                  false,
                   index,
                 );
               } else {
-                getDocumentDetails(
-                    item["docid"],
-                    index -
-                        joinedTags
-                            .length); // or item["docname"] if you need that
+                setState(() {
+                  selectedDocIndex = docRelativeIndex;
+                  selectedTagIndex = -1; // reset tag selection
+                });
+                getDocumentDetails(item["docid"], docRelativeIndex);
               }
             },
             child: Container(
@@ -1834,7 +1839,8 @@ class _DashboardViewState extends State<DashboardView> {
                 border: !isDarkMode
                     ? Border.all(
                         color: isSelected ? secondaryAccent : borderColor,
-                        width: isSelected ? 2 : 1)
+                        width: isSelected ? 2 : 1,
+                      )
                     : null,
                 boxShadow: [
                   if (isSelected || !isDarkMode)
@@ -1852,14 +1858,6 @@ class _DashboardViewState extends State<DashboardView> {
               child: ListTile(
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                // leading: CircleAvatar(
-                //   backgroundColor: Colors.blueAccent,
-                //   child: Text(
-                //     displayName[0].toUpperCase(),
-                //     style: const TextStyle(
-                //         color: Colors.white, fontWeight: FontWeight.bold),
-                //   ),
-                // ),
                 leading: Container(
                   width: 40,
                   height: 40,
@@ -1909,10 +1907,10 @@ class _DashboardViewState extends State<DashboardView> {
     if (selectedChannelIndex != null) {
       final isChannelOwner =
           channels[selectedChannelIndex!]["actorsequence"] == 1;
-      if (isChannelOwner && 
-          selectedDocIndex != null && 
-          docs.isNotEmpty && 
-          selectedDocIndex! >= 0 && 
+      if (isChannelOwner &&
+          selectedDocIndex != null &&
+          docs.isNotEmpty &&
+          selectedDocIndex! >= 0 &&
           selectedDocIndex! < docs.length) {
         chatTitle =
             "Document: ${docs[selectedDocIndex!]["docname"] ?? "Unknown"}";
@@ -2007,20 +2005,25 @@ class _DashboardViewState extends State<DashboardView> {
                                           print(
                                               'Received JSON string: $jsonString');
                                           // Add bounds checking before accessing joinedTags array
-                                          if (selectedjoinedTagIndex != null && 
-                                              selectedjoinedTagIndex! >= 0 && 
-                                              selectedjoinedTagIndex! < joinedTags.length) {
+                                          if (selectedjoinedTagIndex != null &&
+                                              selectedjoinedTagIndex! >= 0 &&
+                                              selectedjoinedTagIndex! <
+                                                  joinedTags.length) {
                                             createEncryptedDocument(
-                                              joinedTags[selectedjoinedTagIndex!]
+                                              joinedTags[
+                                                      selectedjoinedTagIndex!]
                                                   ["oldEntityId"],
-                                              joinedTags[selectedjoinedTagIndex!]
+                                              joinedTags[
+                                                      selectedjoinedTagIndex!]
                                                   ["oldChannelName"],
-                                              joinedTags[selectedjoinedTagIndex!]
+                                              joinedTags[
+                                                      selectedjoinedTagIndex!]
                                                   ["tagId"],
                                               jsonString,
                                             );
                                           } else {
-                                            print('Error: Invalid selectedjoinedTagIndex when handling form submit');
+                                            print(
+                                                'Error: Invalid selectedjoinedTagIndex when handling form submit');
                                           }
                                         },
                                       );
