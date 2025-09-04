@@ -1643,6 +1643,7 @@ class _DashboardViewState extends State<DashboardView> {
 
   void getContextAndPublicKey(
       oldEntityId, oldChannelName, tagId, isChannelOwner, index) async {
+    print('Fetching tags detail for tagId: $tagId');
     if (isChannelOwner) {
       setState(() {
         currentChatMessages = [];
@@ -1653,7 +1654,7 @@ class _DashboardViewState extends State<DashboardView> {
       final contextData = await dashboardController.getContextAndPublicKey(
           oldEntityId, oldChannelName, tagId);
 
-      print("Context Data: $contextData");
+      // print("Context Data: $contextData");
       if (contextData != null) {
         if (contextData["contextform"] != null) {
           setState(() {
@@ -2785,14 +2786,14 @@ class _DashboardViewState extends State<DashboardView> {
                         : ((selectedChannelIndex != null &&
                                     channels[selectedChannelIndex!]
                                             ["actorsequence"] ==
-                                        "1"
+                                        1
                                 ? isDocsLoading
                                 : isjoinedTagsLoading))
                             ? const Center(child: CircularProgressIndicator())
                             : ((selectedChannelIndex != null &&
                                         channels[selectedChannelIndex!]
                                                 ["actorsequence"] ==
-                                            "1"
+                                            1
                                     ? (selectedDocIndex == null)
                                     : (selectedjoinedTagIndex == null)))
                                 ? Center(
