@@ -73,7 +73,6 @@ class _DashboardViewState extends State<DashboardView> {
   final TextEditingController _entityController = TextEditingController();
   final TextEditingController _composeChannelController =
       TextEditingController();
-  final TextEditingController _tagIdController = TextEditingController();
 
   String htmlForm = getResumeForm();
   String htmlResume = "";
@@ -342,7 +341,6 @@ class _DashboardViewState extends State<DashboardView> {
       channelName: formData['channel']!,
       tagId: formData['tagId']!,
     );
-
     if (details != null && details["channelDetails"] != null) {
       newSecQr = details["channelDetails"]["newChannelName"];
       tagname = details["channelDetails"]["tagName"];
@@ -1331,10 +1329,12 @@ class _DashboardViewState extends State<DashboardView> {
 
   void _showComposeDialog(BuildContext context) {
     // Persistent dialog state
-    List<dynamic> pubChannels = [];
-    bool isSearching = false;
-    bool hasSearched = false;
-    int? selectedChannelIndexLocal;
+  List<dynamic> pubChannels = [];
+  bool isSearching = false;
+  bool hasSearched = false;
+  int? selectedChannelIndexLocal;
+  List<dynamic> pubTags = [];
+  int? selectedTagIndexLocal;
 
     showDialog(
       context: context,
@@ -1349,12 +1349,13 @@ class _DashboardViewState extends State<DashboardView> {
                 );
                 return;
               }
-              // Use selectedActorId if available, else 0
-              // final int actorId = int.tryParse(selectedActorId ?? '0') ?? 0;
               final int actorId = channels[selectedChannelIndex!]["initialactorid"];
               setState(() {
                 isSearching = true;
                 hasSearched = false;
+                pubTags = [];
+                selectedTagIndexLocal = null;
+                selectedChannelIndexLocal = null;
               });
               try {
                 final result = await dashboardController.getPubChannels(entity, actorId);
@@ -1370,6 +1371,26 @@ class _DashboardViewState extends State<DashboardView> {
                 });
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Error fetching channels: $e')),
+                );
+              }
+            }
+
+            Future<void> fetchChannelTags(int channelIdx) async {
+              setState(() {
+                pubTags = [];
+                selectedTagIndexLocal = null;
+              });
+              final channel = pubChannels[channelIdx];
+              final channelName = channel['channelname'] ?? channel.toString();
+              final entity = _entityController.text.trim();
+              try {
+                final tags = await dashboardController.getPubChannelTags(entity, channelName);
+                setState(() {
+                  pubTags = tags;
+                });
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error fetching tags: $e')),
                 );
               }
             }
@@ -1469,8 +1490,15 @@ class _DashboardViewState extends State<DashboardView> {
                                         ),
                                         onSelected: (bool selected) {
                                           setState(() {
-                                            selectedChannelIndexLocal = selected ? idx : null;
-                                            _composeChannelController.text = channelName;
+                                            if (selected) {
+                                              selectedChannelIndexLocal = idx;
+                                              _composeChannelController.text = channelName;
+                                              fetchChannelTags(idx);
+                                            } else {
+                                              selectedChannelIndexLocal = null;
+                                              pubTags = [];
+                                              selectedTagIndexLocal = null;
+                                            }
                                           });
                                         },
                                       ),
@@ -1481,28 +1509,44 @@ class _DashboardViewState extends State<DashboardView> {
                               ],
                             ),
 
-                    // Tag ID field and Create button only after channel selected
+                    // Tag selection chips and Create button only after channel selected
                     if (hasSearched && pubChannels.isNotEmpty && selectedChannelIndexLocal != null) ...[
-                      TextField(
-                        controller: _tagIdController,
-                        decoration: InputDecoration(
-                          labelText: 'Tag ID *',
-                          labelStyle: const TextStyle(color: Colors.white70),
-                          hintText: 'Enter tag ID',
-                          hintStyle: const TextStyle(color: Colors.white54),
-                          filled: true,
-                          fillColor: Colors.grey[800],
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: Colors.grey),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: Colors.blue),
-                          ),
+                      const Text('Select Tag:', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      if (pubTags.isEmpty)
+                        const Text('No tags found for this channel', style: TextStyle(color: Colors.redAccent)),
+                      if (pubTags.isNotEmpty)
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: pubTags.asMap().entries.map((entry) {
+                            final idx = entry.key;
+                            final tag = entry.value;
+                            final tagName = tag['tag'] ?? tag['tagName'] ?? tag['tagid']?.toString() ?? 'Tag';
+                            final tagDescription = tag['tagdescription'] ?? tag['tagDescription'] ?? '';
+                            final isSelected = selectedTagIndexLocal == idx;
+                            return Tooltip(
+                              message: tagDescription.isNotEmpty ? tagDescription : tagName,
+                              child: ChoiceChip(
+                                label: Text(tagName, style: TextStyle(fontSize: 13, color: isSelected ? Colors.white : Colors.white70)),
+                                labelStyle: TextStyle(
+                                  color: isSelected ? Colors.white : Colors.white70,
+                                ),
+                                selected: isSelected,
+                                selectedColor: Colors.green,
+                                backgroundColor: Colors.grey[700],
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                onSelected: (bool selected) {
+                                  setState(() {
+                                    selectedTagIndexLocal = selected ? idx : null;
+                                  });
+                                },
+                              ),
+                            );
+                          }).toList(),
                         ),
-                        style: const TextStyle(color: Colors.white),
-                      ),
                       const SizedBox(height: 16),
                     ],
                   ],
@@ -1519,7 +1563,27 @@ class _DashboardViewState extends State<DashboardView> {
                     style: TextStyle(color: Colors.white70),
                   ),
                 ),
-                if (hasSearched && pubChannels.isNotEmpty && selectedChannelIndexLocal != null)
+                if (hasSearched)
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        // Reset all local state for a new search
+                        isSearching = false;
+                        hasSearched = false;
+                        pubChannels = [];
+                        selectedChannelIndexLocal = null;
+                        pubTags = [];
+                        selectedTagIndexLocal = null;
+                        _entityController.clear();
+                        _composeChannelController.clear();
+                      });
+                    },
+                    child: const Text(
+                      'Reset',
+                      style: TextStyle(color: Colors.orange),
+                    ),
+                  ),
+                if (hasSearched && pubChannels.isNotEmpty && selectedChannelIndexLocal != null && pubTags.isNotEmpty && selectedTagIndexLocal != null)
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
@@ -1532,26 +1596,29 @@ class _DashboardViewState extends State<DashboardView> {
                     onPressed: () {
                       if (_entityController.text.isEmpty ||
                           _composeChannelController.text.isEmpty ||
-                          _tagIdController.text.isEmpty) {
+                          selectedTagIndexLocal == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Please fill in all required fields.'),
+                            content: Text('Please select all required fields.'),
                           ),
                         );
                         return;
                       }
 
+                      final selectedTag = pubTags[selectedTagIndexLocal!];
+                      // Prefer 'tagid', fallback to 'tagId', fallback to string
+                      final tagId = selectedTag['tagid']?.toString() ?? selectedTag['tagId']?.toString() ?? '';
+
                       // Create the form data
                       Map<String, String> formData = {
                         'entity': _entityController.text.trim(),
                         'channel': _composeChannelController.text.trim(),
-                        'tagId': _tagIdController.text.trim(),
+                        'tagId': tagId,
                       };
 
                       // Clear the form
                       _entityController.clear();
                       _composeChannelController.clear();
-                      _tagIdController.clear();
 
                       // Close the dialog
                       Navigator.of(context).pop();
