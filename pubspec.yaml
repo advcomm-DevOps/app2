@@ -62,6 +62,7 @@ flutter:
     - assets/images/
     - lib/custom/lang/
     - lib/html/
+    - lib/bootstrap.bundle.min.js
 
 flutter_icons:
   android: true
