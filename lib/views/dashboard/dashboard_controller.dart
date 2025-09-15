@@ -341,6 +341,31 @@ class DashboardController {
     }
     return [];
   }
+  Future<List<dynamic>> getPubChannelTags(String entity, String channelName) async {
+    try {
+      final response = await dio.get(
+        '$apiUrl/pub/channel/$entity/$channelName/tags',
+        options: Options(
+          headers: {
+            "Accept": "application/json",
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        print("Channel tags fetched successfully: ${response.data}");
+        return response.data; // assuming API returns a JSON array
+      } else {
+        print("Failed to fetch channel tags. Status code: ${response.statusCode}");
+      }
+    } on DioException catch (e) {
+      print("Dio error fetching channel tags: ${e.message}");
+      print("Response: ${e.response?.data}");
+    } catch (e) {
+      print("Error fetching channel tags: $e");
+    }
+    return [];
+  }
 
   Future<void> loadData(String tableName) async {
     try {

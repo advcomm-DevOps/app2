@@ -1341,7 +1341,7 @@ class _DashboardViewState extends State<DashboardView> {
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
-            Future<void> searchChannels() async {
+            Future<void> searchPubChannels() async {
               final entity = _entityController.text.trim();
               if (entity.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -1380,7 +1380,7 @@ class _DashboardViewState extends State<DashboardView> {
                 borderRadius: BorderRadius.circular(16),
               ),
               title: Text(
-                'Create New Item',
+                'Create New Document',
                 style: TextStyle(
                   color: textColor,
                   fontWeight: FontWeight.bold,
@@ -1392,46 +1392,47 @@ class _DashboardViewState extends State<DashboardView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Entity field with search button
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _entityController,
-                            decoration: InputDecoration(
-                              labelText: 'Entity *',
-                              labelStyle: const TextStyle(color: Colors.white70),
-                              hintText: 'Enter entity name',
-                              hintStyle: const TextStyle(color: Colors.white54),
-                              filled: true,
-                              fillColor: Colors.grey[800],
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: Colors.grey),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: Colors.blue),
-                              ),
-                            ),
-                            style: const TextStyle(color: Colors.white),
-                            enabled: !isSearching && !hasSearched,
+                    SizedBox(
+                      width: 400,
+                      child: TextField(
+                        controller: _entityController,
+                        decoration: InputDecoration(
+                          labelText: 'Entity *',
+                          labelStyle: const TextStyle(color: Colors.white70),
+                          hintText: 'Enter entity name',
+                          hintStyle: const TextStyle(color: Colors.white54),
+                          filled: true,
+                          fillColor: Colors.grey[800],
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Colors.grey),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Colors.blue),
                           ),
-                          onPressed: isSearching || hasSearched ? null : searchChannels,
-                          child: isSearching
-                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                              : const Icon(Icons.search, color: Colors.white),
+                          suffixIcon: isSearching
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12.0),
+                                  child: SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  ),
+                                )
+                              : IconButton(
+                                  icon: const Icon(Icons.search, color: Colors.white),
+                                  onPressed: (isSearching || hasSearched)
+                                      ? null
+                                      : searchPubChannels,
+                                ),
                         ),
-                      ],
+                        style: const TextStyle(color: Colors.white),
+                        enabled: !isSearching && !hasSearched,
+                        onSubmitted: (_) {
+                          if (!isSearching && !hasSearched) searchPubChannels();
+                        },
+                      ),
                     ),
                     const SizedBox(height: 16),
 
