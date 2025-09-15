@@ -313,7 +313,35 @@ class DashboardController {
     }
     return publicInterconnects;
   }
-  
+  Future<List<dynamic>> getPubChannels(String entity, int actorId) async {
+    try {
+      final response = await dio.get(
+        '$apiUrl/pub/channels/$entity',
+        queryParameters: {
+          "ActorID": actorId,
+        },
+        options: Options(
+          headers: {
+            "Accept": "application/json",
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        print("Channels fetched successfully: ${response.data}");
+        return response.data; // assuming API returns a JSON array
+      } else {
+        print("Failed to fetch channels. Status code: ${response.statusCode}");
+      }
+    } on DioException catch (e) {
+      print("Dio error fetching channels: ${e.message}");
+      print("Response: ${e.response?.data}");
+    } catch (e) {
+      print("Error fetching channels: $e");
+    }
+    return [];
+  }
+
   Future<void> loadData(String tableName) async {
     try {
       String token = await getJwt(); 

@@ -1330,11 +1330,50 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   void _showComposeDialog(BuildContext context) {
+    // Persistent dialog state
+    List<dynamic> pubChannels = [];
+    bool isSearching = false;
+    bool hasSearched = false;
+    int? selectedChannelIndexLocal;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
+            Future<void> searchChannels() async {
+              final entity = _entityController.text.trim();
+              if (entity.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please enter an entity name.')),
+                );
+                return;
+              }
+              // Use selectedActorId if available, else 0
+              // final int actorId = int.tryParse(selectedActorId ?? '0') ?? 0;
+              final int actorId = channels[selectedChannelIndex!]["initialactorid"];
+              setState(() {
+                isSearching = true;
+                hasSearched = false;
+              });
+              try {
+                final result = await dashboardController.getPubChannels(entity, actorId);
+                setState(() {
+                  pubChannels = result;
+                  isSearching = false;
+                  hasSearched = true;
+                });
+              } catch (e) {
+                setState(() {
+                  isSearching = false;
+                  hasSearched = true;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error fetching channels: $e')),
+                );
+              }
+            }
+
             return AlertDialog(
               backgroundColor: surfaceColor,
               shape: RoundedRectangleBorder(
@@ -1352,73 +1391,119 @@ class _DashboardViewState extends State<DashboardView> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Entity field
-                    TextField(
-                      controller: _entityController,
-                      decoration: InputDecoration(
-                        labelText: 'Entity *',
-                        labelStyle: const TextStyle(color: Colors.white70),
-                        hintText: 'Enter entity name',
-                        hintStyle: const TextStyle(color: Colors.white54),
-                        filled: true,
-                        fillColor: Colors.grey[800],
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.grey),
+                    // Entity field with search button
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _entityController,
+                            decoration: InputDecoration(
+                              labelText: 'Entity *',
+                              labelStyle: const TextStyle(color: Colors.white70),
+                              hintText: 'Enter entity name',
+                              hintStyle: const TextStyle(color: Colors.white54),
+                              filled: true,
+                              fillColor: Colors.grey[800],
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(color: Colors.grey),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(color: Colors.blue),
+                              ),
+                            ),
+                            style: const TextStyle(color: Colors.white),
+                            enabled: !isSearching && !hasSearched,
+                          ),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.blue),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: isSearching || hasSearched ? null : searchChannels,
+                          child: isSearching
+                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Icon(Icons.search, color: Colors.white),
                         ),
-                      ),
-                      style: const TextStyle(color: Colors.white),
+                      ],
                     ),
                     const SizedBox(height: 16),
 
-                    // Channel field
-                    TextField(
-                      controller: _composeChannelController,
-                      decoration: InputDecoration(
-                        labelText: 'Channel *',
-                        labelStyle: const TextStyle(color: Colors.white70),
-                        hintText: 'Enter channel name',
-                        hintStyle: const TextStyle(color: Colors.white54),
-                        filled: true,
-                        fillColor: Colors.grey[800],
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.grey),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.blue),
-                        ),
-                      ),
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    const SizedBox(height: 16),
+                    // After search, show channels or no match
+                    if (hasSearched)
+                      pubChannels.isEmpty
+                          ? const Text('No matching channel found', style: TextStyle(color: Colors.redAccent))
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Select Channel:', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 12),
+                                Wrap(
+                                  spacing: 10,
+                                  runSpacing: 10,
+                                  children: pubChannels.asMap().entries.map((entry) {
+                                    final idx = entry.key;
+                                    final channel = entry.value;
+                                    final channelName = channel['channelname'] ?? channel.toString();
+                                    final isSelected = selectedChannelIndexLocal == idx;
+                                    final description = channel['channeldescription'] ?? '';
+                                    return Tooltip(
+                                      message: description.isNotEmpty ? description : channelName,
+                                      child: ChoiceChip(
+                                        label: Text(channelName, style: TextStyle(fontSize: 13, color: isSelected ? Colors.white : Colors.white70)),
+                                        labelStyle: TextStyle(
+                                          color: isSelected ? Colors.white : Colors.white70,
+                                        ),
+                                        selected: isSelected,
+                                        selectedColor: Colors.blueAccent,
+                                        backgroundColor: Colors.grey[700],
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        onSelected: (bool selected) {
+                                          setState(() {
+                                            selectedChannelIndexLocal = selected ? idx : null;
+                                            _composeChannelController.text = channelName;
+                                          });
+                                        },
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                            ),
 
-                    // Tag ID field
-                    TextField(
-                      controller: _tagIdController,
-                      decoration: InputDecoration(
-                        labelText: 'Tag ID *',
-                        labelStyle: const TextStyle(color: Colors.white70),
-                        hintText: 'Enter tag ID',
-                        hintStyle: const TextStyle(color: Colors.white54),
-                        filled: true,
-                        fillColor: Colors.grey[800],
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.grey),
+                    // Tag ID field and Create button only after channel selected
+                    if (hasSearched && pubChannels.isNotEmpty && selectedChannelIndexLocal != null) ...[
+                      TextField(
+                        controller: _tagIdController,
+                        decoration: InputDecoration(
+                          labelText: 'Tag ID *',
+                          labelStyle: const TextStyle(color: Colors.white70),
+                          hintText: 'Enter tag ID',
+                          hintStyle: const TextStyle(color: Colors.white54),
+                          filled: true,
+                          fillColor: Colors.grey[800],
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Colors.grey),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Colors.blue),
+                          ),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Colors.blue),
-                        ),
+                        style: const TextStyle(color: Colors.white),
                       ),
-                      style: const TextStyle(color: Colors.white),
-                    ),
+                      const SizedBox(height: 16),
+                    ],
                   ],
                 ),
               ),
@@ -1433,50 +1518,51 @@ class _DashboardViewState extends State<DashboardView> {
                     style: TextStyle(color: Colors.white70),
                   ),
                 ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                if (hasSearched && pubChannels.isNotEmpty && selectedChannelIndexLocal != null)
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 12),
+                    onPressed: () {
+                      if (_entityController.text.isEmpty ||
+                          _composeChannelController.text.isEmpty ||
+                          _tagIdController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please fill in all required fields.'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      // Create the form data
+                      Map<String, String> formData = {
+                        'entity': _entityController.text.trim(),
+                        'channel': _composeChannelController.text.trim(),
+                        'tagId': _tagIdController.text.trim(),
+                      };
+
+                      // Clear the form
+                      _entityController.clear();
+                      _composeChannelController.clear();
+                      _tagIdController.clear();
+
+                      // Close the dialog
+                      Navigator.of(context).pop();
+
+                      // Call the new function with form data
+                      createTemporaryDocument(formData);
+                    },
+                    child: const Text(
+                      'Create',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
-                  onPressed: () {
-                    if (_entityController.text.isEmpty ||
-                        _composeChannelController.text.isEmpty ||
-                        _tagIdController.text.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please fill in all required fields.'),
-                        ),
-                      );
-                      return;
-                    }
-
-                    // Create the form data
-                    Map<String, String> formData = {
-                      'entity': _entityController.text.trim(),
-                      'channel': _composeChannelController.text.trim(),
-                      'tagId': _tagIdController.text.trim(),
-                    };
-
-                    // Clear the form
-                    _entityController.clear();
-                    _composeChannelController.clear();
-                    _tagIdController.clear();
-
-                    // Close the dialog
-                    Navigator.of(context).pop();
-
-                    // Call the new function with form data
-                    createTemporaryDocument(formData);
-                  },
-                  child: const Text(
-                    'Create',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
               ],
             );
           },
