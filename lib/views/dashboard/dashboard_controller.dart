@@ -1077,21 +1077,7 @@ class DashboardController {
 
       // Step 2: turn into a JSON string
       final jsonStr = String.fromCharCodes(rawBytes);
-
-      // Step 3: parse JSON
-      final Map<String, dynamic> codesMap = json.decode(jsonStr);
-
-      // Step 4: extract values into a List<int>
-      final codes = codesMap.values.map((e) => e as int).toList();
-
-      // Step 5: convert char codes -> base64 string
-      final encryptedKeyBase64 = String.fromCharCodes(codes);
-      print("Encrypted key (base64): $encryptedKeyBase64");
-
-      // Step 6: decode base64 into bytes
-      // final Uint8List encryptedKeyBytes = base64.decode(encryptedKeyBase64);
-      // print("Encrypted key (base64) length: ${encryptedKeyBase64.length}");
-      // print("Encrypted key (bytes) length:  ${encryptedKeyBytes.length}");
+      final encryptedKeyBase64 = jsonStr;
 
       // ---- 2) Get your private key ----
       final senderKeys = await getSelectedEntityX25519Keys();
