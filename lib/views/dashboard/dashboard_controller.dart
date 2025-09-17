@@ -815,26 +815,12 @@ class DashboardController {
         print("❌ current_user_encryptedsymmetrickey is null");
         return data;
       }
-
       // Step 1: get the bytes
       final List<int> rawBytes = List<int>.from(keyBuf["data"]);
-
       // Step 2: turn into a JSON string
       final jsonStr = String.fromCharCodes(rawBytes);
-
       // Step 3: parse JSON
-      final Map<String, dynamic> codesMap = json.decode(jsonStr);
-
-      // Step 4: extract values into a List<int>
-      final codes = codesMap.values.map((e) => e as int).toList();
-
-      // Step 5: convert char codes -> base64 string
-      final encryptedKeyBase64 = String.fromCharCodes(codes);
-
-      // Step 6: decode base64 into bytes
-      // final Uint8List encryptedKeyBytes = base64.decode(encryptedKeyBase64);
-      // print("Encrypted key (base64) length: ${encryptedKeyBase64.length}");
-      // print("Encrypted key (bytes) length:  ${encryptedKeyBytes.length}");
+      final encryptedKeyBase64 = jsonStr;
 
       // ---- 2) Get your private key ----
       final senderKeys = await getSelectedEntityX25519Keys();
@@ -843,17 +829,8 @@ class DashboardController {
         return data;
       }
       final privateKeyPem = senderKeys["privateKey"]!;
-
-      // ---- 3) RSA decrypt the symmetric key ----
-      // Choose ONE of these, depending on your rsaDecryption signature:
-
-      // A) If rsaDecryption expects a Base64-encoded string of the ciphertext:
+      // ---- 3) Decrypt the symmetric key with your private key ----
       final decrypted = await rsaDecryption(encryptedKeyBase64, privateKeyPem);
-
-      // B) If rsaDecryption expects raw bytes (Uint8List), use this instead:
-      // final decrypted = await rsaDecryption(encryptedKeyBytes, privateKeyPem);
-
-      // print('Decrypted symmetric key (as text): $decrypted');
 
       // Your backend returns the symmetric key as a JSON array of ints (e.g. "[1,2,3...]")
       final List<dynamic> tempList = jsonDecode(decrypted);
