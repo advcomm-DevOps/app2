@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
-// import 'package:xdoc/custom/constants.dart';
+import 'package:xdoc/custom/constants.dart';
 import 'package:xdoc/custom/services/rsa.dart';
 import 'package:xdoc/custom/services/sso.dart';
 import 'package:xdoc/views/dashboard/dashboard_model.dart';
@@ -41,8 +41,8 @@ class _DashboardViewState extends State<DashboardView> {
   bool showRightSidebar = false;
 
   final dio = Dio();
-  // final String apiUrl = 'https://$audDomain';
-  final String apiUrl = 'http://localhost:3000';
+  final String apiUrl = 'https://$audDomain';
+  // final String apiUrl = 'http://localhost:3000';
   final String qrurl = "https://d.xdoc.app?path=c";
   List<Map<String, dynamic>> channels = [];
   List<Map<String, dynamic>> docs = [];
