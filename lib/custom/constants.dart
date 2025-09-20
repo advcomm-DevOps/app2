@@ -1,2 +1,7 @@
-const String authUrl='https://auth.xdoc.app';
-const String audDomain='staging-api.xdoc.app';
+const String authUrl = 'https://auth.xdoc.app';
+final String audDomain = const String.fromEnvironment(
+	'FLAVOR',
+	defaultValue: 'dev',
+) == 'production'
+		? 'api.xdoc.app'
+		: 'staging-api.xdoc.app';
