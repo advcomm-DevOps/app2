@@ -350,7 +350,7 @@ class _DashboardViewState extends State<DashboardView> {
           oldChannelName: formData['channel']!,
           newChannelName: channels[selectedChannelIndex!]["channelname"],
           tagName: tagname!);
-
+      fetchJoinedTags(channels[selectedChannelIndex!]["channelname"]);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Document created successfully!'),
