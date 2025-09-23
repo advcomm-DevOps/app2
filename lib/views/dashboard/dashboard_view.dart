@@ -1,7 +1,5 @@
 import 'dart:convert';
 import 'dart:async';
-import 'dart:math';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -1598,8 +1596,16 @@ class _DashboardViewState extends State<DashboardView> {
                                     // Fetch context data asynchronously
                                     final contextData = await dashboardController.getContextAndPublicKey(entityName, channelName, tagId);
                                     print("Context Data: $contextData");
-                                    
-                                    
+
+
+                                     if (contextData != null) {
+                                        if (contextData["contextform"] != null) {
+                                          htmlForm = contextData["contextform"];
+                                          print("Context form found, rendering..."); 
+                                        } else {
+                                          print("No context template found for this tag.");
+                                        }
+                                      }
                                     setState(() {
                                       selectedTagIndexLocal = idx;
                                       showWebView = true;
@@ -1664,10 +1670,45 @@ class _DashboardViewState extends State<DashboardView> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: InAppWebView(
-                            initialData: InAppWebViewInitialData(
-                              data: generateRandomHtml(),
-                            ),
-                          ),
+                                  initialData: InAppWebViewInitialData(
+                                    data: appendScriptWithHtml(htmlForm),
+                                  ),
+                                  onWebViewCreated: (controller) {
+                                    if (!kIsWeb) {
+                                      controller.addJavaScriptHandler(
+                                        handlerName: 'onFormSubmit',
+                                        callback: (args) {
+                                          String jsonString = args[0];
+                                          print(
+                                              'Received JSON string: $jsonString');
+                                          // Add bounds checking before accessing joinedTags array
+                                          if (selectedjoinedTagIndex != null &&
+                                              selectedjoinedTagIndex! >= 0 &&
+                                              selectedjoinedTagIndex! <
+                                                  joinedTags.length) {
+                                            createEncryptedDocument(
+                                              joinedTags[
+                                                      selectedjoinedTagIndex!]
+                                                  ["oldEntityId"],
+                                              joinedTags[
+                                                      selectedjoinedTagIndex!]
+                                                  ["oldChannelName"],
+                                              joinedTags[
+                                                      selectedjoinedTagIndex!]
+                                                  ["tagId"],
+                                              jsonString,
+                                            );
+                                          } else {
+                                            print(
+                                                'Error: Invalid selectedjoinedTagIndex when handling form submit');
+                                          }
+                                        },
+                                      );
+                                    } else {
+                                      handleWebMessage();
+                                    }
+                                  },
+                                ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -1771,159 +1812,6 @@ class _DashboardViewState extends State<DashboardView> {
     final template = Template.parse(context, Source.fromString(raw));
     final result = await template.render(context);
     return result;
-  }
-
-  String generateRandomHtml() {
-    final random = Random();
-    final colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
-    final backgrounds = ['linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'];
-    final titles = ['Welcome to XDoc', 'Tag Information', 'Document Preview', 'Content Display', 'Data Visualization'];
-    final contents = [
-      'This is a sample content area with random generated HTML.',
-      'Here you can see the tag details and related information.',
-      'Dynamic content generation for better user experience.',
-      'Interactive elements and responsive design showcase.',
-      'Modern web components and styling examples.'
-    ];
-
-    final selectedColor = colors[random.nextInt(colors.length)];
-    final selectedBackground = backgrounds[random.nextInt(backgrounds.length)];
-    final selectedTitle = titles[random.nextInt(titles.length)];
-    final selectedContent = contents[random.nextInt(contents.length)];
-
-    return '''
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Random Content</title>
-        <style>
-            body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                margin: 0;
-                padding: 20px;
-                background: $selectedBackground;
-                color: #333;
-                min-height: 100vh;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-            }
-            .container {
-                background: white;
-                border-radius: 15px;
-                padding: 30px;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-                max-width: 600px;
-                width: 100%;
-                text-align: center;
-            }
-            .header {
-                color: $selectedColor;
-                font-size: 2.5em;
-                margin-bottom: 20px;
-                font-weight: bold;
-            }
-            .content {
-                font-size: 1.2em;
-                line-height: 1.6;
-                margin-bottom: 30px;
-                color: #666;
-            }
-            .feature-box {
-                background: $selectedColor;
-                color: white;
-                padding: 15px;
-                border-radius: 8px;
-                margin: 20px 0;
-                font-weight: bold;
-            }
-            .button {
-                background: $selectedColor;
-                color: white;
-                padding: 12px 24px;
-                border: none;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 1.1em;
-                transition: all 0.3s ease;
-            }
-            .button:hover {
-                opacity: 0.8;
-                transform: translateY(-2px);
-            }
-            .random-number {
-                font-size: 3em;
-                color: $selectedColor;
-                font-weight: bold;
-                margin: 20px 0;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">$selectedTitle</div>
-            <div class="content">$selectedContent</div>
-            <div class="feature-box">
-                Random Feature: Generated at ${DateTime.now().toString().substring(0, 19)}
-            </div>
-            <div class="random-number">${random.nextInt(1000)}</div>
-            <button class="button" onclick="alert('Hello from XDoc!')">Click Me!</button>
-        </div>
-        <script>
-            console.log('Random HTML content loaded successfully!');
-            setTimeout(() => {
-                document.querySelector('.random-number').style.transform = 'scale(1.2)';
-                document.querySelector('.random-number').style.transition = 'all 0.5s ease';
-            }, 1000);
-        </script>
-    </body>
-    </html>
-    ''';
-  }
-
-  void showRandomHtmlPopup(BuildContext context, String tagName) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          insetPadding: const EdgeInsets.all(16),
-          backgroundColor: surfaceColor,
-          child: SizedBox(
-            width: double.infinity,
-            height: 800,
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  color: primaryAccent,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text("Tag: $tagName",
-                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: InAppWebView(
-                    initialData: InAppWebViewInitialData(
-                      data: generateRandomHtml(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 
   void showHtmlPopup(BuildContext context, String jsonContent) {
