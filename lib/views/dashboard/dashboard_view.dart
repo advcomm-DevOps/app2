@@ -1341,6 +1341,26 @@ class _DashboardViewState extends State<DashboardView> {
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
+            Future<void> fetchChannelTags(int channelIdx) async {
+              setState(() {
+                pubTags = [];
+                selectedTagIndexLocal = null;
+              });
+              final channel = pubChannels[channelIdx];
+              final channelName = channel['channelname'] ?? channel.toString();
+              final entity = _entityController.text.trim();
+              try {
+                final tags = await dashboardController.getPubChannelTags(entity, channelName);
+                setState(() {
+                  pubTags = tags;
+                });
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error fetching tags: $e')),
+                );
+              }
+            }
+
             Future<void> searchPubChannels() async {
               final entity = _entityController.text.trim();
               if (entity.isEmpty) {
@@ -1359,11 +1379,25 @@ class _DashboardViewState extends State<DashboardView> {
               });
               try {
                 final result = await dashboardController.getPubChannels(entity, actorId);
+                bool shouldAutoFetch = false;
                 setState(() {
                   pubChannels = result;
                   isSearching = false;
                   hasSearched = true;
+                  
+                  // Auto-select channel if only one channel is found
+                  if (pubChannels.length == 1) {
+                    selectedChannelIndexLocal = 0;
+                    final channelName = pubChannels[0]['channelname'] ?? pubChannels[0].toString();
+                    _composeChannelController.text = channelName;
+                    shouldAutoFetch = true;
+                  }
                 });
+                
+                // Auto-fetch tags if only one channel is found
+                if (shouldAutoFetch) {
+                  await fetchChannelTags(0);
+                }
               } catch (e) {
                 setState(() {
                   isSearching = false;
@@ -1371,26 +1405,6 @@ class _DashboardViewState extends State<DashboardView> {
                 });
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Error fetching channels: $e')),
-                );
-              }
-            }
-
-            Future<void> fetchChannelTags(int channelIdx) async {
-              setState(() {
-                pubTags = [];
-                selectedTagIndexLocal = null;
-              });
-              final channel = pubChannels[channelIdx];
-              final channelName = channel['channelname'] ?? channel.toString();
-              final entity = _entityController.text.trim();
-              try {
-                final tags = await dashboardController.getPubChannelTags(entity, channelName);
-                setState(() {
-                  pubTags = tags;
-                });
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error fetching tags: $e')),
                 );
               }
             }
@@ -1464,7 +1478,15 @@ class _DashboardViewState extends State<DashboardView> {
                           : Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Select Channel:', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                                Text(
+                                  pubChannels.length == 1 
+                                    ? 'Channel Auto-Selected:' 
+                                    : 'Select Channel:', 
+                                  style: TextStyle(
+                                    color: pubChannels.length == 1 ? Colors.green : Colors.white70, 
+                                    fontWeight: FontWeight.bold
+                                  )
+                                ),
                                 const SizedBox(height: 12),
                                 Wrap(
                                   spacing: 10,
@@ -1511,10 +1533,25 @@ class _DashboardViewState extends State<DashboardView> {
 
                     // Tag selection chips and Create button only after channel selected
                     if (hasSearched && pubChannels.isNotEmpty && selectedChannelIndexLocal != null) ...[
-                      const Text('Select Tag:', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                      Row(
+                        children: [
+                          const Text('Select Tag:', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                          if (pubChannels.length == 1 && pubTags.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.only(left: 8.0),
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white70),
+                              ),
+                            ),
+                        ],
+                      ),
                       const SizedBox(height: 12),
-                      if (pubTags.isEmpty)
+                      if (pubTags.isEmpty && pubChannels.length > 1)
                         const Text('No tags found for this channel', style: TextStyle(color: Colors.redAccent)),
+                      if (pubTags.isEmpty && pubChannels.length == 1)
+                        const Text('Loading tags for auto-selected channel...', style: TextStyle(color: Colors.white54)),
                       if (pubTags.isNotEmpty)
                         Wrap(
                           spacing: 10,
