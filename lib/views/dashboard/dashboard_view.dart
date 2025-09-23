@@ -1583,17 +1583,36 @@ class _DashboardViewState extends State<DashboardView> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),
                                 ),
-                                onSelected: (bool selected) {
-                                  setState(() {
-                                    selectedTagIndexLocal = selected ? idx : null;
-                                    if (selected) {
+                                onSelected: (bool selected) async {
+                                  if (selected) {
+                                    final tagId = tag['tagid'] ?? tag['tagId'] ?? 'Unknown TagID';
+                                    final channelName = selectedChannelIndexLocal != null 
+                                        ? pubChannels[selectedChannelIndexLocal!]['channelname'] ?? 'Unknown Channel'
+                                        : 'Unknown Channel';
+                                    final entityName = _entityController.text.trim();
+                                    print('Selected tag: $tagName');
+                                    print('Tag ID: $tagId');
+                                    print('Channel Name: $channelName');
+                                    print('Entity Name: $entityName');
+                                    
+                                    // Fetch context data asynchronously
+                                    final contextData = await dashboardController.getContextAndPublicKey(entityName, channelName, tagId);
+                                    print("Context Data: $contextData");
+                                    
+                                    
+                                    setState(() {
+                                      selectedTagIndexLocal = idx;
                                       showWebView = true;
                                       selectedTagName = tagName;
-                                    } else {
+                                    });
+                                  } else {
+                                    setState(() {
+                                      selectedTagIndexLocal = null;
                                       showWebView = false;
                                       selectedTagName = '';
-                                    }
-                                  });
+                                    });
+                                    print('Tag deselected');
+                                  }
                                 },
                               ),
                             );
