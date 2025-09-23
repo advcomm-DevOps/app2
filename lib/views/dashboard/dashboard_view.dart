@@ -1745,54 +1745,54 @@ class _DashboardViewState extends State<DashboardView> {
                       style: TextStyle(color: Colors.orange),
                     ),
                   ),
-                if (hasSearched && pubChannels.isNotEmpty && selectedChannelIndexLocal != null && pubTags.isNotEmpty && selectedTagIndexLocal != null)
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                    ),
-                    onPressed: () {
-                      if (_entityController.text.isEmpty ||
-                          _composeChannelController.text.isEmpty ||
-                          selectedTagIndexLocal == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Please select all required fields.'),
-                          ),
-                        );
-                        return;
-                      }
+                // if (hasSearched && pubChannels.isNotEmpty && selectedChannelIndexLocal != null && pubTags.isNotEmpty && selectedTagIndexLocal != null)
+                //   ElevatedButton(
+                //     style: ElevatedButton.styleFrom(
+                //       backgroundColor: Colors.blue,
+                //       shape: RoundedRectangleBorder(
+                //         borderRadius: BorderRadius.circular(10),
+                //       ),
+                //       padding: const EdgeInsets.symmetric(
+                //           horizontal: 20, vertical: 12),
+                //     ),
+                //     onPressed: () {
+                //       if (_entityController.text.isEmpty ||
+                //           _composeChannelController.text.isEmpty ||
+                //           selectedTagIndexLocal == null) {
+                //         ScaffoldMessenger.of(context).showSnackBar(
+                //           const SnackBar(
+                //             content: Text('Please select all required fields.'),
+                //           ),
+                //         );
+                //         return;
+                //       }
 
-                      final selectedTag = pubTags[selectedTagIndexLocal!];
-                      // Prefer 'tagid', fallback to 'tagId', fallback to string
-                      final tagId = selectedTag['tagid']?.toString() ?? selectedTag['tagId']?.toString() ?? '';
+                //       final selectedTag = pubTags[selectedTagIndexLocal!];
+                //       // Prefer 'tagid', fallback to 'tagId', fallback to string
+                //       final tagId = selectedTag['tagid']?.toString() ?? selectedTag['tagId']?.toString() ?? '';
 
-                      // Create the form data
-                      Map<String, String> formData = {
-                        'entity': _entityController.text.trim(),
-                        'channel': _composeChannelController.text.trim(),
-                        'tagId': tagId,
-                      };
+                //       // Create the form data
+                //       Map<String, String> formData = {
+                //         'entity': _entityController.text.trim(),
+                //         'channel': _composeChannelController.text.trim(),
+                //         'tagId': tagId,
+                //       };
 
-                      // Clear the form
-                      _entityController.clear();
-                      _composeChannelController.clear();
+                //       // Clear the form
+                //       _entityController.clear();
+                //       _composeChannelController.clear();
 
-                      // Close the dialog
-                      Navigator.of(context).pop();
+                //       // Close the dialog
+                //       Navigator.of(context).pop();
 
-                      // Call the new function with form data
-                      createTemporaryDocument(formData);
-                    },
-                    child: const Text(
-                      'Create',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
+                //       // Call the new function with form data
+                //       createTemporaryDocument(formData);
+                //     },
+                //     child: const Text(
+                //       'Create',
+                //       style: TextStyle(color: Colors.white),
+                //     ),
+                //   ),
               ],
             ); // AlertDialog
           },
