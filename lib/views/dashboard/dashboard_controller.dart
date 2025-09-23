@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:xdoc/custom/constants.dart';
+// import 'package:xdoc/custom/constants.dart';
 import 'package:xdoc/custom/services/sso.dart';
 import 'package:xdoc/custom/services/encryption.dart';
 import 'package:xdoc/views/dashboard/dashboard_replication.dart';
@@ -11,9 +11,9 @@ import 'package:tenant_replication/tenant_replication.dart';
 
 class DashboardController {
   final Dio dio = Dio();
-  final String apiUrl = 'https://$audDomain';
+  // final String apiUrl = 'https://$audDomain';
   final String qrurl = 'https://web.xdoc.app/c/';
-  // final String apiUrl = 'http://localhost:3000';
+  final String apiUrl = 'http://localhost:3000';
   // final String qrurl = 'https://s.xdoc.app/c/';
 
   final FlutterSecureStorage secureStorage = FlutterSecureStorage();
@@ -403,8 +403,10 @@ class DashboardController {
     try {
       String token = await getJwt();
       dio.options.headers["Authorization"] = "Bearer $token";
+      print("apiUrl: $apiUrl");
       final response =
           await dio.get('$apiUrl/respondent-actors/$interconnectId');
+          print('Respondent actors response: ${response.data}');
       actors = response.data;
     } catch (e) {
       print('Error fetching respondent actors: $e');
@@ -626,7 +628,7 @@ class DashboardController {
   }
   Future<List<Map<String, String>>> getTagList(
       {required String channelName}) async {
-    //  await secureStorage.delete( key: "xdoc_tagsList");
+    // await secureStorage.delete( key: "xdoc_tagsList");
     String parentEntity = await getSelectedEntity();
     String? existingData = await secureStorage.read(key: "xdoc_tagsList");
     print('Fetching existing xdoc_tagsList from secure storage: $existingData');
