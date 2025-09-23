@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -1335,6 +1336,8 @@ class _DashboardViewState extends State<DashboardView> {
   int? selectedChannelIndexLocal;
   List<dynamic> pubTags = [];
   int? selectedTagIndexLocal;
+  bool showWebView = false;
+  String selectedTagName = '';
 
     showDialog(
       context: context,
@@ -1421,14 +1424,19 @@ class _DashboardViewState extends State<DashboardView> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Entity field with search button
-                    SizedBox(
-                      width: 400,
+              content: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 800,
+                  maxHeight: showWebView ? 750 : 500,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Entity field with search button
+                      SizedBox(
+                        width: 700,
                       child: TextField(
                         controller: _entityController,
                         decoration: InputDecoration(
@@ -1578,6 +1586,13 @@ class _DashboardViewState extends State<DashboardView> {
                                 onSelected: (bool selected) {
                                   setState(() {
                                     selectedTagIndexLocal = selected ? idx : null;
+                                    if (selected) {
+                                      showWebView = true;
+                                      selectedTagName = tagName;
+                                    } else {
+                                      showWebView = false;
+                                      selectedTagName = '';
+                                    }
                                   });
                                 },
                               ),
@@ -1586,12 +1601,62 @@ class _DashboardViewState extends State<DashboardView> {
                         ),
                       const SizedBox(height: 16),
                     ],
+
+                    // Show InAppWebView below tag selection when a tag is selected
+                    if (showWebView) ...[
+                      Container(
+                        margin: const EdgeInsets.only(top: 16),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: primaryAccent,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Tag: $selectedTagName",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                              onPressed: () {
+                                setState(() {
+                                  showWebView = false;
+                                  selectedTagName = '';
+                                  selectedTagIndexLocal = null;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        height: 300,
+                        margin: const EdgeInsets.only(top: 8),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[600]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: InAppWebView(
+                            initialData: InAppWebViewInitialData(
+                              data: generateRandomHtml(),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                   ],
                 ),
-              ),
-              actionsPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              actionsAlignment: MainAxisAlignment.spaceBetween,
+              ), // ConstrainedBox child
+              ), // ConstrainedBox
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
@@ -1669,7 +1734,7 @@ class _DashboardViewState extends State<DashboardView> {
                     ),
                   ),
               ],
-            );
+            ); // AlertDialog
           },
         );
       },
@@ -1687,6 +1752,159 @@ class _DashboardViewState extends State<DashboardView> {
     final template = Template.parse(context, Source.fromString(raw));
     final result = await template.render(context);
     return result;
+  }
+
+  String generateRandomHtml() {
+    final random = Random();
+    final colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
+    final backgrounds = ['linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'];
+    final titles = ['Welcome to XDoc', 'Tag Information', 'Document Preview', 'Content Display', 'Data Visualization'];
+    final contents = [
+      'This is a sample content area with random generated HTML.',
+      'Here you can see the tag details and related information.',
+      'Dynamic content generation for better user experience.',
+      'Interactive elements and responsive design showcase.',
+      'Modern web components and styling examples.'
+    ];
+
+    final selectedColor = colors[random.nextInt(colors.length)];
+    final selectedBackground = backgrounds[random.nextInt(backgrounds.length)];
+    final selectedTitle = titles[random.nextInt(titles.length)];
+    final selectedContent = contents[random.nextInt(contents.length)];
+
+    return '''
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Random Content</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                margin: 0;
+                padding: 20px;
+                background: $selectedBackground;
+                color: #333;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+            .container {
+                background: white;
+                border-radius: 15px;
+                padding: 30px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                max-width: 600px;
+                width: 100%;
+                text-align: center;
+            }
+            .header {
+                color: $selectedColor;
+                font-size: 2.5em;
+                margin-bottom: 20px;
+                font-weight: bold;
+            }
+            .content {
+                font-size: 1.2em;
+                line-height: 1.6;
+                margin-bottom: 30px;
+                color: #666;
+            }
+            .feature-box {
+                background: $selectedColor;
+                color: white;
+                padding: 15px;
+                border-radius: 8px;
+                margin: 20px 0;
+                font-weight: bold;
+            }
+            .button {
+                background: $selectedColor;
+                color: white;
+                padding: 12px 24px;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 1.1em;
+                transition: all 0.3s ease;
+            }
+            .button:hover {
+                opacity: 0.8;
+                transform: translateY(-2px);
+            }
+            .random-number {
+                font-size: 3em;
+                color: $selectedColor;
+                font-weight: bold;
+                margin: 20px 0;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">$selectedTitle</div>
+            <div class="content">$selectedContent</div>
+            <div class="feature-box">
+                Random Feature: Generated at ${DateTime.now().toString().substring(0, 19)}
+            </div>
+            <div class="random-number">${random.nextInt(1000)}</div>
+            <button class="button" onclick="alert('Hello from XDoc!')">Click Me!</button>
+        </div>
+        <script>
+            console.log('Random HTML content loaded successfully!');
+            setTimeout(() => {
+                document.querySelector('.random-number').style.transform = 'scale(1.2)';
+                document.querySelector('.random-number').style.transition = 'all 0.5s ease';
+            }, 1000);
+        </script>
+    </body>
+    </html>
+    ''';
+  }
+
+  void showRandomHtmlPopup(BuildContext context, String tagName) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(16),
+          backgroundColor: surfaceColor,
+          child: SizedBox(
+            width: double.infinity,
+            height: 800,
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  color: primaryAccent,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("Tag: $tagName",
+                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: InAppWebView(
+                    initialData: InAppWebViewInitialData(
+                      data: generateRandomHtml(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void showHtmlPopup(BuildContext context, String jsonContent) {
@@ -2004,6 +2222,7 @@ class _DashboardViewState extends State<DashboardView> {
                   selectedTagIndex = index;
                   selectedDocIndex = -1; // reset doc selection
                 });
+                
                 getContextAndPublicKey(
                   item["oldEntityId"],
                   item["oldChannelName"],
