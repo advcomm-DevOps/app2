@@ -1335,7 +1335,6 @@ class _DashboardViewState extends State<DashboardView> {
   List<dynamic> pubTags = [];
   int? selectedTagIndexLocal;
   bool showWebView = false;
-  String selectedTagName = '';
 
     showDialog(
       context: context,
@@ -1522,10 +1521,15 @@ class _DashboardViewState extends State<DashboardView> {
                                               selectedChannelIndexLocal = idx;
                                               _composeChannelController.text = channelName;
                                               fetchChannelTags(idx);
+                                              // Hide InAppWebView when channel changes
+                                              showWebView = false;
+                                              selectedTagIndexLocal = null;
                                             } else {
                                               selectedChannelIndexLocal = null;
                                               pubTags = [];
                                               selectedTagIndexLocal = null;
+                                              // Hide InAppWebView when channel deselected
+                                              showWebView = false;
                                             }
                                           });
                                         },
@@ -1596,8 +1600,6 @@ class _DashboardViewState extends State<DashboardView> {
                                     // Fetch context data asynchronously
                                     final contextData = await dashboardController.getContextAndPublicKey(entityName, channelName, tagId);
                                     print("Context Data: $contextData");
-
-
                                      if (contextData != null) {
                                         if (contextData["contextform"] != null) {
                                           htmlForm = contextData["contextform"];
@@ -1609,13 +1611,11 @@ class _DashboardViewState extends State<DashboardView> {
                                     setState(() {
                                       selectedTagIndexLocal = idx;
                                       showWebView = true;
-                                      selectedTagName = tagName;
                                     });
                                   } else {
                                     setState(() {
                                       selectedTagIndexLocal = null;
                                       showWebView = false;
-                                      selectedTagName = '';
                                     });
                                     print('Tag deselected');
                                   }
@@ -1630,85 +1630,78 @@ class _DashboardViewState extends State<DashboardView> {
                     // Show InAppWebView below tag selection when a tag is selected
                     if (showWebView) ...[
                       Container(
-                        margin: const EdgeInsets.only(top: 16),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: primaryAccent,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "Tag: $selectedTagName",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.close, color: Colors.white, size: 20),
-                              onPressed: () {
-                                setState(() {
-                                  showWebView = false;
-                                  selectedTagName = '';
-                                  selectedTagIndexLocal = null;
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
                         height: 300,
-                        margin: const EdgeInsets.only(top: 8),
+                        margin: const EdgeInsets.only(top: 16),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey[600]!),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: InAppWebView(
-                                  initialData: InAppWebViewInitialData(
-                                    data: appendScriptWithHtml(htmlForm),
-                                  ),
-                                  onWebViewCreated: (controller) {
-                                    if (!kIsWeb) {
-                                      controller.addJavaScriptHandler(
-                                        handlerName: 'onFormSubmit',
-                                        callback: (args) {
-                                          String jsonString = args[0];
-                                          print(
-                                              'Received JSON string: $jsonString');
-                                          // Add bounds checking before accessing joinedTags array
-                                          if (selectedjoinedTagIndex != null &&
-                                              selectedjoinedTagIndex! >= 0 &&
-                                              selectedjoinedTagIndex! <
-                                                  joinedTags.length) {
-                                            createEncryptedDocument(
-                                              joinedTags[
-                                                      selectedjoinedTagIndex!]
-                                                  ["oldEntityId"],
-                                              joinedTags[
-                                                      selectedjoinedTagIndex!]
-                                                  ["oldChannelName"],
-                                              joinedTags[
-                                                      selectedjoinedTagIndex!]
-                                                  ["tagId"],
-                                              jsonString,
-                                            );
-                                          } else {
-                                            print(
-                                                'Error: Invalid selectedjoinedTagIndex when handling form submit');
-                                          }
-                                        },
-                                      );
-                                    } else {
-                                      handleWebMessage();
-                                    }
-                                  },
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: InAppWebView(
+                                      initialData: InAppWebViewInitialData(
+                                        data: appendScriptWithHtml(htmlForm),
+                                      ),
+                                      onWebViewCreated: (controller) {
+                                        if (!kIsWeb) {
+                                          controller.addJavaScriptHandler(
+                                            handlerName: 'onFormSubmit',
+                                            callback: (args) {
+                                              String jsonString = args[0];
+                                              print(
+                                                  'Received JSON string: $jsonString');
+                                              // Add bounds checking before accessing joinedTags array
+                                              if (selectedjoinedTagIndex != null &&
+                                                  selectedjoinedTagIndex! >= 0 &&
+                                                  selectedjoinedTagIndex! <
+                                                      joinedTags.length) {
+                                                createEncryptedDocument(
+                                                  joinedTags[
+                                                          selectedjoinedTagIndex!]
+                                                      ["oldEntityId"],
+                                                  joinedTags[
+                                                          selectedjoinedTagIndex!]
+                                                      ["oldChannelName"],
+                                                  joinedTags[
+                                                          selectedjoinedTagIndex!]
+                                                      ["tagId"],
+                                                  jsonString,
+                                                );
+                                              } else {
+                                                print(
+                                                    'Error: Invalid selectedjoinedTagIndex when handling form submit');
+                                              }
+                                            },
+                                          );
+                                        } else {
+                                          handleWebMessage();
+                                        }
+                                      },
+                                    ),
+                            ),
+                            // Floating close button
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: FloatingActionButton(
+                                mini: true,
+                                backgroundColor: Colors.red.withOpacity(0.8),
+                                onPressed: () {
+                                  setState(() {
+                                    showWebView = false;
+                                    selectedTagIndexLocal = null;
+                                  });
+                                },
+                                child: const Icon(
+                                  Icons.close,
+                                  color: Colors.white,
+                                  size: 18,
                                 ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -1738,6 +1731,8 @@ class _DashboardViewState extends State<DashboardView> {
                         selectedTagIndexLocal = null;
                         _entityController.clear();
                         _composeChannelController.clear();
+                        // Hide InAppWebView when reset is clicked
+                        showWebView = false;
                       });
                     },
                     child: const Text(
