@@ -1335,6 +1335,7 @@ class _DashboardViewState extends State<DashboardView> {
   List<dynamic> pubTags = [];
   int? selectedTagIndexLocal;
   bool showWebView = false;
+  Map<String, dynamic>? selectedTagData;
 
     showDialog(
       context: context,
@@ -1524,10 +1525,12 @@ class _DashboardViewState extends State<DashboardView> {
                                               // Hide InAppWebView when channel changes
                                               showWebView = false;
                                               selectedTagIndexLocal = null;
+                                              selectedTagData = null; // Clear selected tag data
                                             } else {
                                               selectedChannelIndexLocal = null;
                                               pubTags = [];
                                               selectedTagIndexLocal = null;
+                                              selectedTagData = null; // Clear selected tag data
                                               // Hide InAppWebView when channel deselected
                                               showWebView = false;
                                             }
@@ -1611,11 +1614,13 @@ class _DashboardViewState extends State<DashboardView> {
                                     setState(() {
                                       selectedTagIndexLocal = idx;
                                       showWebView = true;
+                                      selectedTagData = tag; // Store the selected tag data
                                     });
                                   } else {
                                     setState(() {
                                       selectedTagIndexLocal = null;
                                       showWebView = false;
+                                      selectedTagData = null; // Clear selected tag data
                                     });
                                     print('Tag deselected');
                                   }
@@ -1650,25 +1655,20 @@ class _DashboardViewState extends State<DashboardView> {
                                             handlerName: 'onFormSubmit',
                                             callback: (args) {
                                               String jsonString = args[0];
-                                              print(
-                                                  'Received JSON string: $jsonString');
+                                              print('Received JSON string: $jsonString');
                                               // Add bounds checking before accessing joinedTags array
-                                              if (selectedjoinedTagIndex != null &&
-                                                  selectedjoinedTagIndex! >= 0 &&
-                                                  selectedjoinedTagIndex! <
-                                                      joinedTags.length) {
-                                                createEncryptedDocument(
-                                                  joinedTags[
-                                                          selectedjoinedTagIndex!]
-                                                      ["oldEntityId"],
-                                                  joinedTags[
-                                                          selectedjoinedTagIndex!]
-                                                      ["oldChannelName"],
-                                                  joinedTags[
-                                                          selectedjoinedTagIndex!]
-                                                      ["tagId"],
-                                                  jsonString,
-                                                );
+                                              if (jsonString.isNotEmpty) {
+                                                final entityName = _entityController.text.trim();
+                                                final channelName = selectedChannelIndexLocal != null 
+                                                ? pubChannels[selectedChannelIndexLocal!]['channelname'] ?? 'Unknown Channel'
+                                                : 'Unknown Channel';
+                                                final tagId = selectedTagData != null 
+                                                    ? (selectedTagData!['tagid'] ?? selectedTagData!['tagId'] ?? 'Unknown TagID').toString()
+                                                    : 'Unknown TagID';
+                                                print('Entity Name: $entityName');
+                                                print('Channel Name: $channelName');
+                                                print('Tag ID: $tagId');
+                                                createEncryptedDocument(entityName, channelName, tagId, jsonString);
                                               } else {
                                                 print(
                                                     'Error: Invalid selectedjoinedTagIndex when handling form submit');
@@ -1692,6 +1692,7 @@ class _DashboardViewState extends State<DashboardView> {
                                   setState(() {
                                     showWebView = false;
                                     selectedTagIndexLocal = null;
+                                    selectedTagData = null; // Clear selected tag data
                                   });
                                 },
                                 child: const Icon(
@@ -1729,6 +1730,7 @@ class _DashboardViewState extends State<DashboardView> {
                         selectedChannelIndexLocal = null;
                         pubTags = [];
                         selectedTagIndexLocal = null;
+                        selectedTagData = null; // Clear selected tag data
                         _entityController.clear();
                         _composeChannelController.clear();
                         // Hide InAppWebView when reset is clicked
@@ -1740,54 +1742,6 @@ class _DashboardViewState extends State<DashboardView> {
                       style: TextStyle(color: Colors.orange),
                     ),
                   ),
-                // if (hasSearched && pubChannels.isNotEmpty && selectedChannelIndexLocal != null && pubTags.isNotEmpty && selectedTagIndexLocal != null)
-                //   ElevatedButton(
-                //     style: ElevatedButton.styleFrom(
-                //       backgroundColor: Colors.blue,
-                //       shape: RoundedRectangleBorder(
-                //         borderRadius: BorderRadius.circular(10),
-                //       ),
-                //       padding: const EdgeInsets.symmetric(
-                //           horizontal: 20, vertical: 12),
-                //     ),
-                //     onPressed: () {
-                //       if (_entityController.text.isEmpty ||
-                //           _composeChannelController.text.isEmpty ||
-                //           selectedTagIndexLocal == null) {
-                //         ScaffoldMessenger.of(context).showSnackBar(
-                //           const SnackBar(
-                //             content: Text('Please select all required fields.'),
-                //           ),
-                //         );
-                //         return;
-                //       }
-
-                //       final selectedTag = pubTags[selectedTagIndexLocal!];
-                //       // Prefer 'tagid', fallback to 'tagId', fallback to string
-                //       final tagId = selectedTag['tagid']?.toString() ?? selectedTag['tagId']?.toString() ?? '';
-
-                //       // Create the form data
-                //       Map<String, String> formData = {
-                //         'entity': _entityController.text.trim(),
-                //         'channel': _composeChannelController.text.trim(),
-                //         'tagId': tagId,
-                //       };
-
-                //       // Clear the form
-                //       _entityController.clear();
-                //       _composeChannelController.clear();
-
-                //       // Close the dialog
-                //       Navigator.of(context).pop();
-
-                //       // Call the new function with form data
-                //       createTemporaryDocument(formData);
-                //     },
-                //     child: const Text(
-                //       'Create',
-                //       style: TextStyle(color: Colors.white),
-                //     ),
-                //   ),
               ],
             ); // AlertDialog
           },
