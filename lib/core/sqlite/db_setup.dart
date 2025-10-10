@@ -33,15 +33,15 @@ class DatabaseSetup {
 
       if (!existingColumns.contains('lastupdatedtxid')) {
         print("⚡ Adding missing 'lastupdatedtxid' to $tableName");
-        await db.execute('ALTER TABLE $tableName ADD COLUMN lastupdatedtxid INTEGER DEFAULT 0;');
+        await db.execute('ALTER TABLE $tableName ADD COLUMN lastupdatedtxid INTEGER;');
       }
       if (!existingColumns.contains('lastupdated')) {
         print("⚡ Adding missing 'lastupdated' to $tableName");
-        await db.execute('ALTER TABLE $tableName ADD COLUMN lastupdated TEXT;');
+        await db.execute('ALTER TABLE $tableName ADD COLUMN lastupdated BIGINT;');
       }
       if (!existingColumns.contains('deletedtxid')) {
         print("⚡ Adding missing 'deletedtxid' to $tableName");
-        await db.execute('ALTER TABLE $tableName ADD COLUMN deletedtxid INTEGER DEFAULT NULL;');
+        await db.execute('ALTER TABLE $tableName ADD COLUMN deletedtxid INTEGER;');
       }
     }
   }

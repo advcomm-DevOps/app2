@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:xdoc/custom/constants.dart';
+// import 'package:xdoc/custom/constants.dart';
 import 'package:xdoc/custom/services/sso.dart';
 import 'package:xdoc/custom/services/encryption.dart';
 import 'package:xdoc/views/dashboard/dashboard_replication.dart';
@@ -11,11 +11,10 @@ import 'package:tenant_replication/tenant_replication.dart';
 
 class DashboardController {
   final Dio dio = Dio();
-  final String apiUrl = 'https://$audDomain';
+  // final String apiUrl = 'https://$audDomain';
+  final String apiUrl = 'http://localhost:3000';
   final String qrurl = 'https://web.xdoc.app/c/';
-  // final String apiUrl = 'http://localhost:3000';
-  // final String qrurl = 'https://s.xdoc.app/c/';
-
+  
   final FlutterSecureStorage secureStorage = FlutterSecureStorage();
   final List<Map<String, dynamic>> statusJson = [
     {
@@ -367,21 +366,42 @@ class DashboardController {
     return [];
   }
 
-  Future<void> loadData(String tableName) async {
+  // Future<void> loadData(String tableName) async {
+  //   try {
+  //     String token = await getJwt(); 
+  //     final sseManager = SSEManager();
+  //     await sseManager.loadData(
+  //       url: "$apiUrl/mtdd/load",
+  //       token: token,
+  //       tableName: tableName
+  //     );
+
+  //   } catch (e) {
+  //     print("Error fetching channels: $e");
+  //   }
+  // }
+  Future<void> loadData(
+    String tableName, {
+    Map<String, dynamic>? extraParams, // 👈 allow optional query params
+  }) async {
     try {
       String token = await getJwt(); 
       final sseManager = SSEManager();
       await sseManager.loadData(
         url: "$apiUrl/mtdd/load",
         token: token,
-        tableName: tableName
+        tableName: tableName,
+        extraParams: extraParams, // 👈 pass them down
       );
-
     } catch (e) {
-      print("Error fetching channels: $e");
+      print("Error fetching $tableName: $e");
     }
   }
   Future<List<Map<String, dynamic>>> fetchChannels() async {
+    // await loadData("tblchannels", extraParams: {
+    //   "status": "active",
+    //   "region": "EU",
+    // });
     await loadData("tblchannels");
     await loadData("tblxdocactors");
     final channels = await DashboardReplication.getChannels();
@@ -416,6 +436,7 @@ class DashboardController {
 
   Future<bool> createChannel(String channelName, String actorId) async {
     String token = await getJwt();
+    print('Creating channel with name: $channelName, actorId: $actorId');
     try {
       final channelData = {
         "initialActorID": actorId,
@@ -435,6 +456,7 @@ class DashboardController {
           contentType: 'application/json',
         ),
       );
+      print('Create channel response: ${response.data}');
       if (response.statusCode == 200 || response.statusCode == 201) {
         print("Channel created successfully: ${response.data}");
         return true;
