@@ -60,11 +60,25 @@ const String tblxdocstatetransitions = '''
     exittime TIMESTAMP
   );
 ''';
+const String tblxdocs = '''
+  CREATE TABLE IF NOT EXISTS tblxdocs(
+    xdocid INTEGER PRIMARY KEY,
+    interconnectid INTEGER,
+    docname VARCHAR(63),
+    contextdata TEXT,
+    starttime TEXT,
+    completiontime TEXT,
+    inserttime INTEGER,
+    deletedtime INTEGER,
+    isnotdeleted INTEGER DEFAULT 1
+  );
+''';
 // Optionally: List of all table creations
 const List<String> createTableQueries = [
   tblchannels,
   tblchanneltags,
   tblxdocactors,
   tblxdocevents,
-  tblxdocstatetransitions
+  tblxdocstatetransitions,
+  tblxdocs
 ];

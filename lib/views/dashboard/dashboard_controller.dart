@@ -397,21 +397,24 @@ class DashboardController {
       print("Error fetching $tableName: $e");
     }
   }
-  Future<List<Map<String, dynamic>>> fetchChannels() async {
-    // await loadData("tblchannels", extraParams: {
-    //   "status": "active",
-    //   "region": "EU",
-    // });
-    await loadData("tblchannels");
-    await loadData("tblxdocactors");
-    final channels = await DashboardReplication.getChannels();
-    return channels;
-  }
+  // Future<List<Map<String, dynamic>>> fetchChannels() async {
+  //   // await loadData("tblchannels", extraParams: {
+  //   //   "status": "active",
+  //   //   "region": "EU",
+  //   // });
+  //   await loadData("tblchannels");
+  //   await loadData("tblxdocs");
+  //   await loadData("tblxdocactors");
+  //   final channels = await DashboardReplication.getChannels();
+  //   return channels;
+  // }
 
   /// Streaming version of fetchChannels that watches for database changes
   Stream<List<Map<String, dynamic>>> fetchChannelsStream() async* {
     // Load initial data from server (non-blocking)
     loadData("tblchannels");
+    loadData("tblxdocs");
+    loadData("tblchanneltags");
     loadData("tblxdocactors");
     
     // Stream channels from the database with real-time updates
