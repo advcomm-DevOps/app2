@@ -9,7 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:uids_io_sdk_flutter/auth_logout.dart';
 // import 'package:uids_io_sdk_flutter/services/pk_service.dart';
 
-import '../../custom/routing/route_names.dart';
+// import '../../custom/routing/route_names.dart';
 
 class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
   final String title;
@@ -87,30 +87,39 @@ class _CustomAppBarState extends State<CustomAppBar> {
         //   ),
         // ),
         // About button
+        // Padding(
+        //   padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        //   child: TextButton(
+        //     onPressed: () => context.push(aboutRoute),
+        //     child: Text(
+        //       "about.about".tr(),
+        //       style: TextStyle(
+        //         color: Colors.blue,
+        //         decoration: TextDecoration.underline,
+        //       ),
+        //     ),
+        //   ),
+        // ),
+        // Padding(
+        //   padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        //   child: TextButton(
+        //     onPressed: () => context.pushReplacement(dashboardRoute),
+        //     child: Text(
+        //       "dashboard.dashboard".tr(),
+        //       style: TextStyle(
+        //         color: Colors.blue,
+        //         decoration: TextDecoration.underline,
+        //       ),
+        //     ),
+        //   ),
+        // ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: TextButton(
-            onPressed: () => context.push(aboutRoute),
-            child: Text(
-              "about.about".tr(),
-              style: TextStyle(
-                color: Colors.blue,
-                decoration: TextDecoration.underline,
-              ),
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: TextButton(
-            onPressed: () => context.push(dashboardRoute),
-            child: Text(
-              "dashboard.dashboard".tr(),
-              style: TextStyle(
-                color: Colors.blue,
-                decoration: TextDecoration.underline,
-              ),
-            ),
+          child: IconButton(
+            icon: Icon(Icons.refresh),
+            color: Colors.blue,
+            tooltip: "Refresh",
+            onPressed: () => context.pushReplacement(dashboardRoute),
           ),
         ),
 
