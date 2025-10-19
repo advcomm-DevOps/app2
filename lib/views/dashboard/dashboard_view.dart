@@ -2732,6 +2732,481 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
+  // Discord-like settings area for left sidebar
+  Widget _buildLeftSidebarSettingsArea(double sidebarWidth) {
+    return Container(
+      height: 60,
+      margin: const EdgeInsets.all(8.0),
+      decoration: BoxDecoration(
+        color: surfaceColor.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: borderColor.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+        child: Row(
+          children: [
+            // User avatar
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: primaryAccent,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(
+                Icons.person,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            if (!isSidebarCollapsed) ...[
+              const SizedBox(width: 12),
+              // User info (only show when not collapsed)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'User',
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      'Online',
+                      style: TextStyle(
+                        color: subtitleColor,
+                        fontSize: 10,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Three vertical dots icon with Discord-style popup
+              GestureDetector(
+                onTap: () => _showDiscordStyleProfile(context),
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Icon(
+                    Icons.more_vert,
+                    color: subtitleColor,
+                    size: 18,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Show Discord-style profile popup
+  void _showDiscordStyleProfile(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Stack(
+          children: [
+            // Transparent barrier to close popup when clicking outside
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+            // Discord-style profile popup
+            Positioned(
+              bottom: 80, // Position above the settings area
+              left: 20,
+              child: Material(
+                elevation: 8,
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.transparent,
+                child: Container(
+                  width: 240,
+                  decoration: BoxDecoration(
+                    color: backgroundColor,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: borderColor.withOpacity(0.3)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Profile Header with gradient banner and user info
+                        Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [primaryAccent, primaryAccent.withOpacity(0.8)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(8),
+                              topRight: Radius.circular(8),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
+                              children: [
+                                // Avatar with online status
+                                Stack(
+                                  children: [
+                                    Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(24),
+                                        border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+                                      ),
+                                      child: const Icon(
+                                        Icons.person,
+                                        color: Colors.white,
+                                        size: 24,
+                                      ),
+                                    ),
+                                    // Online status indicator
+                                    Positioned(
+                                      bottom: 2,
+                                      right: 2,
+                                      child: Container(
+                                        width: 14,
+                                        height: 14,
+                                        decoration: BoxDecoration(
+                                          color: Colors.green,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: primaryAccent, width: 2),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(width: 12),
+                                // User info
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'User',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          'Online',
+                                          style: TextStyle(
+                                            color: Colors.white.withOpacity(0.9),
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 8),
+                        
+                        // Menu Options
+                        _buildSimpleProfileMenuItem(Icons.swap_horiz, 'Switch Account'),
+                        _buildSimpleProfileMenuItem(Icons.language, 'Select Language'),
+                        
+                        // Divider
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          height: 1,
+                          color: borderColor.withOpacity(0.3),
+                        ),
+                        
+                        // Logout option (in red)
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            _showLogoutDialog();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                            child: Row(
+                              children: [
+                                Icon(Icons.logout, color: Colors.red, size: 18),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Logout',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Helper method to build simple profile menu items
+  Widget _buildSimpleProfileMenuItem(IconData icon, String title) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).pop();
+        _handleSimpleProfileMenuAction(title);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        child: Row(
+          children: [
+            Icon(icon, color: textColor, size: 18),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: TextStyle(color: textColor, fontSize: 14),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Handle simple profile menu actions
+  void _handleSimpleProfileMenuAction(String action) {
+    switch (action) {
+      case 'Switch Account':
+        _showSwitchAccountDialog();
+        break;
+      case 'Select Language':
+        _showLanguageDialog();
+        break;
+    }
+  }
+
+  // Show switch account dialog
+  void _showSwitchAccountDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: surfaceColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Text(
+            'Switch Account',
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Account switching functionality will be implemented here.',
+                style: TextStyle(color: subtitleColor),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: primaryAccent,
+                      child: const Icon(Icons.person, color: Colors.white),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Current User',
+                          style: TextStyle(color: textColor, fontSize: 14),
+                        ),
+                        Text(
+                          'user@example.com',
+                          style: TextStyle(color: subtitleColor, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel', style: TextStyle(color: subtitleColor)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Implement account switching logic here
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryAccent,
+              ),
+              child: const Text('Switch', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Show language selection dialog
+  void _showLanguageDialog() {
+    final List<Map<String, String>> languages = [
+      {'code': 'en', 'name': 'English'},
+      {'code': 'es', 'name': 'Español'},
+      {'code': 'fr', 'name': 'Français'},
+      {'code': 'de', 'name': 'Deutsch'},
+      {'code': 'it', 'name': 'Italiano'},
+      {'code': 'pt', 'name': 'Português'},
+      {'code': 'zh', 'name': '中文'},
+      {'code': 'ja', 'name': '日本語'},
+    ];
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: surfaceColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Text(
+            'Select Language',
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: languages.length,
+              itemBuilder: (context, index) {
+                final language = languages[index];
+                final isCurrentLanguage = _currentLocale?.languageCode == language['code'];
+                
+                return ListTile(
+                  leading: Icon(
+                    Icons.language,
+                    color: isCurrentLanguage ? primaryAccent : subtitleColor,
+                  ),
+                  title: Text(
+                    language['name']!,
+                    style: TextStyle(
+                      color: isCurrentLanguage ? primaryAccent : textColor,
+                      fontWeight: isCurrentLanguage ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  trailing: isCurrentLanguage 
+                    ? Icon(Icons.check, color: primaryAccent)
+                    : null,
+                  onTap: () {
+                    setState(() {
+                      _currentLocale = Locale(language['code']!);
+                    });
+                    context.setLocale(Locale(language['code']!));
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Language changed to ${language['name']}'),
+                        backgroundColor: primaryAccent,
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel', style: TextStyle(color: subtitleColor)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: surfaceColor,
+        title: Text('Logout', style: TextStyle(color: textColor)),
+        content: Text('Are you sure you want to logout?', style: TextStyle(color: subtitleColor)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: subtitleColor)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Perform logout
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Logout', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool hasChannels = channels.isNotEmpty;
@@ -2938,6 +3413,8 @@ class _DashboardViewState extends State<DashboardView> {
                       ),
                     ),
                   ),
+                  // Discord-like settings area for left sidebar
+                  _buildLeftSidebarSettingsArea(sidebarWidth),
                 ],
               ),
             ),
