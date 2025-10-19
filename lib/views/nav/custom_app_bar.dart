@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:xdoc/core/routing/route_names.dart';
 import 'package:xdoc/core/services/entity_selection_service.dart';
+import 'package:xdoc/core/services/theme_service.dart';
 import 'package:xdoc/custom/services/sso.dart';
 import 'package:xdoc/views/dashboard/dashboard_controller.dart';
 import 'package:xdoc/config/environment.dart';
@@ -31,6 +32,7 @@ class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
 
 class _CustomAppBarState extends State<CustomAppBar> {
   final SharedPreferencesService _spService = SharedPreferencesService();
+  final ThemeService _themeService = ThemeService();
   List<dynamic> entities = [];
   String? selectedEntity;
 
@@ -38,6 +40,19 @@ class _CustomAppBarState extends State<CustomAppBar> {
   void initState() {
     super.initState();
     _fetchEntities();
+    _themeService.addListener(_onThemeChanged);
+  }
+
+  @override
+  void dispose() {
+    _themeService.removeListener(_onThemeChanged);
+    super.dispose();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
   Future<String> getSelectedEntity() async {
     final ssoService = SSOService();
@@ -120,6 +135,69 @@ class _CustomAppBarState extends State<CustomAppBar> {
             color: Colors.blue,
             tooltip: "Refresh",
             onPressed: () => context.pushReplacement(dashboardRoute),
+          ),
+        ),
+
+        // Theme Toggle Button
+        Padding(
+          padding: const EdgeInsets.only(right: 8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: _themeService.isDarkMode ? Colors.grey[800] : Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: _themeService.isDarkMode
+                      ? Colors.black.withOpacity(0.3)
+                      : Colors.grey.withOpacity(0.2),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+              border: _themeService.isDarkMode
+                  ? null
+                  : Border.all(color: const Color(0xFFE2E8F0), width: 1),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(30),
+                onTap: () => _themeService.toggleTheme(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 18, vertical: 12),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: Icon(
+                          _themeService.isDarkMode
+                              ? Icons.light_mode_rounded
+                              : Icons.dark_mode_rounded,
+                          key: ValueKey(_themeService.isDarkMode),
+                          color: _themeService.isDarkMode
+                              ? Colors.amber[400]
+                              : const Color(0xFF4A5568),
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _themeService.isDarkMode ? 'Light' : 'Dark',
+                        style: TextStyle(
+                          color: _themeService.isDarkMode
+                              ? Colors.white
+                              : const Color(0xFF2D3748),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
 

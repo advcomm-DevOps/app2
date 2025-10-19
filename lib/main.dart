@@ -7,6 +7,7 @@ import 'core/deeplinking/deep_link_handler.dart';
 import 'core/routing/routing.dart';
 import 'core/sdks/setup_database.dart';
 import 'core/sdks/sso.dart';
+import 'core/services/theme_service.dart';
 import 'custom/lang/supported_locales.dart';
 import 'custom/constants.dart';
 
@@ -19,6 +20,9 @@ void main() async {
   await EasyLocalization.ensureInitialized();
   // await initializeSsoSdk('https://auth1.3u.gg', 'api.3u.gg');
   await initializeSsoSdk(authUrl, audDomain);
+  
+  // Initialize theme service
+  await ThemeService().initializeTheme();
   
   // await FirebaseService.initializeFirebase();
   runApp(

@@ -6,6 +6,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 // import 'package:xdoc/custom/constants.dart';
+import 'package:xdoc/core/services/theme_service.dart';
 import 'package:xdoc/custom/services/rsa.dart';
 import 'package:xdoc/custom/services/sso.dart';
 import 'package:xdoc/views/dashboard/dashboard_model.dart';
@@ -57,8 +58,9 @@ class _DashboardViewState extends State<DashboardView> {
   bool isUploading = false;
   bool isComposeMode = false;
   Locale? _currentLocale;
-  bool isDarkMode = true; // Track theme mode, default to dark
   bool isSidebarCollapsed = false; // Track sidebar collapse state
+
+  final ThemeService _themeService = ThemeService();
 
   List<dynamic> publicInterconnects = [];
   String? selectedInterconnectId;
@@ -88,22 +90,16 @@ class _DashboardViewState extends State<DashboardView> {
     return lastMessage["isFile"] == true;
   }
 
-  // Theme color getters - Warmer, less white light theme
-  Color get backgroundColor =>
-      isDarkMode ? Colors.grey[900]! : const Color(0xFFF0F2F5);
-  Color get surfaceColor =>
-      isDarkMode ? Colors.grey[850]! : const Color(0xFFF8F9FA);
-  Color get cardColor =>
-      isDarkMode ? Colors.grey[800]! : const Color(0xFFEDF2F7);
-  Color get textColor => isDarkMode ? Colors.white : const Color(0xFF2D3748);
-  Color get subtitleColor =>
-      isDarkMode ? Colors.white70 : const Color(0xFF4A5568);
-  Color get primaryAccent =>
-      isDarkMode ? Colors.blueAccent : const Color(0xFF2B6CB0);
-  Color get secondaryAccent =>
-      isDarkMode ? Colors.blue[300]! : const Color(0xFF4299E1);
-  Color get borderColor =>
-      isDarkMode ? Colors.grey[700]! : const Color(0xFFCBD5E0);
+  // Theme color getters - Use ThemeService
+  bool get isDarkMode => _themeService.isDarkMode;
+  Color get backgroundColor => _themeService.backgroundColor;
+  Color get surfaceColor => _themeService.surfaceColor;
+  Color get cardColor => _themeService.cardColor;
+  Color get textColor => _themeService.textColor;
+  Color get subtitleColor => _themeService.subtitleColor;
+  Color get primaryAccent => _themeService.primaryAccent;
+  Color get secondaryAccent => _themeService.secondaryAccent;
+  Color get borderColor => _themeService.borderColor;
 
   @override
   void didChangeDependencies() {
@@ -150,6 +146,16 @@ class _DashboardViewState extends State<DashboardView> {
     dashboardController.getPublicInterconnects().then((result) {
       publicInterconnects = result;
     });
+    
+    // Initialize theme service and add listener
+    _themeService.initializeTheme();
+    _themeService.addListener(_onThemeChanged);
+  }
+
+  void _onThemeChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> initSetup() async {
@@ -2735,81 +2741,10 @@ class _DashboardViewState extends State<DashboardView> {
         title: "dashboard.dashboard",
         context: context,
       ),
-      body: Stack(
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              return _buildMainLayout(hasChannels, constraints);
-            },
-          ),
-          // Floating Theme Toggle Button
-          Positioned(
-            top: 16,
-            right: 16,
-            child: Container(
-              decoration: BoxDecoration(
-                color: isDarkMode ? Colors.grey[800] : Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: isDarkMode
-                        ? Colors.black.withOpacity(0.3)
-                        : Colors.grey.withOpacity(0.2),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-                border: isDarkMode
-                    ? null
-                    : Border.all(color: const Color(0xFFE2E8F0), width: 1),
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(30),
-                  onTap: () {
-                    setState(() {
-                      isDarkMode = !isDarkMode;
-                    });
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 18, vertical: 12),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 200),
-                          child: Icon(
-                            isDarkMode
-                                ? Icons.light_mode_rounded
-                                : Icons.dark_mode_rounded,
-                            key: ValueKey(isDarkMode),
-                            color: isDarkMode
-                                ? Colors.amber[400]
-                                : const Color(0xFF4A5568),
-                            size: 22,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          isDarkMode ? 'Light' : 'Dark',
-                          style: TextStyle(
-                            color: isDarkMode
-                                ? Colors.white
-                                : const Color(0xFF2D3748),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return _buildMainLayout(hasChannels, constraints);
+        },
       ),
     );
   }
@@ -3161,6 +3096,9 @@ class _DashboardViewState extends State<DashboardView> {
   void dispose() {
     // Cancel the channels stream subscription
     _channelsSubscription?.cancel();
+
+    // Remove theme service listener
+    _themeService.removeListener(_onThemeChanged);
 
     // Dispose other controllers and resources
     messageController.dispose();
