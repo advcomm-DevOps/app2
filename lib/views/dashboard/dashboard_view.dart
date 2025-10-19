@@ -9,6 +9,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:xdoc/core/services/theme_service.dart';
 import 'package:xdoc/custom/services/rsa.dart';
 import 'package:xdoc/custom/services/sso.dart';
+import 'package:xdoc/core/services/entity_selection_service.dart';
 import 'package:xdoc/views/dashboard/dashboard_model.dart';
 import 'package:xdoc/views/dashboard/form_resume.dart';
 import '../nav/custom_app_bar.dart';
@@ -19,6 +20,7 @@ import 'package:liquid_engine/liquid_engine.dart';
 import 'dashboard_controller.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:uids_io_sdk_flutter/auth_logout.dart';
 
 class DashboardView extends StatefulWidget {
   final String? entity;
@@ -66,6 +68,10 @@ class _DashboardViewState extends State<DashboardView> {
   String? selectedInterconnectId;
   List<dynamic> respondentActors = [];
   String? selectedActorId;
+
+  // Entity management (similar to custom app bar)
+  List<dynamic> entities = [];
+  String? selectedEntityForSwitching;
 
   final TextEditingController messageController = TextEditingController();
   final TextEditingController _urlController = TextEditingController();
@@ -120,6 +126,35 @@ class _DashboardViewState extends State<DashboardView> {
     });
   }
 
+  // Fetch entities for account switching (similar to custom app bar)
+  Future<void> _fetchEntitiesForSwitching() async {
+    print("Starting to fetch entities for switching...");
+    try {
+      final spService = SharedPreferencesService();
+      List<dynamic> fetchedEntities = await spService.getEntitiesList();
+      print("Fetched entities: $fetchedEntities");
+      print("Fetched entities length: ${fetchedEntities.length}");
+      
+      final ssoService = SSOService();
+      final defaultEntity = await ssoService.getSelectedEntity();
+      print("Default entity: $defaultEntity");
+      
+      setState(() {
+        entities = fetchedEntities;
+        selectedEntityForSwitching = defaultEntity;
+      });
+      print("Updated state - entities length: ${entities.length}");
+      print("Updated state - entities content: $entities");
+      
+      // Force a rebuild of the UI
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      print("Error fetching entities for switching: $e");
+    }
+  }
+
   Future<void> _checkToken() async {
     String token = await dashboardController.getJwt();
     print('JWT Token in Dashboard: $token');
@@ -146,6 +181,9 @@ class _DashboardViewState extends State<DashboardView> {
     dashboardController.getPublicInterconnects().then((result) {
       publicInterconnects = result;
     });
+    
+    // Fetch entities for account switching
+    _fetchEntitiesForSwitching();
     
     // Initialize theme service and add listener
     _themeService.initializeTheme();
@@ -2772,10 +2810,10 @@ class _DashboardViewState extends State<DashboardView> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'User',
+                      selectedEntityForSwitching ?? (selectedEntity.isNotEmpty ? selectedEntity : 'No Entity'),
                       style: TextStyle(
                         color: textColor,
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -2840,7 +2878,7 @@ class _DashboardViewState extends State<DashboardView> {
                 borderRadius: BorderRadius.circular(8),
                 color: Colors.transparent,
                 child: Container(
-                  width: 240,
+                  width: 320,
                   decoration: BoxDecoration(
                     color: backgroundColor,
                     borderRadius: BorderRadius.circular(8),
@@ -2916,10 +2954,10 @@ class _DashboardViewState extends State<DashboardView> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'User',
+                                        selectedEntityForSwitching ?? (selectedEntity.isNotEmpty ? selectedEntity : 'No Entity'),
                                         style: TextStyle(
                                           color: Colors.white,
-                                          fontSize: 16,
+                                          fontSize: 14,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -3032,74 +3070,249 @@ class _DashboardViewState extends State<DashboardView> {
 
   // Show switch account dialog
   void _showSwitchAccountDialog() {
+    print("Opening switch account dialog - entities: $entities, length: ${entities.length}");
+    
+    // Fallback test data if entities are empty
+    List<dynamic> displayEntities = entities.isNotEmpty 
+      ? entities 
+      : [
+          {'tenant': 'basit.munir19@gmail.com'},
+          {'tenant': 'info@advcomm.net'},
+        ];
+    
+    print("Display entities: $displayEntities");
+    
     showDialog(
       context: context,
+      barrierColor: Colors.black.withOpacity(0.3),
       builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: surfaceColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          title: Text(
-            'Switch Account',
-            style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Account switching functionality will be implemented here.',
-                style: TextStyle(color: subtitleColor),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: backgroundColor,
-                  borderRadius: BorderRadius.circular(8),
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Container(
+            width: 320,
+            decoration: BoxDecoration(
+              color: surfaceColor,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: primaryAccent,
-                      child: const Icon(Icons.person, color: Colors.white),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header with gradient and icon
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [primaryAccent, primaryAccent.withOpacity(0.8)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Current User',
-                          style: TextStyle(color: textColor, fontSize: 14),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
                         ),
+                        child: Icon(
+                          Icons.swap_horiz,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Switch Account',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Entities list
+                // Container(
+                //   padding: const EdgeInsets.all(16),
+                //   child: Text(
+                //     'Debug: Entities length: ${entities.length}, Display entities length: ${displayEntities.length}',
+                //     style: TextStyle(color: subtitleColor, fontSize: 12),
+                //   ),
+                // ),
+                if (displayEntities.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Column(
+                      children: displayEntities.map<Widget>((entity) {
+                        final isSelected = entity['tenant'] == selectedEntityForSwitching;
+                        final entityName = entity['tenant'] ?? 'Unknown Tenant';
+                        
+                        return Container(
+                          margin: const EdgeInsets.symmetric(vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isSelected 
+                              ? primaryAccent.withOpacity(0.1)
+                              : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: isSelected
+                              ? Border.all(color: primaryAccent.withOpacity(0.3))
+                              : null,
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: isSelected ? null : () {
+                                setState(() {
+                                  selectedEntityForSwitching = entity['tenant'];
+                                });
+                                Navigator.of(context).pop();
+                                
+                                // Show success notification
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Row(
+                                      children: [
+                                        Icon(Icons.check_circle, color: Colors.white, size: 20),
+                                        const SizedBox(width: 12),
+                                        Text('Switched to $entityName'),
+                                      ],
+                                    ),
+                                    backgroundColor: Colors.green,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    margin: const EdgeInsets.all(16),
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                child: Row(
+                                  children: [
+                                    // Entity icon
+                                    Container(
+                                      width: 32,
+                                      height: 32,
+                                      decoration: BoxDecoration(
+                                        color: isSelected 
+                                          ? primaryAccent
+                                          : subtitleColor.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Icon(
+                                        Icons.business,
+                                        color: isSelected 
+                                          ? Colors.white
+                                          : primaryAccent,
+                                        size: 18,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    
+                                    // Entity name
+                                    Expanded(
+                                      child: Text(
+                                        entityName,
+                                        style: TextStyle(
+                                          color: isSelected ? primaryAccent : textColor,
+                                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ),
+                                    
+                                    // Check icon for selected entity
+                                    if (isSelected)
+                                      Container(
+                                        padding: const EdgeInsets.all(2),
+                                        decoration: BoxDecoration(
+                                          color: primaryAccent,
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: const Icon(
+                                          Icons.check,
+                                          color: Colors.white,
+                                          size: 14,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.business_center,
+                          color: subtitleColor,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 12),
                         Text(
-                          'user@example.com',
-                          style: TextStyle(color: subtitleColor, fontSize: 12),
+                          'No entities available',
+                          style: TextStyle(
+                            color: subtitleColor,
+                            fontSize: 16,
+                          ),
                         ),
                       ],
                     ),
-                  ],
+                  ),
+                
+                // Cancel button
+                Padding(
+                  padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: BorderSide(color: borderColor.withOpacity(0.3)),
+                        ),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: subtitleColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel', style: TextStyle(color: subtitleColor)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                // Implement account switching logic here
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryAccent,
-              ),
-              child: const Text('Switch', style: TextStyle(color: Colors.white)),
-            ),
-          ],
         );
       },
     );
@@ -3107,79 +3320,223 @@ class _DashboardViewState extends State<DashboardView> {
 
   // Show language selection dialog
   void _showLanguageDialog() {
-    final List<Map<String, String>> languages = [
-      {'code': 'en', 'name': 'English'},
-      {'code': 'es', 'name': 'Español'},
-      {'code': 'fr', 'name': 'Français'},
-      {'code': 'de', 'name': 'Deutsch'},
-      {'code': 'it', 'name': 'Italiano'},
-      {'code': 'pt', 'name': 'Português'},
-      {'code': 'zh', 'name': '中文'},
-      {'code': 'ja', 'name': '日本語'},
-    ];
-
     showDialog(
       context: context,
+      barrierColor: Colors.black.withOpacity(0.3),
       builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: surfaceColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          title: Text(
-            'Select Language',
-            style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: languages.length,
-              itemBuilder: (context, index) {
-                final language = languages[index];
-                final isCurrentLanguage = _currentLocale?.languageCode == language['code'];
-                
-                return ListTile(
-                  leading: Icon(
-                    Icons.language,
-                    color: isCurrentLanguage ? primaryAccent : subtitleColor,
-                  ),
-                  title: Text(
-                    language['name']!,
-                    style: TextStyle(
-                      color: isCurrentLanguage ? primaryAccent : textColor,
-                      fontWeight: isCurrentLanguage ? FontWeight.bold : FontWeight.normal,
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Container(
+            width: 280,
+            decoration: BoxDecoration(
+              color: surfaceColor,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header with gradient and icon
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [primaryAccent, primaryAccent.withOpacity(0.8)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
                     ),
                   ),
-                  trailing: isCurrentLanguage 
-                    ? Icon(Icons.check, color: primaryAccent)
-                    : null,
-                  onTap: () {
-                    setState(() {
-                      _currentLocale = Locale(language['code']!);
-                    });
-                    context.setLocale(Locale(language['code']!));
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Language changed to ${language['name']}'),
-                        backgroundColor: primaryAccent,
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.language,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
-                    );
-                  },
-                );
-              },
+                      const SizedBox(width: 12),
+                      Text(
+                        'Select Language',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Language options
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    children: context.supportedLocales.map((locale) {
+                      final isCurrentLanguage = _currentLocale?.languageCode == locale.languageCode;
+                      final languageName = _getLanguageName(locale);
+                      
+                      return Container(
+                        margin: const EdgeInsets.symmetric(vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isCurrentLanguage 
+                            ? primaryAccent.withOpacity(0.1)
+                            : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          border: isCurrentLanguage
+                            ? Border.all(color: primaryAccent.withOpacity(0.3))
+                            : null,
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: () {
+                              setState(() {
+                                _currentLocale = locale;
+                              });
+                              context.setLocale(locale);
+                              Navigator.of(context).pop();
+                              
+                              // Show elegant success notification
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      Icon(Icons.check_circle, color: Colors.white, size: 20),
+                                      const SizedBox(width: 12),
+                                      Text('Language changed to $languageName'),
+                                    ],
+                                  ),
+                                  backgroundColor: Colors.green,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  margin: const EdgeInsets.all(16),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              child: Row(
+                                children: [
+                                  // Language flag/icon placeholder
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: isCurrentLanguage 
+                                        ? primaryAccent
+                                        : subtitleColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Icon(
+                                      Icons.translate,
+                                      color: isCurrentLanguage 
+                                        ? Colors.white
+                                        : subtitleColor,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  
+                                  // Language name
+                                  Expanded(
+                                    child: Text(
+                                      languageName,
+                                      style: TextStyle(
+                                        color: isCurrentLanguage ? primaryAccent : textColor,
+                                        fontWeight: isCurrentLanguage ? FontWeight.w600 : FontWeight.normal,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ),
+                                  
+                                  // Check icon for selected language
+                                  if (isCurrentLanguage)
+                                    Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: BoxDecoration(
+                                        color: primaryAccent,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 14,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                
+                // Cancel button
+                Padding(
+                  padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: BorderSide(color: borderColor.withOpacity(0.3)),
+                        ),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: subtitleColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel', style: TextStyle(color: subtitleColor)),
-            ),
-          ],
         );
       },
     );
+  }
+
+  // Helper method to get language display name
+  String _getLanguageName(Locale locale) {
+    Map<String, String> languageNames = {
+      'en': 'English',
+      'ar': 'العربية',
+      'de': 'Deutsch',
+    };
+    return languageNames[locale.languageCode] ??
+        locale.languageCode.toUpperCase();
   }
 
   void _showLogoutDialog() {
@@ -3187,8 +3544,23 @@ class _DashboardViewState extends State<DashboardView> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: surfaceColor,
-        title: Text('Logout', style: TextStyle(color: textColor)),
-        content: Text('Are you sure you want to logout?', style: TextStyle(color: subtitleColor)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.warning, color: Colors.orange, size: 24),
+            const SizedBox(width: 12),
+            Text(
+              'Logout',
+              style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to logout? You will be redirected to the login screen.',
+          style: TextStyle(color: subtitleColor),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -3197,7 +3569,8 @@ class _DashboardViewState extends State<DashboardView> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              // Perform logout
+              // Perform actual logout using AuthLogout
+              AuthLogout.logout(context);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Logout', style: TextStyle(color: Colors.white)),

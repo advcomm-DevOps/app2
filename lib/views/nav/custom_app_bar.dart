@@ -7,7 +7,6 @@ import 'package:xdoc/custom/services/sso.dart';
 import 'package:xdoc/views/dashboard/dashboard_controller.dart';
 import 'package:xdoc/config/environment.dart';
 import 'package:go_router/go_router.dart';
-import 'package:uids_io_sdk_flutter/auth_logout.dart';
 // import 'package:uids_io_sdk_flutter/services/pk_service.dart';
 
 // import '../../custom/routing/route_names.dart';
@@ -73,15 +72,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
     });
   }
 
-  String _getLanguageName(Locale locale) {
-    Map<String, String> languageNames = {
-      'en': 'English',
-      'ar': 'العربية',
-      'de': 'Deutsch',
-    };
-    return languageNames[locale.languageCode] ??
-        locale.languageCode.toUpperCase();
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -211,61 +202,40 @@ class _CustomAppBarState extends State<CustomAppBar> {
           ),
         ),
 
-        // Language selection
-        Padding(
-          padding: const EdgeInsets.only(right: 16.0),
-          child: PopupMenuButton<Locale>(
-            icon: Icon(Icons.language, color: _themeService.textColor),
-            color: _themeService.surfaceColor,
-            onSelected: (Locale locale) {
-              context.setLocale(locale);
-            },
-            itemBuilder: (BuildContext context) {
-              return context.supportedLocales.map((locale) {
-                return PopupMenuItem(
-                  value: locale,
-                  child: Text(
-                    _getLanguageName(locale),
-                    style: TextStyle(color: _themeService.textColor),
-                  ),
-                );
-              }).toList();
-            },
-          ),
-        ),
-        if (entities.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: PopupMenuButton<String>(
-              icon: Icon(Icons.account_tree, color: _themeService.subtitleColor),
-              color: _themeService.surfaceColor,
-              onSelected: (String newValue) {
-                print("Selected Entity: $newValue");
-                setState(() {
-                  selectedEntity = newValue;
-                });
-              },
-              itemBuilder: (BuildContext context) {
-                return entities.map<PopupMenuEntry<String>>((entity) {
-                  final isSelected = entity['tenant'] == selectedEntity;
 
-                  return PopupMenuItem<String>(
-                    value: entity['tenant'],
-                    child: Container(
-                      color: isSelected ? _themeService.primaryAccent.withOpacity(0.1) : null,
-                      child: ListTile(
-                        leading: Icon(Icons.business, color: _themeService.primaryAccent),
-                        title: Text(
-                          entity['tenant'] ?? 'Unknown Tenant',
-                          style: TextStyle(color: _themeService.textColor),
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList();
-              },
-            ),
-          ),
+        // if (entities.isNotEmpty)
+        //   Padding(
+        //     padding: const EdgeInsets.only(right: 16.0),
+        //     child: PopupMenuButton<String>(
+        //       icon: Icon(Icons.account_tree, color: _themeService.subtitleColor),
+        //       color: _themeService.surfaceColor,
+        //       onSelected: (String newValue) {
+        //         print("Selected Entity: $newValue");
+        //         setState(() {
+        //           selectedEntity = newValue;
+        //         });
+        //       },
+        //       itemBuilder: (BuildContext context) {
+        //         return entities.map<PopupMenuEntry<String>>((entity) {
+        //           final isSelected = entity['tenant'] == selectedEntity;
+
+        //           return PopupMenuItem<String>(
+        //             value: entity['tenant'],
+        //             child: Container(
+        //               color: isSelected ? _themeService.primaryAccent.withOpacity(0.1) : null,
+        //               child: ListTile(
+        //                 leading: Icon(Icons.business, color: _themeService.primaryAccent),
+        //                 title: Text(
+        //                   entity['tenant'] ?? 'Unknown Tenant',
+        //                   style: TextStyle(color: _themeService.textColor),
+        //                 ),
+        //               ),
+        //             ),
+        //           );
+        //         }).toList();
+        //       },
+        //     ),
+        //   ),
         // Delete Tags button - only show in development
         if (Environment.isDevelopment)
           IconButton(
@@ -277,12 +247,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
               dashboardController.deleteTagsList();
             },
           ),
-        // Logout button
-        IconButton(
-          icon: Icon(Icons.logout),
-          color: Colors.red,
-          onPressed: () => AuthLogout.logout(context),
-        ),
+
 
         // Additional custom actions
         if (widget.actions != null) ...widget.actions!,
