@@ -86,7 +86,17 @@ class _CustomAppBarState extends State<CustomAppBar> {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      title: Text(widget.title.tr()),
+      backgroundColor: _themeService.surfaceColor,
+      foregroundColor: _themeService.textColor,
+      title: Text(
+        widget.title.tr(),
+        style: TextStyle(
+          color: _themeService.textColor,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      elevation: _themeService.isDarkMode ? 0 : 1,
+      shadowColor: _themeService.isDarkMode ? null : Colors.grey.withOpacity(0.2),
       actions: [
         // Padding(
         //   padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -132,7 +142,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
           child: IconButton(
             icon: Icon(Icons.refresh),
-            color: Colors.blue,
+            color: _themeService.primaryAccent,
             tooltip: "Refresh",
             onPressed: () => context.pushReplacement(dashboardRoute),
           ),
@@ -205,7 +215,8 @@ class _CustomAppBarState extends State<CustomAppBar> {
         Padding(
           padding: const EdgeInsets.only(right: 16.0),
           child: PopupMenuButton<Locale>(
-            icon: Icon(Icons.language, color: Colors.black),
+            icon: Icon(Icons.language, color: _themeService.textColor),
+            color: _themeService.surfaceColor,
             onSelected: (Locale locale) {
               context.setLocale(locale);
             },
@@ -213,7 +224,10 @@ class _CustomAppBarState extends State<CustomAppBar> {
               return context.supportedLocales.map((locale) {
                 return PopupMenuItem(
                   value: locale,
-                  child: Text(_getLanguageName(locale)),
+                  child: Text(
+                    _getLanguageName(locale),
+                    style: TextStyle(color: _themeService.textColor),
+                  ),
                 );
               }).toList();
             },
@@ -223,7 +237,8 @@ class _CustomAppBarState extends State<CustomAppBar> {
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: PopupMenuButton<String>(
-              icon: Icon(Icons.account_tree, color: Colors.grey),
+              icon: Icon(Icons.account_tree, color: _themeService.subtitleColor),
+              color: _themeService.surfaceColor,
               onSelected: (String newValue) {
                 print("Selected Entity: $newValue");
                 setState(() {
@@ -237,10 +252,13 @@ class _CustomAppBarState extends State<CustomAppBar> {
                   return PopupMenuItem<String>(
                     value: entity['tenant'],
                     child: Container(
-                      color: isSelected ? Colors.blue.withOpacity(0.1) : null,
+                      color: isSelected ? _themeService.primaryAccent.withOpacity(0.1) : null,
                       child: ListTile(
-                        leading: Icon(Icons.business, color: Colors.blue),
-                        title: Text(entity['tenant'] ?? 'Unknown Tenant'),
+                        leading: Icon(Icons.business, color: _themeService.primaryAccent),
+                        title: Text(
+                          entity['tenant'] ?? 'Unknown Tenant',
+                          style: TextStyle(color: _themeService.textColor),
+                        ),
                       ),
                     ),
                   );

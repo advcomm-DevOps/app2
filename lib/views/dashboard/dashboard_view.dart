@@ -2741,10 +2741,22 @@ class _DashboardViewState extends State<DashboardView> {
         title: "dashboard.dashboard",
         context: context,
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return _buildMainLayout(hasChannels, constraints);
-        },
+      body: Column(
+        children: [
+          // Horizontal divider between AppBar and content
+          Container(
+            width: double.infinity,
+            height: 1,
+            color: borderColor,
+          ),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return _buildMainLayout(hasChannels, constraints);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
