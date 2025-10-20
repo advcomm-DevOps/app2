@@ -750,7 +750,7 @@ class _DashboardViewState extends State<DashboardView> {
                         controller: expireAtController,
                         readOnly: true,
                         decoration: InputDecoration(
-                          labelText: 'Expire At *',
+                          labelText: 'Expire At (Optional)',
                           labelStyle: const TextStyle(color: Colors.white70),
                           hintText: 'Select expiration date and time',
                           hintStyle: const TextStyle(color: Colors.white54),
@@ -823,8 +823,7 @@ class _DashboardViewState extends State<DashboardView> {
                   ),
                   onPressed: () {
                     if (tagController.text.isEmpty ||
-                        tagDescriptionController.text.isEmpty ||
-                        expireAtController.text.isEmpty) {
+                        tagDescriptionController.text.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Please fill in all required fields.'),

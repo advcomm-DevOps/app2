@@ -709,9 +709,8 @@ class DashboardController {
       final tagData = {
         "tag": tag,
         "tagDescription": tagDescription,
-        "expireAt": expireAt,
+        "expireAt": (expireAt.trim().isEmpty) ? null : expireAt,
       };
-
       // Set headers including Content-Type
       dio.options.headers = {
         "Authorization": "Bearer $token",
