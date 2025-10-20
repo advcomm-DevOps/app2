@@ -3001,7 +3001,10 @@ class _DashboardViewState extends State<DashboardView> {
                         GestureDetector(
                           onTap: () {
                             Navigator.of(context).pop();
-                            _showLogoutDialog();
+                            // Use a slight delay to ensure the profile popup is fully closed
+                            Future.delayed(const Duration(milliseconds: 100), () {
+                              _showLogoutDialog();
+                            });
                           },
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
