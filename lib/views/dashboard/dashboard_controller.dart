@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-// import 'package:xdoc/custom/constants.dart';
+import 'package:xdoc/custom/constants.dart';
 import 'package:xdoc/custom/services/sso.dart';
 import 'package:xdoc/custom/services/encryption.dart';
 import 'package:xdoc/views/dashboard/dashboard_replication.dart';
@@ -11,8 +11,8 @@ import 'package:tenant_replication/tenant_replication.dart';
 
 class DashboardController {
   final Dio dio = Dio();
-  // final String apiUrl = 'https://$audDomain';
-  final String apiUrl = 'http://localhost:3000';
+  final String apiUrl = 'https://$audDomain';
+  //final String apiUrl = 'http://localhost:3000';
   final String qrurl = 'https://web.xdoc.app/c/';
   
   final FlutterSecureStorage secureStorage = FlutterSecureStorage();
