@@ -1379,6 +1379,7 @@ class _DashboardViewState extends State<DashboardView> {
   int? selectedTagIndexLocal;
   bool showWebView = false;
   Map<String, dynamic>? selectedTagData;
+  bool isLoadingTags = false;
 
     showDialog(
       context: context,
@@ -1389,6 +1390,7 @@ class _DashboardViewState extends State<DashboardView> {
               setState(() {
                 pubTags = [];
                 selectedTagIndexLocal = null;
+                isLoadingTags = true;
               });
               final channel = pubChannels[channelIdx];
               final channelName = channel['channelname'] ?? channel.toString();
@@ -1397,8 +1399,12 @@ class _DashboardViewState extends State<DashboardView> {
                 final tags = await dashboardController.getPubChannelTags(entity, channelName);
                 setState(() {
                   pubTags = tags;
+                  isLoadingTags = false;
                 });
               } catch (e) {
+                setState(() {
+                  isLoadingTags = false;
+                });
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Error fetching tags: $e')),
                 );
@@ -1592,7 +1598,7 @@ class _DashboardViewState extends State<DashboardView> {
                       Row(
                         children: [
                           const Text('Select Tag:', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
-                          if (pubChannels.length == 1 && pubTags.isEmpty)
+                          if (isLoadingTags)
                             const Padding(
                               padding: EdgeInsets.only(left: 8.0),
                               child: SizedBox(
@@ -1604,9 +1610,9 @@ class _DashboardViewState extends State<DashboardView> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      if (pubTags.isEmpty && pubChannels.length > 1)
+                      if (pubTags.isEmpty && !isLoadingTags)
                         const Text('No tags found for this channel', style: TextStyle(color: Colors.redAccent)),
-                      if (pubTags.isEmpty && pubChannels.length == 1)
+                      if (isLoadingTags)
                         const Text('Loading tags for auto-selected channel...', style: TextStyle(color: Colors.white54)),
                       if (pubTags.isNotEmpty)
                         Wrap(
