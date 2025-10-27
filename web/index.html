@@ -35,6 +35,14 @@
   <script src="sqflite_sw.js"></script>
 </head>
 <body>
+  <!-- Disable camera/microphone permissions for inappwebview -->
+  <script>
+    // Disable camera/microphone permissions for inappwebview
+    navigator.mediaDevices = navigator.mediaDevices || {};
+    navigator.mediaDevices.getUserMedia = navigator.mediaDevices.getUserMedia || function() {
+      return Promise.reject(new Error('Camera access disabled'));
+    };
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
