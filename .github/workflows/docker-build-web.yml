@@ -2,7 +2,7 @@ name: Build and Push Flutter Web Docker Image
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, 'test-deploy/**']
     tags: ['v*']
   pull_request:
     branches: [main, master]
@@ -11,6 +11,7 @@ env:
   REGISTRY: docker.io
   IMAGE_NAME: xdoc-web
   DOCKER_USERNAME: syednhashmi
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -39,18 +40,14 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
+            type=sha,format=short
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -60,15 +57,33 @@ jobs:
       - name: Image Summary
         if: github.event_name != 'pull_request'
         run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
           echo "🚀 **Flutter Web Docker Image Built Successfully!**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** \`${{ env.REGISTRY }}/${{ env.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Tags:** ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags Created:**" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ env.REGISTRY }}/${{ env.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${SHORT_SHA}\`" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.ref_name }}" == "main" ] || [ "${{ github.ref_name }}" == "master" ]; then
+            echo "- \`${{ env.REGISTRY }}/${{ env.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest\`" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Usage:** This container builds Flutter web files and copies them to \`/var/www/html-podman/xdoc-web\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Deploy with volume mount:**" >> $GITHUB_STEP_SUMMARY
+          echo "**Deploy command:**" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "docker pull ${{ env.REGISTRY }}/${{ env.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
-          echo "docker run -d --name xdoc-web -v /var/www/html-podman:/var/www/html-podman ${{ env.REGISTRY }}/${{ env.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.REGISTRY }}/${{ env.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${SHORT_SHA}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Deploy to ws1 via MnM
+        if: github.event_name != 'pull_request' && (github.ref_name == 'main' || github.ref_name == 'master' || startsWith(github.ref_name, 'test-deploy/'))
+        run: |
+          curl -X POST http://95.216.195.216:5000/deploy \
+            -H "x-auth-token: mnm-super-secret-123" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "repository": "xdocapp/flutter-web",
+              "deployment_type": "docker",
+              "commit": "${{ github.sha }}",
+              "author": "${{ github.event.head_commit.author.name }}"
+            }'
