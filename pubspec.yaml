@@ -71,7 +71,7 @@ flutter_icons:
 
 msix_config:
   display_name: XDoc Test
-  msix_version: 0.0.0.1
+  msix_version: 0.0.0.2
   publisher_display_name: XDoc Testing
   identity_name: com.xdocapp.test
   publisher: CN=XDoc Test
