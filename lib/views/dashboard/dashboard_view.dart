@@ -118,6 +118,25 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
+  // Helper method to create properly encoded QR URL
+  String createQrUrl({
+    required String entity,
+    required String channel,
+    String? tagId,
+  }) {
+    final encodedEntity = Uri.encodeQueryComponent(entity);
+    final encodedChannel = Uri.encodeQueryComponent(channel);
+    
+    String url = "$qrurl&entity=$encodedEntity&channel=$encodedChannel";
+    
+    if (tagId != null && tagId.isNotEmpty) {
+      final encodedTagId = Uri.encodeQueryComponent(tagId);
+      url += "&id=$encodedTagId";
+    }
+    
+    return url;
+  }
+
   Future<void> loadSelectedEntity() async {
     final ssoService = SSOService();
     final entity = await ssoService.getSelectedEntity();
@@ -1895,8 +1914,10 @@ class _DashboardViewState extends State<DashboardView> {
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  String qrData = "$qrurl&entity=$selectedEntity"
-                      "&channel=${channels[index]["channelname"]}";
+                  String qrData = createQrUrl(
+                    entity: selectedEntity,
+                    channel: channels[index]["channelname"],
+                  );
                   showQrDialog(context, qrData, index);
                 },
               ),
@@ -1936,9 +1957,11 @@ class _DashboardViewState extends State<DashboardView> {
                   ),
                   onTap: () {
                     Navigator.pop(context);
-                    String qrData = "$qrurl&entity=$selectedEntity"
-                        "&channel=${channels[index]["channelname"]}"
-                        "&id=${tag["channeltagid"]}";
+                    String qrData = createQrUrl(
+                      entity: selectedEntity,
+                      channel: channels[index]["channelname"],
+                      tagId: tag["channeltagid"]?.toString(),
+                    );
                     showQrDialog(context, qrData, index);
                   },
                 );
