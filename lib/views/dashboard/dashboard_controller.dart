@@ -48,6 +48,12 @@ class DashboardController {
       {"sender": "User B", "message": "Sure, ask me anything."},
     ],
   };
+
+  // Logging system for tracking operations
+  final Map<String, List<Map<String, dynamic>>> temporaryLogs = {
+    "success": [],
+    "fail": [],
+  };
   final List<Map<String, String>> actionButtons1 = [
     {"label": "Accept", "html": "<button>Accept</button>"},
     {
@@ -259,6 +265,43 @@ class DashboardController {
     }
   }
 
+  // Logging helper methods
+  void _logSuccess(String message) {
+    final now = DateTime.now();
+    final timestamp = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+    
+    temporaryLogs["success"]!.add({
+      "time": timestamp,
+      "message": message,
+    });
+    
+    print("✅ SUCCESS LOG: $message at $timestamp");
+  }
+
+  void _logFailure(String message) {
+    final now = DateTime.now();
+    final timestamp = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+    
+    temporaryLogs["fail"]!.add({
+      "time": timestamp,
+      "message": message,
+    });
+    
+    print("❌ FAILURE LOG: $message at $timestamp");
+  }
+
+  // Method to get all logs
+  Map<String, List<Map<String, dynamic>>> getAllLogs() {
+    return Map.from(temporaryLogs);
+  }
+
+  // Method to clear logs
+  void clearLogs() {
+    temporaryLogs["success"]!.clear();
+    temporaryLogs["fail"]!.clear();
+    print("🧹 All logs cleared");
+  }
+
   Future<String> getJwt() async {
     final FlutterSecureStorage secureStorage = FlutterSecureStorage();
     final String? jwtToken = await secureStorage.read(key: "JWT_Token");
@@ -285,17 +328,21 @@ class DashboardController {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         print("Onboarded entity successfully: ${response.data}");
+        _logSuccess("Entity onboarded successfully");
         return true;
       } else {
         print("Failed to onboard entity: ${response.statusCode}");
+        _logFailure("Failed to onboard entity - Status: ${response.statusCode}");
         return false;
       }
     } on DioException catch (e) {
       print("Dio error onboarding entity: ${e.message}");
       print("Response: ${e.response?.data}");
+      _logFailure("Dio error onboarding entity: ${e.message}");
       return false;
     } catch (e) {
       print("Error onboarding entity: $e");
+      _logFailure("Error onboarding entity: $e");
       return false;
     }
   }
@@ -462,13 +509,18 @@ class DashboardController {
       print('Create channel response: ${response.data}');
       if (response.statusCode == 200 || response.statusCode == 201) {
         print("Channel created successfully: ${response.data}");
+        _logSuccess("Channel '$channelName' created successfully");
         return true;
+      } else {
+        _logFailure("Failed to create channel '$channelName' - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error creating channel: ${e.message}");
       print("Response: ${e.response?.data}");
+      _logFailure("Dio error creating channel '$channelName': ${e.message}");
     } catch (e) {
       print("Error creating channel: $e");
+      _logFailure("Error creating channel '$channelName': $e");
     }
     return false;
   }
@@ -511,17 +563,21 @@ class DashboardController {
           newChannelName: newSecQr!,
           tagName: tagname!,
         );
+        _logSuccess("Joined channel '$channelName' successfully");
         return true;
       } else {
         print("Failed to join channel: ${response.statusCode}");
+        _logFailure("Failed to join channel '$channelName' - Status: ${response.statusCode}");
         return false;
       }
     } on DioException catch (e) {
       print("Dio error joining channel: ${e.message}");
       print("Response: ${e.response?.data}");
+      _logFailure("Dio error joining channel '$channelName': ${e.message}");
       return false;
     } catch (e) {
       print("Error joining channel: $e");
+      _logFailure("Error joining channel '$channelName': $e");
       return false;
     }
   }
@@ -728,13 +784,18 @@ class DashboardController {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         print("Tag created successfully: ${response.data}");
+        _logSuccess("Tag '$tag' created successfully in channel '$channelName'");
         return true;
+      } else {
+        _logFailure("Failed to create tag '$tag' in channel '$channelName' - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error creating tag: ${e.message}");
       print("Response: ${e.response?.data}");
+      _logFailure("Dio error creating tag '$tag': ${e.message}");
     } catch (e) {
       print("Error creating tag: $e");
+      _logFailure("Error creating tag '$tag': $e");
     }
     return false;
   }
@@ -934,13 +995,18 @@ class DashboardController {
         String parentEntity = await getSelectedEntity();
         addOrUpdateEntityKeys(parentEntity, publicKey, privateKey);
         print("Public key uploaded successfully: ${response.data}");
+        _logSuccess("Public key uploaded successfully for entity '$parentEntity'");
         return true;
+      } else {
+        _logFailure("Failed to upload public key - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error uploading public key: ${e.message}");
       print("Response: ${e.response?.data}");
+      _logFailure("Dio error uploading public key: ${e.message}");
     } catch (e) {
       print("Error uploading public key: $e");
+      _logFailure("Error uploading public key: $e");
     }
     return false;
   }
@@ -1040,18 +1106,22 @@ class DashboardController {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         // print("Document created successfully: ${response.data}");
+        _logSuccess("Encrypted document created successfully for entity '$entityName' in channel '$channelName'");
         return true;
       } else {
         print("Failed to create document: ${response.statusCode}");
         print("Error: ${response.data}");
+        _logFailure("Failed to create encrypted document for entity '$entityName' - Status: ${response.statusCode}");
         return false;
       }
     } on DioException catch (e) {
       print("Dio error creating document: ${e.message}");
       print("Response: ${e.response?.data}");
+      _logFailure("Dio error creating encrypted document for entity '$entityName': ${e.message}");
       return false;
     } catch (e) {
       print("Error creating document: $e");
+      _logFailure("Error creating encrypted document for entity '$entityName': $e");
       return false;
     }
   }
@@ -1157,18 +1227,22 @@ class DashboardController {
       if (updateResponse.statusCode == 200 ||
           updateResponse.statusCode == 201) {
         print("Document updated successfully: ${updateResponse.data}");
+        _logSuccess("Document '$docid' updated successfully with action '$actionName'");
         return true;
       } else {
         print("Failed to create document: ${updateResponse.statusCode}");
         print("Error: ${updateResponse.data}");
+        _logFailure("Failed to update document '$docid' with action '$actionName' - Status: ${updateResponse.statusCode}");
         return false;
       }
     } on DioException catch (e) {
       print("Dio error creating document: ${e.message}");
       print("Response: ${e.response?.data}");
+      _logFailure("Dio error updating document '$docid' with action '$actionName': ${e.message}");
       return false;
     } catch (e) {
       print("Error creating document: $e");
+      _logFailure("Error updating document '$docid' with action '$actionName': $e");
       return false;
     }
   }
