@@ -62,6 +62,7 @@ class _DashboardViewState extends State<DashboardView> {
   bool isComposeMode = false;
   Locale? _currentLocale;
   bool isSidebarCollapsed = false; // Track sidebar collapse state
+  bool _isProfileHovered = false; // Track profile hover state
 
   final ThemeService _themeService = ThemeService();
 
@@ -2949,67 +2950,102 @@ class _DashboardViewState extends State<DashboardView> {
 
   // Discord-like settings area for left sidebar
   Widget _buildLeftSidebarSettingsArea(double sidebarWidth) {
-    return Container(
-      height: 60,
-      margin: const EdgeInsets.all(8.0),
-      decoration: BoxDecoration(
-        color: surfaceColor.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: borderColor.withOpacity(0.3),
-          width: 1,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isProfileHovered = true),
+      onExit: (_) => setState(() => _isProfileHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 60,
+        margin: const EdgeInsets.all(8.0),
+        decoration: BoxDecoration(
+          color: _isProfileHovered 
+            ? surfaceColor.withOpacity(0.9)
+            : surfaceColor.withOpacity(0.8),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: _isProfileHovered 
+              ? borderColor.withOpacity(0.6)
+              : borderColor.withOpacity(0.3),
+            width: _isProfileHovered ? 1.5 : 1,
+          ),
+          boxShadow: _isProfileHovered
+            ? [
+                BoxShadow(
+                  color: primaryAccent.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
         ),
-      ),
-      child: GestureDetector(
-        onTap: () => _showDiscordStyleProfile(context),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-          child: Row(
-            children: [
-              // User avatar
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: primaryAccent,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.person,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              if (!isSidebarCollapsed) ...[
-                const SizedBox(width: 12),
-                // User info (only show when not collapsed)
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        selectedEntityForSwitching ?? (selectedEntity.isNotEmpty ? selectedEntity : 'No Entity'),
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        'Online',
-                        style: TextStyle(
-                          color: subtitleColor,
-                          fontSize: 10,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+        child: GestureDetector(
+          onTap: () => _showDiscordStyleProfile(context),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+            child: Row(
+              children: [
+                // User avatar with hover effect
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: _isProfileHovered 
+                      ? primaryAccent.withOpacity(0.9)
+                      : primaryAccent,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: _isProfileHovered
+                      ? [
+                          BoxShadow(
+                            color: primaryAccent.withOpacity(0.4),
+                            blurRadius: 6,
+                            offset: const Offset(0, 1),
+                          ),
+                        ]
+                      : null,
+                  ),
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 20,
                   ),
                 ),
+                if (!isSidebarCollapsed) ...[
+                  const SizedBox(width: 12),
+                  // User info (only show when not collapsed)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          selectedEntityForSwitching ?? (selectedEntity.isNotEmpty ? selectedEntity : 'No Entity'),
+                          style: TextStyle(
+                            color: _isProfileHovered 
+                              ? textColor.withOpacity(0.95)
+                              : textColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          'Online',
+                          style: TextStyle(
+                            color: _isProfileHovered 
+                              ? subtitleColor.withOpacity(0.9)
+                              : subtitleColor,
+                            fontSize: 10,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -3797,41 +3833,23 @@ class _DashboardViewState extends State<DashboardView> {
               color: backgroundColor,
               child: Column(
                 children: [
-                  // Logo and Toggle Button Row
+                  // Logo Section (always visible)
                   Padding(
-                    padding:
-                        const EdgeInsets.only(left: 8.0, right: 8.0, top: 8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Logo
-                        if (!isSidebarCollapsed)
-                          CircleAvatar(
-                            radius: constraints.maxWidth > 1200 ? 24 : 20,
-                            backgroundColor: Colors.transparent,
-                            child: SvgPicture.asset(
-                              'assets/images/xdoc_logo.svg',
-                              width: constraints.maxWidth > 1200 ? 40 : 32,
-                              height: constraints.maxWidth > 1200 ? 40 : 32,
-                            ),
-                          ),
-                        // Toggle Button
-                        IconButton(
-                          onPressed: () {
-                            setState(() {
-                              isSidebarCollapsed = !isSidebarCollapsed;
-                            });
-                          },
-                          icon: Icon(
-                            isSidebarCollapsed ? Icons.menu : Icons.menu_open,
-                            color: textColor,
-                            size: 20,
-                          ),
-                          tooltip: isSidebarCollapsed
-                              ? 'Expand Sidebar'
-                              : 'Collapse Sidebar',
-                        ),
-                      ],
+                    padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 8.0),
+                    child: CircleAvatar(
+                      radius: isSidebarCollapsed 
+                        ? 18 
+                        : (constraints.maxWidth > 1200 ? 24 : 20),
+                      backgroundColor: Colors.transparent,
+                      child: SvgPicture.asset(
+                        'assets/images/xdoc_logo.svg',
+                        width: isSidebarCollapsed 
+                          ? 28 
+                          : (constraints.maxWidth > 1200 ? 40 : 32),
+                        height: isSidebarCollapsed 
+                          ? 28 
+                          : (constraints.maxWidth > 1200 ? 40 : 32),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -4097,6 +4115,46 @@ class _DashboardViewState extends State<DashboardView> {
               ),
             ),
           ],
+        ),
+        // Small button positioned at the divider line in front of logo
+        Positioned(
+          left: sidebarWidth - 12, // Position at the edge of sidebar
+          top: 24, // Align with logo area
+          child: Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: primaryAccent.withOpacity(0.9),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: backgroundColor,
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () {
+                  setState(() {
+                    isSidebarCollapsed = !isSidebarCollapsed;
+                  });
+                },
+                child: Icon(
+                  isSidebarCollapsed ? Icons.chevron_right : Icons.chevron_left,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              ),
+            ),
+          ),
         ),
         if (isUploading)
           Center(
