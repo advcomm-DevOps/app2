@@ -354,8 +354,10 @@ class DashboardController {
       dio.options.headers["Authorization"] = "Bearer $token";
       final response = await dio.get('$apiUrl/public-interconnects');
       publicInterconnects = response.data;
+      _logSuccess("Public interconnects fetched successfully");
     } catch (e) {
       print('Error fetching public interconnects: $e');
+      _logFailure("Error fetching public interconnects: $e");
     }
     return publicInterconnects;
   }
@@ -375,15 +377,19 @@ class DashboardController {
 
       if (response.statusCode == 200) {
         print("Channels fetched successfully: ${response.data}");
+        _logSuccess("Pub channels fetched successfully for entity '$entity'");
         return response.data; // assuming API returns a JSON array
       } else {
         print("Failed to fetch channels. Status code: ${response.statusCode}");
+        _logFailure("Failed to fetch pub channels for entity '$entity' - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error fetching channels: ${e.message}");
       print("Response: ${e.response?.data}");
+      _logFailure("Dio error fetching pub channels for entity '$entity': ${e.message}");
     } catch (e) {
       print("Error fetching channels: $e");
+      _logFailure("Error fetching pub channels for entity '$entity': $e");
     }
     return [];
   }
@@ -400,15 +406,19 @@ class DashboardController {
 
       if (response.statusCode == 200) {
         print("Channel tags fetched successfully: ${response.data}");
+        _logSuccess("Pub channel tags fetched successfully for entity '$entity', channel '$channelName'");
         return response.data; // assuming API returns a JSON array
       } else {
         print("Failed to fetch channel tags. Status code: ${response.statusCode}");
+        _logFailure("Failed to fetch pub channel tags for entity '$entity', channel '$channelName' - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error fetching channel tags: ${e.message}");
       print("Response: ${e.response?.data}");
+      _logFailure("Dio error fetching pub channel tags for entity '$entity', channel '$channelName': ${e.message}");
     } catch (e) {
       print("Error fetching channel tags: $e");
+      _logFailure("Error fetching pub channel tags for entity '$entity', channel '$channelName': $e");
     }
     return [];
   }
@@ -442,6 +452,7 @@ class DashboardController {
       );
     } catch (e) {
       print("Error fetching $tableName: $e");
+      _logFailure("Error fetching $tableName: $e");
     }
   }
   // Future<List<Map<String, dynamic>>> fetchChannels() async {
@@ -478,8 +489,10 @@ class DashboardController {
           await dio.get('$apiUrl/respondent-actors/$interconnectId');
           print('Respondent actors response: ${response.data}');
       actors = response.data;
+      _logSuccess("Respondent actors fetched successfully for interconnect '$interconnectId'");
     } catch (e) {
       print('Error fetching respondent actors: $e');
+      _logFailure("Error fetching respondent actors for interconnect '$interconnectId': $e");
     }
     return actors;
   }
@@ -818,15 +831,19 @@ class DashboardController {
 
       if (response.statusCode == 200) {
         print("Docs fetched successfully: ${response.data}");
+        _logSuccess("Docs fetched successfully for channel '$channelName'");
         return response.data; // assuming API returns a JSON array
       } else {
         print("Failed to fetch docs. Status code: ${response.statusCode}");
+        _logFailure("Failed to fetch docs for channel '$channelName' - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error fetching docs: ${e.message}");
       print("Response: ${e.response?.data}");
+      _logFailure("Dio error fetching docs for channel '$channelName': ${e.message}");
     } catch (e) {
       print("Error fetching docs: $e");
+      _logFailure("Error fetching docs for channel '$channelName': $e");
     }
     return [];
   }
@@ -856,14 +873,19 @@ class DashboardController {
 
       if (response.statusCode == 200) {
         print("Fetched context and public key successfully:");
+        _logSuccess("Context and public key fetched successfully for entity '$entityName', channel '$channelName', tag '$tagId'");
         return response.data;
+      } else {
+        _logFailure("Failed to fetch context and public key for entity '$entityName', channel '$channelName', tag '$tagId' - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error fetching context and public key: ${e.message}");
       print("Response: ${e.response?.data}");
+      _logFailure("Dio error fetching context and public key for entity '$entityName': ${e.message}");
       return e.response?.data;
     } catch (e) {
       print("Error fetching context and public key: $e");
+      _logFailure("Error fetching context and public key for entity '$entityName': $e");
     }
     return null;
   }
@@ -954,6 +976,7 @@ class DashboardController {
         mac: mac,
       );
 
+      _logSuccess("Document details fetched and decrypted successfully for document '$docId'");
       return {
         "data": data,
         "jsonData": decryptedDoc,
@@ -962,9 +985,11 @@ class DashboardController {
     } on DioException catch (e) {
       print("Dio error fetching document details: ${e.message}");
       print("Response: ${e.response?.data}");
+      _logFailure("Dio error fetching document details for document '$docId': ${e.message}");
       return e.response?.data;
     } catch (e) {
       print("Error fetching document details: $e");
+      _logFailure("Error fetching document details for document '$docId': $e");
       return null;
     }
   }
@@ -1268,16 +1293,20 @@ class DashboardController {
 
       if (response.statusCode == 200) {
         print("Channel details fetched successfully: ${response.data}");
+        _logSuccess("Channel details fetched successfully for entity '$entityId', channel '$channelName', tag '$tagId'");
         return response.data; // Assuming API returns JSON object or array
       } else {
         print(
             "Failed to fetch channel details. Status code: ${response.statusCode}");
+        _logFailure("Failed to fetch channel details for entity '$entityId', channel '$channelName', tag '$tagId' - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error fetching channel details: ${e.message}");
       print("Response: ${e.response?.data}");
+      _logFailure("Dio error fetching channel details for entity '$entityId', channel '$channelName': ${e.message}");
     } catch (e) {
       print("Error fetching channel details: $e");
+      _logFailure("Error fetching channel details for entity '$entityId', channel '$channelName': $e");
     }
     return null;
   }
