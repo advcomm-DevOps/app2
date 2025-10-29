@@ -18,6 +18,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'platform_web.dart' if (dart.library.io) 'platform_non_web.dart';
 import 'package:liquid_engine/liquid_engine.dart';
 import 'dashboard_controller.dart';
+import 'dashboard_logs_view.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uids_io_sdk_flutter/auth_logout.dart';
@@ -3054,6 +3055,7 @@ class _DashboardViewState extends State<DashboardView> {
                         // Menu Options
                         _buildSimpleProfileMenuItem(Icons.swap_horiz, 'Switch Account'),
                         _buildSimpleProfileMenuItem(Icons.language, 'Select Language'),
+                        _buildSimpleProfileMenuItem(Icons.list_alt, 'View Logs'),
                         
                         // Divider
                         Container(
@@ -3132,6 +3134,9 @@ class _DashboardViewState extends State<DashboardView> {
         break;
       case 'Select Language':
         _showLanguageDialog();
+        break;
+      case 'View Logs':
+        DashboardLogsView.showLogsDialog(context, dashboardController);
         break;
     }
   }
