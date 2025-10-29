@@ -538,6 +538,41 @@ class DashboardController {
     return false;
   }
 
+  Future<bool> deleteChannel(String channelId) async {
+    String token = await getJwt();
+    print('Deleting channel with ID: $channelId');
+    try {
+      // Set headers including Content-Type
+      dio.options.headers = {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      };
+      final response = await dio.delete(
+        '$apiUrl/channel/$channelId',
+        options: Options(
+          contentType: 'application/json',
+        ),
+      );
+      print('Delete channel response: ${response.data}');
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        print("Channel deleted successfully: ${response.data}");
+        _logSuccess("Channel '$channelId' deleted successfully");
+        return true;
+      } else {
+        _logFailure("Failed to delete channel '$channelId' - Status: ${response.statusCode}");
+      }
+    } on DioException catch (e) {
+      print("Dio error deleting channel: ${e.message}");
+      print("Response: ${e.response?.data}");
+      _logFailure("Dio error deleting channel '$channelId': ${e.message}");
+    } catch (e) {
+      print("Error deleting channel: $e");
+      _logFailure("Error deleting channel '$channelId': $e");
+    }
+    return false;
+  }
+
   Future<String> getSelectedEntity() async {
     final ssoService = SSOService();
     final String? entity = await ssoService.getSelectedEntity();

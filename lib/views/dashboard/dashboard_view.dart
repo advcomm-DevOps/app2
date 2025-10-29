@@ -2078,24 +2078,77 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  void _deleteChannel(int index) {
-    // Add your delete channel logic here
+  void _deleteChannel(int index) async {
     final channelName = channels[index]["channelname"];
+    final channelId = channels[index]["channelid"]?.toString() ?? channels[index]["id"]?.toString();
     
-    // For now, just show a success message
-    // You can implement the actual API call to delete the channel
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Channel "$channelName" will be deleted (API implementation needed)'),
-        backgroundColor: Colors.orange,
-      ),
-    );
+    if (channelId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to delete: Channel ID not found'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     
-    // TODO: Implement actual delete channel API call
-    // Example: await dashboardController.deleteChannel(channelName);
-    
-    // After successful deletion, refresh the channels list
-    // fetchChannels();
+    try {
+      // Show loading state
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Deleting channel "$channelName"...'),
+          backgroundColor: Colors.blue,
+        ),
+      );
+      
+      // Call the delete channel API
+      bool success = await dashboardController.deleteChannel(channelId);
+      
+      if (success) {
+        // Clear selection if deleted channel was selected
+        if (selectedChannelIndex == index) {
+          setState(() {
+            selectedChannelIndex = null;
+            selectedDocIndex = null;
+            selectedjoinedTagIndex = null;
+            selectedTagIndex = null;
+            docs = [];
+            joinedTags = [];
+            currentChatMessages = [];
+          });
+        } else if (selectedChannelIndex != null && selectedChannelIndex! > index) {
+          // Adjust selected index if it's after the deleted channel
+          setState(() {
+            selectedChannelIndex = selectedChannelIndex! - 1;
+          });
+        }
+        
+        // Refresh the channels list
+        fetchChannels();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Channel "$channelName" deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete channel "$channelName"'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      print("Error deleting channel: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error deleting channel: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void getContextAndPublicKey(
@@ -2312,38 +2365,66 @@ class _DashboardViewState extends State<DashboardView> {
                     ),
                 ],
               ),
-              child: ListTile(
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                leading: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? (isDarkMode
-                            ? Colors.white.withOpacity(0.2)
-                            : primaryAccent.withOpacity(0.15))
-                        : (isDarkMode ? Colors.grey[700] : borderColor),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    isTag ? Icons.label_outline : Icons.description_outlined,
-                    color: isSelected
-                        ? (isDarkMode ? Colors.white : primaryAccent)
-                        : subtitleColor,
-                    size: 20,
-                  ),
-                ),
-                title: Text(
-                  displayName,
-                  style: TextStyle(
-                    color: isSelected
-                        ? (isDarkMode ? Colors.white : primaryAccent)
-                        : textColor,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    fontSize: 14,
-                  ),
-                ),
+              child: Tooltip(
+                message: _docsWidth < 120 ? displayName : '',
+                child: _docsWidth < 120
+                    ? Container(
+                        padding: const EdgeInsets.all(12),
+                        child: Center(
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? (isDarkMode
+                                      ? Colors.white.withOpacity(0.2)
+                                      : primaryAccent.withOpacity(0.15))
+                                  : (isDarkMode ? Colors.grey[700] : borderColor),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              isTag ? Icons.label_outline : Icons.description_outlined,
+                              color: isSelected
+                                  ? (isDarkMode ? Colors.white : primaryAccent)
+                                  : subtitleColor,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      )
+                    : ListTile(
+                        contentPadding:
+                            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? (isDarkMode
+                                    ? Colors.white.withOpacity(0.2)
+                                    : primaryAccent.withOpacity(0.15))
+                                : (isDarkMode ? Colors.grey[700] : borderColor),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            isTag ? Icons.label_outline : Icons.description_outlined,
+                            color: isSelected
+                                ? (isDarkMode ? Colors.white : primaryAccent)
+                                : subtitleColor,
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(
+                          displayName,
+                          style: TextStyle(
+                            color: isSelected
+                                ? (isDarkMode ? Colors.white : primaryAccent)
+                                : textColor,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
               ),
             ),
           );
@@ -2416,6 +2497,8 @@ class _DashboardViewState extends State<DashboardView> {
                     fontWeight: FontWeight.bold,
                   ),
                   overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  softWrap: false,
                 ),
               ),
               // No action buttons needed in header
@@ -3078,8 +3161,8 @@ class _DashboardViewState extends State<DashboardView> {
             final deltaX = details.globalPosition.dx - _dragStartX;
             final newWidth = _dragStartWidth + deltaX;
             
-            // Apply constraints
-            const minWidth = 150.0;
+            // Apply constraints - allow dragging left until only logo shows
+            const minWidth = 80.0;  // Increased slightly for better usability
             const maxWidth = 400.0;
             
             setState(() {
