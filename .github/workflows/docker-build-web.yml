@@ -82,7 +82,7 @@ jobs:
             -H "x-auth-token: mnm-super-secret-123" \
             -H "Content-Type: application/json" \
             -d '{
-              "repository": "xdocapp/flutter-web",
+              "repository": "xdocapp/web",
               "deployment_type": "docker",
               "commit": "${{ github.sha }}",
               "author": "${{ github.event.head_commit.author.name }}"
