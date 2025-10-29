@@ -64,6 +64,13 @@ class _DashboardViewState extends State<DashboardView> {
   bool isSidebarCollapsed = false; // Track sidebar collapse state
   bool _isProfileHovered = false; // Track profile hover state
 
+  // Resizable divider state
+  bool _isDividerHovered = false;
+  bool _isDragging = false;
+  double _docsWidth = 250.0; // Default docs panel width
+  double _dragStartX = 0.0;
+  double _dragStartWidth = 0.0;
+
   final ThemeService _themeService = ThemeService();
 
   List<dynamic> publicInterconnects = [];
@@ -3052,6 +3059,51 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
+  // Build resizable divider between docs and right panel
+  Widget _buildResizableDivider() {
+    return MouseRegion(
+      cursor: SystemMouseCursors.resizeColumn,
+      onEnter: (_) => setState(() => _isDividerHovered = true),
+      onExit: (_) => setState(() => _isDividerHovered = false),
+      child: GestureDetector(
+        onPanStart: (details) {
+          setState(() {
+            _isDragging = true;
+            _dragStartX = details.globalPosition.dx;
+            _dragStartWidth = _docsWidth;
+          });
+        },
+        onPanUpdate: (details) {
+          if (_isDragging) {
+            final deltaX = details.globalPosition.dx - _dragStartX;
+            final newWidth = _dragStartWidth + deltaX;
+            
+            // Apply constraints
+            const minWidth = 150.0;
+            const maxWidth = 400.0;
+            
+            setState(() {
+              _docsWidth = newWidth.clamp(minWidth, maxWidth);
+            });
+          }
+        },
+        onPanEnd: (details) {
+          setState(() {
+            _isDragging = false;
+          });
+        },
+        child: Container(
+          width: 1,
+          decoration: BoxDecoration(
+            color: _isDividerHovered || _isDragging
+                ? primaryAccent.withOpacity(0.8)
+                : borderColor,
+          ),
+        ),
+      ),
+    );
+  }
+
   // Show Discord-style profile popup
   void _showDiscordStyleProfile(BuildContext context) {
     showDialog(
@@ -3820,7 +3872,11 @@ class _DashboardViewState extends State<DashboardView> {
     final collapsedSidebarWidth = 75.0; // Width when collapsed
     final sidebarWidth =
         isSidebarCollapsed ? collapsedSidebarWidth : normalSidebarWidth;
-    final docsWidth = constraints.maxWidth > 1200 ? 250.0 : 200.0;
+    
+    // Initialize docs width if not set, make it responsive
+    if (_docsWidth == 250.0) {
+      _docsWidth = constraints.maxWidth > 1200 ? 280.0 : 220.0;
+    }
     // No need for channelSize since we're always showing full names
 
     return Stack(
@@ -3985,7 +4041,7 @@ class _DashboardViewState extends State<DashboardView> {
             ),
             // Middle Panel (Docs)
             Container(
-              width: docsWidth,
+              width: _docsWidth,
               color: surfaceColor,
               child: Column(
                 children: [
@@ -4019,11 +4075,8 @@ class _DashboardViewState extends State<DashboardView> {
                 ],
               ),
             ),
-            // Vertical divider between Middle Panel and Right Panel
-            Container(
-              width: 1,
-              color: borderColor,
-            ),
+            // Resizable divider between Middle Panel and Right Panel
+            _buildResizableDivider(),
             // Right Panel (Chat Panel)
             Expanded(
               child: Stack(
