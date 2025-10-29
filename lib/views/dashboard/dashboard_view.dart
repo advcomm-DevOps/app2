@@ -1942,24 +1942,24 @@ class _DashboardViewState extends State<DashboardView> {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (selectedChannelIndex != null &&
-                channels[selectedChannelIndex!]["actorsequence"] == 1)
-              ListTile(
-                leading: Icon(Icons.qr_code, color: textColor),
-                title: Text(
-                  'Show QR Code for ${channels[index]["channelname"]}',
-                  style: TextStyle(color: textColor),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  String qrData = createQrUrl(
-                    entity: selectedEntity,
-                    channel: channels[index]["channelname"],
-                  );
-                  showQrDialog(context, qrData, index);
-                },
-              ),
-            const SizedBox(height: 10),
+            // if (selectedChannelIndex != null &&
+            //     channels[selectedChannelIndex!]["actorsequence"] == 1)
+            //   ListTile(
+            //     leading: Icon(Icons.qr_code, color: textColor),
+            //     title: Text(
+            //       'Show QR Code for ${channels[index]["channelname"]}',
+            //       style: TextStyle(color: textColor),
+            //     ),
+            //     onTap: () {
+            //       Navigator.pop(context);
+            //       String qrData = createQrUrl(
+            //         entity: selectedEntity,
+            //         channel: channels[index]["channelname"],
+            //       );
+            //       showQrDialog(context, qrData, index);
+            //     },
+            //   ),
+            // const SizedBox(height: 10),
 
             // Create Tag Button
             if (selectedChannelIndex != null &&
@@ -2017,6 +2017,78 @@ class _DashboardViewState extends State<DashboardView> {
       },
     );
   } 
+
+  void _showDeleteChannelDialog(BuildContext context, int index) {
+    final channelName = channels[index]["channelname"];
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: surfaceColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            'Delete Channel',
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to delete channel "$channelName"? This action cannot be undone.',
+            style: TextStyle(color: subtitleColor),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: subtitleColor),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                _deleteChannel(index);
+              },
+              child: const Text(
+                'Delete',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _deleteChannel(int index) {
+    // Add your delete channel logic here
+    final channelName = channels[index]["channelname"];
+    
+    // For now, just show a success message
+    // You can implement the actual API call to delete the channel
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Channel "$channelName" will be deleted (API implementation needed)'),
+        backgroundColor: Colors.orange,
+      ),
+    );
+    
+    // TODO: Implement actual delete channel API call
+    // Example: await dashboardController.deleteChannel(channelName);
+    
+    // After successful deletion, refresh the channels list
+    // fetchChannels();
+  }
 
   void getContextAndPublicKey(
       oldEntityId, oldChannelName, tagId, isChannelOwner, index) async {
@@ -2803,21 +2875,8 @@ class _DashboardViewState extends State<DashboardView> {
           Positioned(
             top: 2,
             right: isSidebarCollapsed ? 4 : 12,
-            child: GestureDetector(
-              onTap: () async {
-                // Set the channel as selected if not already
-                if (selectedChannelIndex != index) {
-                  setState(() {
-                    selectedChannelIndex = index;
-                    selectedDocIndex = null;
-                    docs = [];
-                    currentChatMessages = [];
-                  });
-                }
-                await fetchTags(channels[index]["channelid"]);
-                _showChannelOptionsBottomSheet(context, index);
-              },
-              child: Container(
+            child: PopupMenuButton<String>(
+              icon: Container(
                 padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.3),
@@ -2829,6 +2888,58 @@ class _DashboardViewState extends State<DashboardView> {
                   size: 16,
                 ),
               ),
+              color: surfaceColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              itemBuilder: (BuildContext context) => [
+                PopupMenuItem<String>(
+                  value: 'channel_tags',
+                  child: Row(
+                    children: [
+                      Icon(Icons.label, color: textColor, size: 20),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Channel Tags',
+                        style: TextStyle(color: textColor),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'delete_channel',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete, color: Colors.red, size: 20),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Delete Channel',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              onSelected: (String value) async {
+                switch (value) {
+                  case 'channel_tags':
+                    // Set the channel as selected if not already
+                    if (selectedChannelIndex != index) {
+                      setState(() {
+                        selectedChannelIndex = index;
+                        selectedDocIndex = null;
+                        docs = [];
+                        currentChatMessages = [];
+                      });
+                    }
+                    await fetchTags(channels[index]["channelid"]);
+                    _showChannelOptionsBottomSheet(context, index);
+                    break;
+                  case 'delete_channel':
+                    _showDeleteChannelDialog(context, index);
+                    break;
+                }
+              },
             ),
           ),
         ],
