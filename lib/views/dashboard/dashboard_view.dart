@@ -1978,7 +1978,7 @@ class _DashboardViewState extends State<DashboardView> {
         );
       },
     );
-  }
+  } 
 
   void getContextAndPublicKey(
       oldEntityId, oldChannelName, tagId, isChannelOwner, index) async {
