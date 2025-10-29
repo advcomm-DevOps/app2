@@ -1493,7 +1493,7 @@ class _DashboardViewState extends State<DashboardView> {
               content: ConstrainedBox(
                 constraints: BoxConstraints(
                   maxWidth: 800,
-                  maxHeight: showWebView ? 750 : 500,
+                  maxHeight: showWebView ? 1200 : 500,
                 ),
                 child: SingleChildScrollView(
                   child: Column(
@@ -1529,11 +1529,28 @@ class _DashboardViewState extends State<DashboardView> {
                                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                   ),
                                 )
-                              : IconButton(
-                                  icon: const Icon(Icons.search, color: Colors.white),
-                                  onPressed: (isSearching || hasSearched)
-                                      ? null
-                                      : searchPubChannels,
+                              : Container(
+                                  margin: const EdgeInsets.all(8.0),
+                                  child: Material(
+                                    color: (isSearching || hasSearched) 
+                                        ? Colors.grey[600] 
+                                        : Colors.blueAccent,
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(8),
+                                      onTap: (isSearching || hasSearched)
+                                          ? null
+                                          : searchPubChannels,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: const Icon(
+                                          Icons.search, 
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
                         ),
                         style: const TextStyle(color: Colors.white),
@@ -1703,7 +1720,7 @@ class _DashboardViewState extends State<DashboardView> {
                     // Show InAppWebView below tag selection when a tag is selected
                     if (showWebView) ...[
                       Container(
-                        height: 300,
+                        height: 600,
                         margin: const EdgeInsets.only(top: 16),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey[600]!),
@@ -1775,42 +1792,62 @@ class _DashboardViewState extends State<DashboardView> {
                       ),
                       const SizedBox(height: 16),
                     ],
+
+                    // Cancel and Reset buttons at the end of content
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            backgroundColor: Colors.grey[700],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        ),
+                        if (hasSearched)
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                // Reset all local state for a new search
+                                isSearching = false;
+                                hasSearched = false;
+                                pubChannels = [];
+                                selectedChannelIndexLocal = null;
+                                pubTags = [];
+                                selectedTagIndexLocal = null;
+                                selectedTagData = null; // Clear selected tag data
+                                _entityController.clear();
+                                _composeChannelController.clear();
+                                // Hide InAppWebView when reset is clicked
+                                showWebView = false;
+                              });
+                            },
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              backgroundColor: Colors.orange[700],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'Reset',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
               ), // ConstrainedBox child
               ), // ConstrainedBox
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                ),
-                if (hasSearched)
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        // Reset all local state for a new search
-                        isSearching = false;
-                        hasSearched = false;
-                        pubChannels = [];
-                        selectedChannelIndexLocal = null;
-                        pubTags = [];
-                        selectedTagIndexLocal = null;
-                        selectedTagData = null; // Clear selected tag data
-                        _entityController.clear();
-                        _composeChannelController.clear();
-                        // Hide InAppWebView when reset is clicked
-                        showWebView = false;
-                      });
-                    },
-                    child: const Text(
-                      'Reset',
-                      style: TextStyle(color: Colors.orange),
-                    ),
-                  ),
-              ],
             ); // AlertDialog
           },
         );
