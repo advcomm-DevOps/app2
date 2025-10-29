@@ -2960,72 +2960,57 @@ class _DashboardViewState extends State<DashboardView> {
           width: 1,
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-        child: Row(
-          children: [
-            // User avatar
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: primaryAccent,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Icon(
-                Icons.person,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-            if (!isSidebarCollapsed) ...[
-              const SizedBox(width: 12),
-              // User info (only show when not collapsed)
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      selectedEntityForSwitching ?? (selectedEntity.isNotEmpty ? selectedEntity : 'No Entity'),
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      'Online',
-                      style: TextStyle(
-                        color: subtitleColor,
-                        fontSize: 10,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+      child: GestureDetector(
+        onTap: () => _showDiscordStyleProfile(context),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+          child: Row(
+            children: [
+              // User avatar
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: primaryAccent,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.person,
+                  color: Colors.white,
+                  size: 20,
                 ),
               ),
-              const SizedBox(width: 8),
-              // Three vertical dots icon with Discord-style popup
-              GestureDetector(
-                onTap: () => _showDiscordStyleProfile(context),
-                child: Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Icon(
-                    Icons.more_vert,
-                    color: subtitleColor,
-                    size: 18,
+              if (!isSidebarCollapsed) ...[
+                const SizedBox(width: 12),
+                // User info (only show when not collapsed)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        selectedEntityForSwitching ?? (selectedEntity.isNotEmpty ? selectedEntity : 'No Entity'),
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        'Online',
+                        style: TextStyle(
+                          color: subtitleColor,
+                          fontSize: 10,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
