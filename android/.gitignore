@@ -12,3 +12,9 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# Kotlin compiler cache and error files
+/.kotlin/
+/.kotlin/errors/
+**/kotlin/
+**/kotlin/errors/

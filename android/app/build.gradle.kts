@@ -13,7 +13,7 @@ plugins {
 }
 
 android {
-    namespace = "com.adv_test.flutter_starter"
+    namespace = "com.xdoc.app"
     compileSdk = flutter.compileSdkVersion
     // ndkVersion = flutter.ndkVersion 
     ndkVersion = "27.0.12077973" 
@@ -29,7 +29,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.adv_test.flutter_starter"
+        applicationId = "com.xdoc.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
