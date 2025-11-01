@@ -1286,10 +1286,10 @@ packages:
     dependency: "direct main"
     description:
       name: tenant_replication
-      sha256: "1cd4879fc74959379089896e78de5a9a7f7aba2a3fbcb268a75df56ac6078b1a"
+      sha256: ae3ac1fb362dbf725f8abb80722a803dfbf225f161ae950bb791141a10673bbf
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.5"
+    version: "0.0.6"
   term_glyph:
     dependency: transitive
     description:
