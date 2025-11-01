@@ -338,7 +338,7 @@ class DashboardController {
     } on DioException catch (e) {
       print("Dio error onboarding entity: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error onboarding entity: ${e.message}");
+      _logFailure("Dio error onboarding entity: ${e.message} - Response: ${e.response?.data}");
       return false;
     } catch (e) {
       print("Error onboarding entity: $e");
@@ -386,7 +386,7 @@ class DashboardController {
     } on DioException catch (e) {
       print("Dio error fetching channels: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error fetching pub channels for entity '$entity': ${e.message}");
+      _logFailure("Dio error fetching pub channels for entity '$entity': ${e.message} - Response: ${e.response?.data}");
     } catch (e) {
       print("Error fetching channels: $e");
       _logFailure("Error fetching pub channels for entity '$entity': $e");
@@ -415,7 +415,7 @@ class DashboardController {
     } on DioException catch (e) {
       print("Dio error fetching channel tags: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error fetching pub channel tags for entity '$entity', channel '$channelName': ${e.message}");
+      _logFailure("Dio error fetching pub channel tags for entity '$entity', channel '$channelName': ${e.message} - Response: ${e.response?.data}");
     } catch (e) {
       print("Error fetching channel tags: $e");
       _logFailure("Error fetching pub channel tags for entity '$entity', channel '$channelName': $e");
@@ -530,7 +530,7 @@ class DashboardController {
     } on DioException catch (e) {
       print("Dio error creating channel: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error creating channel '$channelName': ${e.message}");
+      _logFailure("Dio error creating channel '$channelName': ${e.message} - Response: ${e.response?.data}");
     } catch (e) {
       print("Error creating channel: $e");
       _logFailure("Error creating channel '$channelName': $e");
@@ -565,7 +565,7 @@ class DashboardController {
     } on DioException catch (e) {
       print("Dio error deleting channel: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error deleting channel '$channelId': ${e.message}");
+      _logFailure("Dio error deleting channel '$channelId': ${e.message} - Response: ${e.response?.data}");
     } catch (e) {
       print("Error deleting channel: $e");
       _logFailure("Error deleting channel '$channelId': $e");
@@ -621,7 +621,7 @@ class DashboardController {
     } on DioException catch (e) {
       print("Dio error joining channel: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error joining channel '$channelName': ${e.message}");
+      _logFailure("Dio error joining channel '$channelName': ${e.message} - Response: ${e.response?.data}");
       return false;
     } catch (e) {
       print("Error joining channel: $e");
@@ -840,7 +840,7 @@ class DashboardController {
     } on DioException catch (e) {
       print("Dio error creating tag: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error creating tag '$tag': ${e.message}");
+      _logFailure("Dio error creating tag '$tag': ${e.message} - Response: ${e.response?.data}");
     } catch (e) {
       print("Error creating tag: $e");
       _logFailure("Error creating tag '$tag': $e");
@@ -875,7 +875,7 @@ class DashboardController {
     } on DioException catch (e) {
       print("Dio error fetching docs: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error fetching docs for channel '$channelName': ${e.message}");
+      _logFailure("Dio error fetching docs for channel '$channelName': ${e.message} - Response: ${e.response?.data}");
     } catch (e) {
       print("Error fetching docs: $e");
       _logFailure("Error fetching docs for channel '$channelName': $e");
@@ -916,7 +916,7 @@ class DashboardController {
     } on DioException catch (e) {
       print("Dio error fetching context and public key: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error fetching context and public key for entity '$entityName': ${e.message}");
+      _logFailure("Dio error fetching context and public key for entity '$entityName': ${e.message} - Response: ${e.response?.data}");
       return e.response?.data;
     } catch (e) {
       print("Error fetching context and public key: $e");
@@ -1020,7 +1020,7 @@ class DashboardController {
     } on DioException catch (e) {
       print("Dio error fetching document details: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error fetching document details for document '$docId': ${e.message}");
+      _logFailure("Dio error fetching document details for document '$docId': ${e.message} - Response: ${e.response?.data}");
       return e.response?.data;
     } catch (e) {
       print("Error fetching document details: $e");
@@ -1063,7 +1063,7 @@ class DashboardController {
     } on DioException catch (e) {
       print("Dio error uploading public key: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error uploading public key: ${e.message}");
+      _logFailure("Dio error uploading public key: ${e.message} - Response: ${e.response?.data}");
     } catch (e) {
       print("Error uploading public key: $e");
       _logFailure("Error uploading public key: $e");
@@ -1177,7 +1177,7 @@ class DashboardController {
     } on DioException catch (e) {
       print("Dio error creating document: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error creating encrypted document for entity '$entityName': ${e.message}");
+      _logFailure("Dio error creating encrypted document for entity '$entityName': ${e.message} - Response: ${e.response?.data}");
       return false;
     } catch (e) {
       print("Error creating document: $e");
@@ -1298,7 +1298,7 @@ class DashboardController {
     } on DioException catch (e) {
       print("Dio error creating document: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error updating document '$docid' with action '$actionName': ${e.message}");
+      _logFailure("Dio error updating document '$docid' with action '$actionName': ${e.message} - Response: ${e.response?.data}");
       return false;
     } catch (e) {
       print("Error creating document: $e");
@@ -1338,7 +1338,7 @@ class DashboardController {
     } on DioException catch (e) {
       print("Dio error fetching channel details: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error fetching channel details for entity '$entityId', channel '$channelName': ${e.message}");
+      _logFailure("Dio error fetching channel details for entity '$entityId', channel '$channelName': ${e.message} - Response: ${e.response?.data}");
     } catch (e) {
       print("Error fetching channel details: $e");
       _logFailure("Error fetching channel details for entity '$entityId', channel '$channelName': $e");
