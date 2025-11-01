@@ -555,7 +555,7 @@ class DashboardController {
         ),
       );
       print('Delete channel response: ${response.data}');
-      if (response.statusCode == 200 || response.statusCode == 204) {
+      if (response.statusCode == 200) {
         print("Channel deleted successfully: ${response.data}");
         _logSuccess("Channel '$channelId' deleted successfully");
         return true;
