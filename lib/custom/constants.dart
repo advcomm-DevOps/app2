@@ -4,4 +4,4 @@ final String audDomain = const String.fromEnvironment(
 	defaultValue: 'dev',
 ) == 'production'
 		? 'api.xdoc.app'
-		: 'staging-api.xdoc.app';
+		: 't.api.xdoc.app';
