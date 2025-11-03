@@ -1802,61 +1802,88 @@ class _DashboardViewState extends State<DashboardView> {
                       const SizedBox(height: 16),
                     ],
 
-                    // Cancel and Reset buttons at the end of content
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                            backgroundColor: Colors.grey[700],
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'Cancel',
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                        ),
-                        if (hasSearched)
-                          TextButton(
-                            onPressed: () {
-                              setState(() {
-                                // Reset all local state for a new search
-                                isSearching = false;
-                                hasSearched = false;
-                                pubChannels = [];
-                                selectedChannelIndexLocal = null;
-                                pubTags = [];
-                                selectedTagIndexLocal = null;
-                                selectedTagData = null; // Clear selected tag data
-                                _entityController.clear();
-                                _composeChannelController.clear();
-                                // Hide InAppWebView when reset is clicked
-                                showWebView = false;
-                              });
-                            },
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                              backgroundColor: Colors.orange[700],
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text(
-                              'Reset',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                      ],
-                    ),
+
                   ],
                 ),
               ), // ConstrainedBox child
               ), // ConstrainedBox
+              actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              actionsAlignment: MainAxisAlignment.spaceBetween,
+              actions: [
+                // Cancel button - always on the left
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+                // Right side buttons wrapped in Row
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Reset button - only show if search has been performed
+                    if (hasSearched)
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            // Reset all local state for a new search
+                            isSearching = false;
+                            hasSearched = false;
+                            pubChannels = [];
+                            selectedChannelIndexLocal = null;
+                            pubTags = [];
+                            selectedTagIndexLocal = null;
+                            selectedTagData = null; // Clear selected tag data
+                            _entityController.clear();
+                            _composeChannelController.clear();
+                            // Hide InAppWebView when reset is clicked
+                            showWebView = false;
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        ),
+                        child: const Text(
+                          'Reset',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    // Add spacing between Reset and Submit buttons
+                    if (hasSearched && showWebView)
+                      const SizedBox(width: 12),
+                    // Submit button - only show when WebView is visible
+                    if (showWebView)
+                      ElevatedButton(
+                        onPressed: () {
+                          // Trigger form submission in the WebView
+                          // This can be done by executing JavaScript in the WebView
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please fill and submit the form in the WebView above'),
+                              backgroundColor: Colors.blue,
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        ),
+                        child: const Text(
+                          'Submit',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ); // AlertDialog
           },
         );
