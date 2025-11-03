@@ -86,4 +86,20 @@ class DashboardReplication {
     );
     return result.isNotEmpty ? result.first : null;
   }
+
+  /// Delete channel from local SQLite database
+  static Future<bool> deleteChannel(String channelId) async {
+    try {
+      final db = await DBHelper.db;
+      final int deletedRows = await db.delete(
+        "tblchannels",
+        where: "channelid = ?",
+        whereArgs: [channelId],
+      );
+      return deletedRows > 0;
+    } catch (e) {
+      print("Error deleting channel from SQLite: $e");
+      return false;
+    }
+  }
 }

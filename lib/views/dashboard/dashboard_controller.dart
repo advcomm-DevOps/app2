@@ -565,7 +565,22 @@ class DashboardController {
       print('Delete channel response: ${response.data}');
       if (response.statusCode == 200) {
         print("Channel deleted successfully: ${response.data}");
-        _logSuccess("Channel '$channelId' deleted successfully");
+        
+        // Also delete from SQLite database
+        try {
+          final sqliteDeleted = await DashboardReplication.deleteChannel(channelId);
+          if (sqliteDeleted) {
+            print("Channel also deleted from SQLite successfully");
+            _logSuccess("Channel '$channelId' deleted successfully from both API and SQLite");
+          } else {
+            print("Warning: Channel deleted from API but not found in SQLite");
+            _logSuccess("Channel '$channelId' deleted successfully from API (not found in SQLite)");
+          }
+        } catch (e) {
+          print("Error deleting channel from SQLite: $e");
+          _logFailure("Channel '$channelId' deleted from API but failed to delete from SQLite: $e");
+        }
+        
         return true;
       } else {
         _logFailure("Failed to delete channel '$channelId' - Status: ${response.statusCode}");
