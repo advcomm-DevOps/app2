@@ -1085,7 +1085,102 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   String appendScriptWithHtml(String html) {
-    return html = "$html<script>${dashboardController.formHandlingJS}</script>";
+    const messageChannelScript = '''
+      // Enhanced form handling with submit trigger support and HTML5 validation
+      window.triggerFormSubmit = function() {
+        console.log('🚀 Form submit triggered from Flutter');
+        
+        // Find the form first
+        const form = document.querySelector('form');
+        if (form) {
+          console.log('✅ Found form, checking HTML5 validation...');
+          
+          // Check HTML5 form validity first
+          if (!form.checkValidity()) {
+            console.log('❌ Form validation failed, showing validation messages');
+            
+            // Find the first invalid field and focus it
+            const firstInvalidField = form.querySelector(':invalid');
+            if (firstInvalidField) {
+              firstInvalidField.focus();
+              firstInvalidField.reportValidity();
+            }
+            
+            // Report validity for all fields to show validation messages
+            form.reportValidity();
+            return; // Don't submit if validation fails
+          }
+          
+          console.log('✅ Form validation passed, processing submission...');
+          
+          // Use the existing processFormData function from formHandlingJS
+          if (typeof processFormData === 'function') {
+            const nestedData = processFormData(form);
+            const quillData = window.quill ? window.quill.root.innerHTML : '';
+            if (quillData.trim() !== '') {
+              nestedData.quillData = quillData;
+            }
+            const jsonString = JSON.stringify(nestedData, null, 2);
+            console.log('📝 Form data processed:', jsonString);
+            
+            // Send to Flutter using the existing handler
+            if (window.flutter_inappwebview) {
+              window.flutter_inappwebview.callHandler('onFormSubmit', jsonString);
+            } else {
+              window.parent.postMessage({ type: 'onFormSubmit', payload: jsonString }, '*');
+            }
+          } else {
+            // Fallback: trigger form submit event (this will also trigger HTML5 validation)
+            console.log('⚠️ processFormData not found, using fallback...');
+            const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+            form.dispatchEvent(submitEvent);
+          }
+        } else {
+          console.log('❌ No form found to submit');
+          alert('No form found to submit');
+        }
+      };
+      
+      // Add CSS for validation states
+      const style = document.createElement('style');
+      style.textContent = `
+        /* HTML5 validation styles */
+        input:invalid, textarea:invalid, select:invalid {
+          border-color: #dc3545 !important;
+          box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+        
+        input:valid, textarea:valid, select:valid {
+          border-color: #28a745 !important;
+        }
+        
+        /* Custom validation message styles */
+        .validation-message {
+          color: #dc3545;
+          font-size: 0.875rem;
+          margin-top: 0.25rem;
+          display: block;
+        }
+        
+        /* Highlight required fields */
+        input[required]:not(:focus):invalid, 
+        textarea[required]:not(:focus):invalid, 
+        select[required]:not(:focus):invalid {
+          background-color: #fff5f5;
+        }
+      `;
+      document.head.appendChild(style);
+      
+      // Set up ready signal
+      console.log('🔧 Submit trigger function ready');
+      if (window.flutter_inappwebview) {
+        window.flutter_inappwebview.callHandler('setupMessageChannel', 'ready');
+      } else {
+        window.parent.postMessage({ type: 'setupMessageChannel', payload: 'ready' }, '*');
+      }
+    ''';
+    
+    return "$html<script>${dashboardController.formHandlingJS}</script><script>$messageChannelScript</script>";
   }
 
   void _handleAction(String action, String fileName, String html) {
@@ -1408,6 +1503,7 @@ class _DashboardViewState extends State<DashboardView> {
   bool showWebView = false;
   Map<String, dynamic>? selectedTagData;
   bool isLoadingTags = false;
+  InAppWebViewController? webViewController; // Add WebView controller reference
 
     showDialog(
       context: context,
@@ -1744,7 +1840,17 @@ class _DashboardViewState extends State<DashboardView> {
                                         data: appendScriptWithHtml(htmlForm),
                                       ),
                                       onWebViewCreated: (controller) {
+                                        webViewController = controller; // Store controller reference
+                                        print('🔧 WebView controller stored successfully');
                                         if (!kIsWeb) {
+                                          // Add handler for MessageChannel setup
+                                          controller.addJavaScriptHandler(
+                                            handlerName: 'setupMessageChannel',
+                                            callback: (args) {
+                                              print('✅ Submit trigger setup complete: ${args[0]}');
+                                            },
+                                          );
+                                          
                                           controller.addJavaScriptHandler(
                                             handlerName: 'onFormSubmit',
                                             callback: (args) {
@@ -1859,15 +1965,55 @@ class _DashboardViewState extends State<DashboardView> {
                     // Submit button - only show when WebView is visible
                     if (showWebView)
                       ElevatedButton(
-                        onPressed: () {
-                          // Trigger form submission in the WebView
-                          // This can be done by executing JavaScript in the WebView
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please fill and submit the form in the WebView above'),
-                              backgroundColor: Colors.blue,
-                            ),
-                          );
+                        onPressed: () async {
+                          // Trigger form submission using the global function
+                          if (webViewController != null) {
+                            try {
+                              await webViewController!.evaluateJavascript(
+                                source: '''
+                                  console.log('🎯 Submit button clicked from Flutter');
+                                  if (typeof window.triggerFormSubmit === 'function') {
+                                    window.triggerFormSubmit();
+                                  } else {
+                                    console.log('⚠️ triggerFormSubmit function not ready, using fallback...');
+                                    // Fallback to direct form submission
+                                    var form = document.querySelector('form');
+                                    if (form) {
+                                      console.log('📋 Found form, dispatching submit event...');
+                                      var submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                                      form.dispatchEvent(submitEvent);
+                                    } else {
+                                      console.log('❌ No form found');
+                                      alert('No form found to submit');
+                                    }
+                                  }
+                                '''
+                              );
+                              
+                              // Show user feedback
+                              // ScaffoldMessenger.of(context).showSnackBar(
+                              //   const SnackBar(
+                              //     content: Text('Form submission triggered'),
+                              //     backgroundColor: Colors.blue,
+                              //   ),
+                              // );
+                            } catch (e) {
+                              print('Error triggering form submission: $e');
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error triggering form submission: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('WebView not ready. Please wait and try again.'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,

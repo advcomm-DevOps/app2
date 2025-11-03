@@ -205,7 +205,7 @@ class DashboardController {
 
     // Convert FormData to nested object
     for (let [key, value] of formData.entries()) {
-      const keys = key.match(/(\\w+)/g); // Split by brackets and dots
+      const keys = key.match(/([a-zA-Z0-9_]+)/g); // Split by brackets and dots
       let current = data;
 
       for (let i = 0; i < keys.length; i++) {
@@ -238,7 +238,15 @@ class DashboardController {
   document.querySelectorAll('form').forEach(form => {
     form.addEventListener('submit', function(event) {
       event.preventDefault();
-
+      
+      // Check HTML5 form validity
+      if (!this.checkValidity()) {
+        console.log('❌ HTML5 validation failed');
+        this.reportValidity(); // Show validation messages
+        return; // Don't proceed with submission
+      }
+      
+      console.log('✅ HTML5 validation passed, processing form data');
       const nestedData = processFormData(form);
       const quillData = window.quill ? window.quill.root.innerHTML : '';
       if (quillData.trim() !== '') {
