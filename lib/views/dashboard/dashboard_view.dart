@@ -1825,8 +1825,8 @@ class _DashboardViewState extends State<DashboardView> {
                     // Show InAppWebView below tag selection when a tag is selected
                     if (showWebView) ...[
                       Container(
-                        height: 600,
-                        margin: const EdgeInsets.only(top: 16),
+                        height: 530,
+                        margin: const EdgeInsets.only(top: 16, right: 20),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey[600]!),
                           borderRadius: BorderRadius.circular(8),
