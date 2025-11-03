@@ -1117,32 +1117,114 @@ class DashboardController {
     required String submittedData,
   }) async {
     print('Creating encrypted document with entityName: $entityName, channelName: $channelName, tagId: $tagId');
-    final symmetrickey = generate32BytesRandom();
-    final encryptedContextData = await encryptWithSymmetrickey(
-      symmetrickey: symmetrickey,
-      plainText: submittedData,
-    );
-    final senderKeys = await getSelectedEntityX25519Keys();
-    if (senderKeys == null) {
-      print("❌ Sender keys not found.");
+    
+    // Validate input parameters
+    if (entityName.isEmpty) {
+      print("❌ Entity name is empty.");
+      _logFailure("Entity name is empty when creating encrypted document");
       return false;
     }
-    final senderPublicKeyPem = senderKeys["publicKey"]!;
-
-    final recipientKeys = await getSelectedEntityX25519Keys(entityName);
-    if (recipientKeys == null) {
-      print("❌ Recipient keys not found.");
+    if (channelName.isEmpty) {
+      print("❌ Channel name is empty.");
+      _logFailure("Channel name is empty when creating encrypted document");
       return false;
     }
-    final recipientPublicPem = recipientKeys["publicKey"]!;
-
-    final primaryEntitySymmetricKey =
-        await rsaEncryption(symmetrickey.toString(), senderPublicKeyPem);
-    final otherActorSymmetricKey =
-        await rsaEncryption(symmetrickey.toString(), recipientPublicPem);
-    String encryptedEventSchema = '';
-    String token = await getJwt(); // Get your JWT token
+    if (tagId.isEmpty) {
+      print("❌ Tag ID is empty.");
+      _logFailure("Tag ID is empty when creating encrypted document");
+      return false;
+    }
+    if (submittedData.isEmpty) {
+      print("❌ Submitted data is empty.");
+      _logFailure("Submitted data is empty when creating encrypted document - entity: '$entityName', channel: '$channelName'");
+      return false;
+    }
+    
     try {
+      // Generate symmetric key
+      late final dynamic symmetrickey;
+      try {
+        symmetrickey = generate32BytesRandom();
+        if (symmetrickey == null) {
+          print("❌ Failed to generate symmetric key.");
+          _logFailure("Failed to generate symmetric key for entity '$entityName', channel '$channelName'");
+          return false;
+        }
+      } catch (e) {
+        print("❌ Error generating symmetric key: $e");
+        _logFailure("Error generating symmetric key for entity '$entityName', channel '$channelName': $e");
+        return false;
+      }
+      
+      // Encrypt context data with symmetric key
+      late final Map<String, dynamic> encryptedContextData;
+      try {
+        encryptedContextData = await encryptWithSymmetrickey(
+          symmetrickey: symmetrickey,
+          plainText: submittedData,
+        );
+      } catch (e) {
+        print("❌ Failed to encrypt context data: $e");
+        _logFailure("Failed to encrypt context data for entity '$entityName', channel '$channelName': $e");
+        return false;
+      }
+      
+      // Get sender keys
+      final senderKeys = await getSelectedEntityX25519Keys();
+      if (senderKeys == null) {
+        print("❌ Sender keys not found.");
+        _logFailure("Sender keys not found for creating encrypted document - entity: '$entityName', channel: '$channelName'");
+        return false;
+      }
+      final senderPublicKeyPem = senderKeys["publicKey"]!;
+
+      // Get recipient keys
+      final recipientKeys = await getSelectedEntityX25519Keys(entityName);
+      if (recipientKeys == null) {
+        print("❌ Recipient keys not found.");
+        _logFailure("Recipient keys not found for entity '$entityName' when creating encrypted document - channel: '$channelName'");
+        return false;
+      }
+      final recipientPublicPem = recipientKeys["publicKey"]!;
+
+      // Encrypt symmetric key with both public keys
+      late final String primaryEntitySymmetricKey;
+      late final String otherActorSymmetricKey;
+      
+      try {
+        primaryEntitySymmetricKey =
+            await rsaEncryption(symmetrickey.toString(), senderPublicKeyPem);
+      } catch (e) {
+        print("❌ Failed to encrypt symmetric key with sender public key: $e");
+        _logFailure("Failed to encrypt symmetric key with sender public key for entity '$entityName', channel '$channelName': $e");
+        return false;
+      }
+      
+      try {
+        otherActorSymmetricKey =
+            await rsaEncryption(symmetrickey.toString(), recipientPublicPem);
+      } catch (e) {
+        print("❌ Failed to encrypt symmetric key with recipient public key: $e");
+        _logFailure("Failed to encrypt symmetric key with recipient public key for entity '$entityName', channel '$channelName': $e");
+        return false;
+      }
+      String encryptedEventSchema = '';
+      
+      // Get JWT token
+      late final String token;
+      try {
+        token = await getJwt();
+        if (token.isEmpty) {
+          print("❌ JWT token is empty.");
+          _logFailure("JWT token is empty when creating encrypted document - entity: '$entityName', channel: '$channelName'");
+          return false;
+        }
+      } catch (e) {
+        print("❌ Error getting JWT token: $e");
+        _logFailure("Error getting JWT token when creating encrypted document - entity: '$entityName', channel: '$channelName': $e");
+        return false;
+      }
+
       final body = {
         "entityName": entityName,
         "channelName": channelName,
@@ -1159,9 +1241,27 @@ class DashboardController {
         "Accept": "application/json",
       };
       print('Request body...........................: $body');
+      
+      // Encode request body to JSON
+      late final String jsonBody;
+      try {
+        jsonBody = jsonEncode(body);
+      } catch (e) {
+        print("❌ Failed to encode request body to JSON: $e");
+        _logFailure("Failed to encode request body to JSON for entity '$entityName', channel '$channelName': $e");
+        return false;
+      }
+      
+      // Validate API URL
+      if (apiUrl.isEmpty) {
+        print("❌ API URL is empty.");
+        _logFailure("API URL is empty when creating encrypted document for entity '$entityName', channel '$channelName'");
+        return false;
+      }
+      
       final response = await dio.post(
         '$apiUrl/create-encrypted-document',
-        data: jsonEncode(body),
+        data: jsonBody,
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -1171,7 +1271,7 @@ class DashboardController {
       } else {
         print("Failed to create document: ${response.statusCode}");
         print("Error: ${response.data}");
-        _logFailure("Failed to create encrypted document for entity '$entityName' - Status: ${response.statusCode}");
+        _logFailure("Failed to create encrypted document for entity '$entityName' - Status: ${response.statusCode} - Error: ${response.data}");
         return false;
       }
     } on DioException catch (e) {
