@@ -46,3 +46,21 @@ windows/flutter/generated_plugins.cmake
 linux/flutter/generated_plugin_registrant.cc
 linux/flutter/generated_plugin_registrant.h
 
+# Android signing files - NEVER COMMIT THESE
+*.jks
+*.keystore
+**/key.properties
+**/upload-keystore.*
+android/app/upload-keystore.*
+android/key.properties
+
+# Google Play service account - NEVER COMMIT THIS
+service_account.json
+**/service_account.json
+google-services.json
+
+# iOS signing files
+*.mobileprovision
+*.p12
+*.cer
+

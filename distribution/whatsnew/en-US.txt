@@ -1,0 +1,4 @@
+Initial beta release for testing
+- Core document management features
+- User authentication
+- File upload and management
