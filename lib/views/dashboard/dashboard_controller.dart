@@ -273,6 +273,20 @@ class DashboardController {
     }
   }
 
+  // PEM helper method
+  String _addLineBreaksToPemKey(String pemKey) {
+    const lineLength = 64;
+    String result = '';
+    for (int i = 0; i < pemKey.length; i += lineLength) {
+      if (i + lineLength < pemKey.length) {
+        result += pemKey.substring(i, i + lineLength) + '\n';
+      } else {
+        result += pemKey.substring(i);
+      }
+    }
+    return result;
+  }
+
   // Logging helper methods
   void _logSuccess(String message) {
     final now = DateTime.now();
@@ -1101,6 +1115,56 @@ class DashboardController {
     return false;
   }
 
+  Future<Map<String, dynamic>?> getEntityPublicKey(String entityName) async {
+    String token = await getJwt();
+    try {
+      final data = {
+        "tid": entityName,
+      };
+
+      // Set headers including Content-Type
+      dio.options.headers = {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      };
+
+      final response = await dio.post(
+        '$apiUrl/entity/public-key',
+        data: jsonEncode(data),
+        options: Options(
+          contentType: 'application/json',
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        print("Entity public key retrieved successfully: ${response.data}");
+        _logSuccess("Entity public key retrieved successfully for entity '$entityName'");
+        return response.data;
+      } else if (response.statusCode == 404) {
+        print("Entity not found for entity: $entityName");
+        _logFailure("Entity not found when retrieving public key for entity '$entityName' - Status: ${response.statusCode}");
+        return null;
+      } else if (response.statusCode == 422) {
+        print("Invalid request: entity name is required");
+        _logFailure("Invalid request when retrieving public key - entity name is required - Status: ${response.statusCode}");
+        return null;
+      } else {
+        print("Failed to retrieve entity public key. Status code: ${response.statusCode}");
+        _logFailure("Failed to retrieve entity public key for entity '$entityName' - Status: ${response.statusCode}");
+      }
+    } on DioException catch (e) {
+      print("Dio error retrieving entity public key: ${e.message}");
+      print("Response: ${e.response?.data}");
+      _logFailure("Dio error retrieving entity public key for entity '$entityName': ${e.message} - Response: ${e.response?.data}");
+      return e.response?.data;
+    } catch (e) {
+      print("Error retrieving entity public key: $e");
+      _logFailure("Error retrieving entity public key for entity '$entityName': $e");
+    }
+    return null;
+  }
+
   Future<void> addOrUpdateEntityKeys(
       String parentEntity, String publicKey, String privateKey) async {
     String? existing = await secureStorage.read(key: "entityRSAKeys");
@@ -1209,13 +1273,26 @@ class DashboardController {
       final senderPublicKeyPem = senderKeys["publicKey"]!;
 
       // Get recipient keys
-      final recipientKeys = await getSelectedEntityRSAKeys(entityName);
-      if (recipientKeys == null) {
+      final recipientResponse = await getEntityPublicKey(entityName);
+      print('Recipient response: $recipientResponse');
+      if (recipientResponse == null || recipientResponse['publicKey'] == null) {
         print("❌ Recipient keys not found.");
         _logFailure("Recipient keys not found for entity '$entityName' when creating encrypted document - channel: '$channelName'");
         return false;
       }
-      final recipientPublicPem = recipientKeys["publicKey"]!;
+      // Normalize the public key format from custom delimiters to standard PEM format
+      String recipientPublicPem = recipientResponse['publicKey'];
+      if (recipientPublicPem.contains('+++++BEGINRSAPUBLICKEY+++++')) {
+        // Extract the key content between delimiters
+        final keyContent = recipientPublicPem
+            .replaceAll('+++++BEGINRSAPUBLICKEY+++++', '')
+            .replaceAll('+++++ENDRSAPUBLICKEY+++++', '')
+            .trim();
+        
+        // Format with proper PEM structure and line breaks
+        final formattedKeyContent = _addLineBreaksToPemKey(keyContent);
+        recipientPublicPem = '-----BEGIN RSA PUBLIC KEY-----\n$formattedKeyContent\n-----END RSA PUBLIC KEY-----';
+      }
 
       // Encrypt symmetric key with both public keys
       late final String primaryEntitySymmetricKey;
