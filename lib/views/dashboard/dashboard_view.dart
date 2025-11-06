@@ -1084,7 +1084,7 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  String appendScriptWithHtml(String html) {
+  String appendScriptWithHtml(String html, {bool isSubmitButtonNeeded = false}) {
     const messageChannelScript = '''
       // Enhanced form handling with submit trigger support and HTML5 validation
       window.triggerFormSubmit = function() {
@@ -1180,10 +1180,21 @@ class _DashboardViewState extends State<DashboardView> {
       }
     ''';
     
-    return "$html<script>${dashboardController.formHandlingJS}</script><script>$messageChannelScript</script>";
+    if (isSubmitButtonNeeded) {
+      return "$html<script>${dashboardController.formHandlingJS}</script><script>$messageChannelScript</script>";
+    } else {
+      return "$html<script>${dashboardController.formHandlingJS}</script>";
+    }
   }
 
   void _handleAction(String action, String fileName, String html) {
+        print('=== _handleAction called ===');
+    print('Action: $action');
+    print('FileName: $fileName');
+    print('HTML length: ${html.length}');
+    print('selectedDocIndex: $selectedDocIndex');
+    print('docs.length: ${docs.length}');
+    print('============================');
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1837,7 +1848,7 @@ class _DashboardViewState extends State<DashboardView> {
                               borderRadius: BorderRadius.circular(8),
                               child: InAppWebView(
                                       initialData: InAppWebViewInitialData(
-                                        data: appendScriptWithHtml(htmlForm),
+                                        data: appendScriptWithHtml(htmlForm, isSubmitButtonNeeded: true),
                                       ),
                                       onWebViewCreated: (controller) {
                                         webViewController = controller; // Store controller reference
