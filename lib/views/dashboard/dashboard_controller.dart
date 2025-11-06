@@ -931,6 +931,13 @@ class DashboardController {
 
       if (response.statusCode == 200) {
         print("Fetched context and public key successfully:");
+        // print("Entity: ${response.data['entityname']}");
+        // print("................................");
+        // List<dynamic> keyData = response.data['publickey']['data'];
+        // print("Public key (raw bytes): $keyData");
+        // print("................................");
+        // String? existing = await secureStorage.read(key: "entityRSAKeys");
+        // print("Existing stored entityRSAKeys: $existing");
         _logSuccess("Context and public key fetched successfully for entity '$entityName', channel '$channelName', tag '$tagId'");
         return response.data;
       } else {
@@ -990,7 +997,7 @@ class DashboardController {
       final encryptedKeyBase64 = jsonStr;
 
       // ---- 2) Get your private key ----
-      final senderKeys = await getSelectedEntityX25519Keys();
+      final senderKeys = await getSelectedEntityRSAKeys();
       if (senderKeys == null) {
         print("❌ Sender keys not found.");
         return data;
@@ -1112,7 +1119,7 @@ class DashboardController {
     await secureStorage.write(key: "entityRSAKeys", value: jsonEncode(keysMap));
   }
 
-  Future<Map<String, String>?> getSelectedEntityX25519Keys(
+  Future<Map<String, String>?> getSelectedEntityRSAKeys(
       [String? parentEntity]) async {
     parentEntity ??= await getSelectedEntity();
     String? existing = await secureStorage.read(key: "entityRSAKeys");
@@ -1193,7 +1200,7 @@ class DashboardController {
       }
       
       // Get sender keys
-      final senderKeys = await getSelectedEntityX25519Keys();
+      final senderKeys = await getSelectedEntityRSAKeys();
       if (senderKeys == null) {
         print("❌ Sender keys not found.");
         _logFailure("Sender keys not found for creating encrypted document - entity: '$entityName', channel: '$channelName'");
@@ -1202,7 +1209,7 @@ class DashboardController {
       final senderPublicKeyPem = senderKeys["publicKey"]!;
 
       // Get recipient keys
-      final recipientKeys = await getSelectedEntityX25519Keys(entityName);
+      final recipientKeys = await getSelectedEntityRSAKeys(entityName);
       if (recipientKeys == null) {
         print("❌ Recipient keys not found.");
         _logFailure("Recipient keys not found for entity '$entityName' when creating encrypted document - channel: '$channelName'");
@@ -1359,7 +1366,7 @@ class DashboardController {
       final encryptedKeyBase64 = jsonStr;
 
       // ---- 2) Get your private key ----
-      final senderKeys = await getSelectedEntityX25519Keys();
+      final senderKeys = await getSelectedEntityRSAKeys();
       if (senderKeys == null) {
         print("❌ Sender keys not found.");
         return false;

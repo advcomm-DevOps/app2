@@ -86,7 +86,7 @@ Future<void> generateRSAKeyPair() async {
   // testDocEncryption();
   DashboardController dashboardController = DashboardController();
 
-  final keys = await dashboardController.getSelectedEntityX25519Keys();
+  final keys = await dashboardController.getSelectedEntityRSAKeys();
   if (keys != null) {
     print("Keys already exist:");
     final privateKeyBytes = keys["privateKey"]!;

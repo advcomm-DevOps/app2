@@ -44,7 +44,7 @@ void testKeyEncryption(symmetrickey) async {
   final dashboardController = DashboardController();
 
   // 📥 Load sender keys
-  final senderKeys = await dashboardController.getSelectedEntityX25519Keys();
+  final senderKeys = await dashboardController.getSelectedEntityRSAKeys();
   if (senderKeys == null) {
     print("❌ Sender keys not found.");
     return;
@@ -54,7 +54,7 @@ void testKeyEncryption(symmetrickey) async {
 
   // 📥 Load recipient keys
   final recipientKeys =
-      await dashboardController.getSelectedEntityX25519Keys("basit.munir89@gmail.com");
+      await dashboardController.getSelectedEntityRSAKeys("basit.munir89@gmail.com");
   if (recipientKeys == null) {
     print("❌ Recipient keys not found.");
     return;
