@@ -135,14 +135,14 @@ class _DashboardViewState extends State<DashboardView> {
   }) {
     final encodedEntity = Uri.encodeQueryComponent(entity);
     final encodedChannel = Uri.encodeQueryComponent(channel);
-    
+
     String url = "$qrurl&entity=$encodedEntity&channel=$encodedChannel";
-    
+
     if (tagId != null && tagId.isNotEmpty) {
       final encodedTagId = Uri.encodeQueryComponent(tagId);
       url += "&id=$encodedTagId";
     }
-    
+
     return url;
   }
 
@@ -162,18 +162,18 @@ class _DashboardViewState extends State<DashboardView> {
       List<dynamic> fetchedEntities = await spService.getEntitiesList();
       print("Fetched entities: $fetchedEntities");
       print("Fetched entities length: ${fetchedEntities.length}");
-      
+
       final ssoService = SSOService();
       final defaultEntity = await ssoService.getSelectedEntity();
       print("Default entity: $defaultEntity");
-      
+
       setState(() {
         entities = fetchedEntities;
         selectedEntityForSwitching = defaultEntity;
       });
       print("Updated state - entities length: ${entities.length}");
       print("Updated state - entities content: $entities");
-      
+
       // Force a rebuild of the UI
       if (mounted) {
         setState(() {});
@@ -209,10 +209,10 @@ class _DashboardViewState extends State<DashboardView> {
     dashboardController.getPublicInterconnects().then((result) {
       publicInterconnects = result;
     });
-    
+
     // Fetch entities for account switching
     _fetchEntitiesForSwitching();
-    
+
     // Initialize theme service and add listener
     _themeService.initializeTheme();
     _themeService.addListener(_onThemeChanged);
@@ -466,6 +466,7 @@ class _DashboardViewState extends State<DashboardView> {
     String action,
     String docid,
     String submittedData,
+    dynamic docRelativeIndex,
   ) async {
     bool isUpdated = await dashboardController.updateEncryptedEvent(
       actionName: action,
@@ -474,6 +475,7 @@ class _DashboardViewState extends State<DashboardView> {
     );
 
     if (isUpdated) {
+       getDocumentDetails(docid, docRelativeIndex);
       // fetchDocs(channels[selectedChannelIndex!]["channelname"]);
       // fetchJoinedTags(channels[selectedChannelIndex!]["channelname"]);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1084,7 +1086,8 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  String appendScriptWithHtml(String html, {bool isSubmitButtonNeeded = false}) {
+  String appendScriptWithHtml(String html,
+      {bool isSubmitButtonNeeded = false}) {
     const messageChannelScript = '''
       // Enhanced form handling with submit trigger support and HTML5 validation
       window.triggerFormSubmit = function() {
@@ -1179,7 +1182,7 @@ class _DashboardViewState extends State<DashboardView> {
         window.parent.postMessage({ type: 'setupMessageChannel', payload: 'ready' }, '*');
       }
     ''';
-    
+
     if (isSubmitButtonNeeded) {
       return "$html<script>${dashboardController.formHandlingJS}</script><script>$messageChannelScript</script>";
     } else {
@@ -1188,30 +1191,31 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   void _handleAction(String action, String fileName, String html) {
-        print('=== _handleAction called ===');
-    print('Action: $action');
-    print('FileName: $fileName');
-    print('HTML length: ${html.length}');
-    print('selectedDocIndex: $selectedDocIndex');
-    print('docs.length: ${docs.length}');
-    print('============================');
+    InAppWebViewController? webViewController; // Store the webview controller
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(
-            'Form Actions',
+            action,
             style: TextStyle(color: textColor),
           ),
           backgroundColor: surfaceColor,
           content: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.8,
-            height: MediaQuery.of(context).size.height * 0.6,
+            width: 400,
+            height: 100,
             child: InAppWebView(
               initialData:
-                  InAppWebViewInitialData(data: appendScriptWithHtml(html)),
+                  InAppWebViewInitialData(data: appendScriptWithHtml(html, isSubmitButtonNeeded: true)),
               onWebViewCreated: (controller) {
+                webViewController = controller; // Store controller reference
                 if (!kIsWeb) {
+                  controller.addJavaScriptHandler(
+                    handlerName: 'setupMessageChannel',
+                    callback: (args) {
+                      print('✅ Submit trigger setup complete: ${args[0]}');
+                    },
+                  );
                   controller.addJavaScriptHandler(
                     handlerName: 'onFormSubmit',
                     //aaaaaaaaaaaaaaaaa
@@ -1223,7 +1227,7 @@ class _DashboardViewState extends State<DashboardView> {
                           selectedDocIndex! >= 0 &&
                           selectedDocIndex! < docs.length) {
                         updateEncryptedEvent(action,
-                            docs[selectedDocIndex!]["docid"], jsonString);
+                            docs[selectedDocIndex!]["docid"], jsonString,selectedDocIndex);
                       } else {
                         print(
                             'Error: Invalid selectedDocIndex when handling form submit');
@@ -1236,29 +1240,73 @@ class _DashboardViewState extends State<DashboardView> {
               },
             ),
           ),
-          // actions: [
-          //   ElevatedButton(
-          //     style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-          //     onPressed: () {
-          //       setState(() {
-          //         currentChatMessages.add({
-          //           "sender": "System",
-          //           "message":
-          //               "You $action the file: ${fileName.split(':').last.trim()}",
-          //         });
-          //       });
-          //       Navigator.pop(context);
-          //       ScaffoldMessenger.of(context).showSnackBar(
-          //         SnackBar(
-          //           content: const Text('File Submitted successfully'),
-          //           backgroundColor: Colors.green,
-          //         ),
-          //       );
-          //     },
-          //     child:
-          //         const Text('Submit', style: TextStyle(color: Colors.white)),
-          //   ),
-          // ],
+          actions: [
+            ElevatedButton(
+              onPressed: () async {
+                // Trigger form submission using the global function
+                if (webViewController != null) {
+                  try {
+                    await webViewController!
+                        .evaluateJavascript(source: '''
+                        console.log('🎯 Submit button clicked from Flutter');
+                        if (typeof window.triggerFormSubmit === 'function') {
+                          window.triggerFormSubmit();
+                        } else {
+                          console.log('⚠️ triggerFormSubmit function not ready, using fallback...');
+                          // Fallback to direct form submission
+                          var form = document.querySelector('form');
+                          if (form) {
+                            console.log('📋 Found form, dispatching submit event...');
+                            var submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                            form.dispatchEvent(submitEvent);
+                          } else {
+                            console.log('❌ No form found');
+                            alert('No form found to submit');
+                          }
+                        }
+                      ''');
+
+                    // Show user feedback
+                    // ScaffoldMessenger.of(context).showSnackBar(
+                    //   const SnackBar(
+                    //     content: Text('Form submission triggered'),
+                    //     backgroundColor: Colors.blue,
+                    //   ),
+                    // );
+                  } catch (e) {
+                    print('Error triggering form submission: $e');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            'Error triggering form submission: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                          'WebView not ready. Please wait and try again.'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 12),
+              ),
+              child: const Text(
+                'Submit',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -1505,16 +1553,17 @@ class _DashboardViewState extends State<DashboardView> {
 
   void _showComposeDialog(BuildContext context) {
     // Persistent dialog state
-  List<dynamic> pubChannels = [];
-  bool isSearching = false;
-  bool hasSearched = false;
-  int? selectedChannelIndexLocal;
-  List<dynamic> pubTags = [];
-  int? selectedTagIndexLocal;
-  bool showWebView = false;
-  Map<String, dynamic>? selectedTagData;
-  bool isLoadingTags = false;
-  InAppWebViewController? webViewController; // Add WebView controller reference
+    List<dynamic> pubChannels = [];
+    bool isSearching = false;
+    bool hasSearched = false;
+    int? selectedChannelIndexLocal;
+    List<dynamic> pubTags = [];
+    int? selectedTagIndexLocal;
+    bool showWebView = false;
+    Map<String, dynamic>? selectedTagData;
+    bool isLoadingTags = false;
+    InAppWebViewController?
+        webViewController; // Add WebView controller reference
 
     showDialog(
       context: context,
@@ -1531,7 +1580,8 @@ class _DashboardViewState extends State<DashboardView> {
               final channelName = channel['channelname'] ?? channel.toString();
               final entity = _entityController.text.trim();
               try {
-                final tags = await dashboardController.getPubChannelTags(entity, channelName);
+                final tags = await dashboardController.getPubChannelTags(
+                    entity, channelName);
                 setState(() {
                   pubTags = tags;
                   isLoadingTags = false;
@@ -1554,7 +1604,8 @@ class _DashboardViewState extends State<DashboardView> {
                 );
                 return;
               }
-              final int actorId = channels[selectedChannelIndex!]["initialactorid"];
+              final int actorId =
+                  channels[selectedChannelIndex!]["initialactorid"];
               setState(() {
                 isSearching = true;
                 hasSearched = false;
@@ -1563,22 +1614,24 @@ class _DashboardViewState extends State<DashboardView> {
                 selectedChannelIndexLocal = null;
               });
               try {
-                final result = await dashboardController.getPubChannels(entity, actorId);
+                final result =
+                    await dashboardController.getPubChannels(entity, actorId);
                 bool shouldAutoFetch = false;
                 setState(() {
                   pubChannels = result;
                   isSearching = false;
                   hasSearched = true;
-                  
+
                   // Auto-select channel if only one channel is found
                   if (pubChannels.length == 1) {
                     selectedChannelIndexLocal = 0;
-                    final channelName = pubChannels[0]['channelname'] ?? pubChannels[0].toString();
+                    final channelName = pubChannels[0]['channelname'] ??
+                        pubChannels[0].toString();
                     _composeChannelController.text = channelName;
                     shouldAutoFetch = true;
                   }
                 });
-                
+
                 // Auto-fetch tags if only one channel is found
                 if (shouldAutoFetch) {
                   await fetchChannelTags(0);
@@ -1619,312 +1672,393 @@ class _DashboardViewState extends State<DashboardView> {
                       // Entity field with search button
                       SizedBox(
                         width: 700,
-                      child: TextField(
-                        controller: _entityController,
-                        decoration: InputDecoration(
-                          labelText: 'Entity *',
-                          labelStyle: const TextStyle(color: Colors.white70),
-                          hintText: 'Enter entity name',
-                          hintStyle: const TextStyle(color: Colors.white54),
-                          filled: true,
-                          fillColor: Colors.grey[800],
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: Colors.grey),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: Colors.blue),
-                          ),
-                          suffixIcon: isSearching
-                              ? const Padding(
-                                  padding: EdgeInsets.all(12.0),
-                                  child: SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                  ),
-                                )
-                              : Container(
-                                  margin: const EdgeInsets.all(8.0),
-                                  child: Material(
-                                    color: (isSearching || hasSearched) 
-                                        ? Colors.grey[600] 
-                                        : Colors.blueAccent,
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(8),
-                                      onTap: (isSearching || hasSearched)
-                                          ? null
-                                          : searchPubChannels,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: const Icon(
-                                          Icons.search, 
-                                          color: Colors.white,
-                                          size: 20,
-                                        ),
-                                      ),
+                        child: TextField(
+                          controller: _entityController,
+                          decoration: InputDecoration(
+                            labelText: 'Entity *',
+                            labelStyle: const TextStyle(color: Colors.white70),
+                            hintText: 'Enter entity name',
+                            hintStyle: const TextStyle(color: Colors.white54),
+                            filled: true,
+                            fillColor: Colors.grey[800],
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(color: Colors.grey),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(color: Colors.blue),
+                            ),
+                            suffixIcon: isSearching
+                                ? const Padding(
+                                    padding: EdgeInsets.all(12.0),
+                                    child: SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2, color: Colors.white),
                                     ),
-                                  ),
-                                ),
-                        ),
-                        style: const TextStyle(color: Colors.white),
-                        enabled: !isSearching && !hasSearched,
-                        onSubmitted: (_) {
-                          if (!isSearching && !hasSearched) searchPubChannels();
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // After search, show channels or no match
-                    if (hasSearched)
-                      pubChannels.isEmpty
-                          ? const Text('No matching channel found', style: TextStyle(color: Colors.redAccent))
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  pubChannels.length == 1 
-                                    ? 'Channel Auto-Selected:' 
-                                    : 'Select Channel:', 
-                                  style: TextStyle(
-                                    color: pubChannels.length == 1 ? Colors.green : Colors.white70, 
-                                    fontWeight: FontWeight.bold
                                   )
-                                ),
-                                const SizedBox(height: 12),
-                                Wrap(
-                                  spacing: 10,
-                                  runSpacing: 10,
-                                  children: pubChannels.asMap().entries.map((entry) {
-                                    final idx = entry.key;
-                                    final channel = entry.value;
-                                    final channelName = channel['channelname'] ?? channel.toString();
-                                    final isSelected = selectedChannelIndexLocal == idx;
-                                    final description = channel['channeldescription'] ?? '';
-                                    return Tooltip(
-                                      message: description.isNotEmpty ? description : channelName,
-                                      child: ChoiceChip(
-                                        label: Text(channelName, style: TextStyle(fontSize: 13, color: isSelected ? Colors.white : Colors.white70)),
-                                        labelStyle: TextStyle(
-                                          color: isSelected ? Colors.white : Colors.white70,
+                                : Container(
+                                    margin: const EdgeInsets.all(8.0),
+                                    child: Material(
+                                      color: (isSearching || hasSearched)
+                                          ? Colors.grey[600]
+                                          : Colors.blueAccent,
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: InkWell(
+                                        borderRadius: BorderRadius.circular(8),
+                                        onTap: (isSearching || hasSearched)
+                                            ? null
+                                            : searchPubChannels,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: const Icon(
+                                            Icons.search,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
                                         ),
-                                        selected: isSelected,
-                                        selectedColor: Colors.blueAccent,
-                                        backgroundColor: Colors.grey[700],
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(20),
-                                        ),
-                                        onSelected: (bool selected) {
-                                          setState(() {
-                                            if (selected) {
-                                              selectedChannelIndexLocal = idx;
-                                              _composeChannelController.text = channelName;
-                                              fetchChannelTags(idx);
-                                              // Hide InAppWebView when channel changes
-                                              showWebView = false;
-                                              selectedTagIndexLocal = null;
-                                              selectedTagData = null; // Clear selected tag data
-                                            } else {
-                                              selectedChannelIndexLocal = null;
-                                              pubTags = [];
-                                              selectedTagIndexLocal = null;
-                                              selectedTagData = null; // Clear selected tag data
-                                              // Hide InAppWebView when channel deselected
-                                              showWebView = false;
-                                            }
-                                          });
-                                        },
                                       ),
-                                    );
-                                  }).toList(),
-                                ),
-                                const SizedBox(height: 16),
-                              ],
-                            ),
-
-                    // Tag selection chips and Create button only after channel selected
-                    if (hasSearched && pubChannels.isNotEmpty && selectedChannelIndexLocal != null) ...[
-                      Row(
-                        children: [
-                          const Text('Select Tag:', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
-                          if (isLoadingTags)
-                            const Padding(
-                              padding: EdgeInsets.only(left: 8.0),
-                              child: SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white70),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      if (pubTags.isEmpty && !isLoadingTags)
-                        const Text('No tags found for this channel', style: TextStyle(color: Colors.redAccent)),
-                      if (isLoadingTags)
-                        const Text('Loading tags for auto-selected channel...', style: TextStyle(color: Colors.white54)),
-                      if (pubTags.isNotEmpty)
-                        Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: pubTags.asMap().entries.map((entry) {
-                            final idx = entry.key;
-                            final tag = entry.value;
-                            final tagName = tag['tag'] ?? tag['tagName'] ?? tag['tagid']?.toString() ?? 'Tag';
-                            final tagDescription = tag['tagdescription'] ?? tag['tagDescription'] ?? '';
-                            final isSelected = selectedTagIndexLocal == idx;
-                            return Tooltip(
-                              message: tagDescription.isNotEmpty ? tagDescription : tagName,
-                              child: ChoiceChip(
-                                label: Text(tagName, style: TextStyle(fontSize: 13, color: isSelected ? Colors.white : Colors.white70)),
-                                labelStyle: TextStyle(
-                                  color: isSelected ? Colors.white : Colors.white70,
-                                ),
-                                selected: isSelected,
-                                selectedColor: Colors.green,
-                                backgroundColor: Colors.grey[700],
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                onSelected: (bool selected) async {
-                                  if (selected) {
-                                    final tagId = tag['tagid'] ?? tag['tagId'] ?? 'Unknown TagID';
-                                    final channelName = selectedChannelIndexLocal != null 
-                                        ? pubChannels[selectedChannelIndexLocal!]['channelname'] ?? 'Unknown Channel'
-                                        : 'Unknown Channel';
-                                    final entityName = _entityController.text.trim();
-                                    print('Selected tag: $tagName');
-                                    print('Tag ID: $tagId');
-                                    print('Channel Name: $channelName');
-                                    print('Entity Name: $entityName');
-                                    
-                                    // Fetch context data asynchronously
-                                    final contextData = await dashboardController.getContextAndPublicKey(entityName, channelName, tagId);
-                                    // print("Context Data: $contextData");
-                                     if (contextData != null) {
-                                        if (contextData["contextform"] != null) {
-                                          htmlForm = contextData["contextform"];
-                                          print("Context form found, rendering..."); 
-                                        } else {
-                                          print("No context template found for this tag.");
-                                        }
-                                      }
-                                    setState(() {
-                                      selectedTagIndexLocal = idx;
-                                      showWebView = true;
-                                      selectedTagData = tag; // Store the selected tag data
-                                    });
-                                  } else {
-                                    setState(() {
-                                      selectedTagIndexLocal = null;
-                                      showWebView = false;
-                                      selectedTagData = null; // Clear selected tag data
-                                    });
-                                    print('Tag deselected');
-                                  }
-                                },
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Show InAppWebView below tag selection when a tag is selected
-                    if (showWebView) ...[
-                      Container(
-                        height: 530,
-                        margin: const EdgeInsets.only(top: 16, right: 20),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[600]!),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: InAppWebView(
-                                      initialData: InAppWebViewInitialData(
-                                        data: appendScriptWithHtml(htmlForm, isSubmitButtonNeeded: true),
-                                      ),
-                                      onWebViewCreated: (controller) {
-                                        webViewController = controller; // Store controller reference
-                                        print('🔧 WebView controller stored successfully');
-                                        if (!kIsWeb) {
-                                          // Add handler for MessageChannel setup
-                                          controller.addJavaScriptHandler(
-                                            handlerName: 'setupMessageChannel',
-                                            callback: (args) {
-                                              print('✅ Submit trigger setup complete: ${args[0]}');
-                                            },
-                                          );
-                                          
-                                          controller.addJavaScriptHandler(
-                                            handlerName: 'onFormSubmit',
-                                            callback: (args) {
-                                              String jsonString = args[0];
-                                              print('Received JSON string: $jsonString');
-                                              // Add bounds checking before accessing joinedTags array
-                                              if (jsonString.isNotEmpty) {
-                                                final entityName = _entityController.text.trim();
-                                                final channelName = selectedChannelIndexLocal != null 
-                                                ? pubChannels[selectedChannelIndexLocal!]['channelname'] ?? 'Unknown Channel'
-                                                : 'Unknown Channel';
-                                                final tagId = selectedTagData != null 
-                                                    ? (selectedTagData!['tagid'] ?? selectedTagData!['tagId'] ?? 'Unknown TagID').toString()
-                                                    : 'Unknown TagID';
-                                                print('Entity Name: $entityName');
-                                                print('Channel Name: $channelName');
-                                                print('Tag ID: $tagId');
-                                                createEncryptedDocument(entityName, channelName, tagId, jsonString);
-                                              } else {
-                                                print(
-                                                    'Error: Invalid selectedjoinedTagIndex when handling form submit');
-                                              }
-                                            },
-                                          );
-                                        } else {
-                                          handleWebMessage();
-                                        }
-                                      },
                                     ),
-                            ),
-                            // Floating close button
-                            Positioned(
-                              top: 8,
-                              right: 8,
-                              child: FloatingActionButton(
-                                mini: true,
-                                backgroundColor: Colors.red.withOpacity(0.8),
-                                onPressed: () {
-                                  setState(() {
-                                    showWebView = false;
-                                    selectedTagIndexLocal = null;
-                                    selectedTagData = null; // Clear selected tag data
-                                  });
-                                },
-                                child: const Icon(
-                                  Icons.close,
-                                  color: Colors.white,
-                                  size: 18,
+                                  ),
+                          ),
+                          style: const TextStyle(color: Colors.white),
+                          enabled: !isSearching && !hasSearched,
+                          onSubmitted: (_) {
+                            if (!isSearching && !hasSearched)
+                              searchPubChannels();
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // After search, show channels or no match
+                      if (hasSearched)
+                        pubChannels.isEmpty
+                            ? const Text('No matching channel found',
+                                style: TextStyle(color: Colors.redAccent))
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                      pubChannels.length == 1
+                                          ? 'Channel Auto-Selected:'
+                                          : 'Select Channel:',
+                                      style: TextStyle(
+                                          color: pubChannels.length == 1
+                                              ? Colors.green
+                                              : Colors.white70,
+                                          fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 10,
+                                    runSpacing: 10,
+                                    children: pubChannels
+                                        .asMap()
+                                        .entries
+                                        .map((entry) {
+                                      final idx = entry.key;
+                                      final channel = entry.value;
+                                      final channelName =
+                                          channel['channelname'] ??
+                                              channel.toString();
+                                      final isSelected =
+                                          selectedChannelIndexLocal == idx;
+                                      final description =
+                                          channel['channeldescription'] ?? '';
+                                      return Tooltip(
+                                        message: description.isNotEmpty
+                                            ? description
+                                            : channelName,
+                                        child: ChoiceChip(
+                                          label: Text(channelName,
+                                              style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: isSelected
+                                                      ? Colors.white
+                                                      : Colors.white70)),
+                                          labelStyle: TextStyle(
+                                            color: isSelected
+                                                ? Colors.white
+                                                : Colors.white70,
+                                          ),
+                                          selected: isSelected,
+                                          selectedColor: Colors.blueAccent,
+                                          backgroundColor: Colors.grey[700],
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                          onSelected: (bool selected) {
+                                            setState(() {
+                                              if (selected) {
+                                                selectedChannelIndexLocal = idx;
+                                                _composeChannelController.text =
+                                                    channelName;
+                                                fetchChannelTags(idx);
+                                                // Hide InAppWebView when channel changes
+                                                showWebView = false;
+                                                selectedTagIndexLocal = null;
+                                                selectedTagData =
+                                                    null; // Clear selected tag data
+                                              } else {
+                                                selectedChannelIndexLocal =
+                                                    null;
+                                                pubTags = [];
+                                                selectedTagIndexLocal = null;
+                                                selectedTagData =
+                                                    null; // Clear selected tag data
+                                                // Hide InAppWebView when channel deselected
+                                                showWebView = false;
+                                              }
+                                            });
+                                          },
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
+                              ),
+
+                      // Tag selection chips and Create button only after channel selected
+                      if (hasSearched &&
+                          pubChannels.isNotEmpty &&
+                          selectedChannelIndexLocal != null) ...[
+                        Row(
+                          children: [
+                            const Text('Select Tag:',
+                                style: TextStyle(
+                                    color: Colors.white70,
+                                    fontWeight: FontWeight.bold)),
+                            if (isLoadingTags)
+                              const Padding(
+                                padding: EdgeInsets.only(left: 8.0),
+                                child: SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white70),
                                 ),
                               ),
-                            ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 16),
+                        const SizedBox(height: 12),
+                        if (pubTags.isEmpty && !isLoadingTags)
+                          const Text('No tags found for this channel',
+                              style: TextStyle(color: Colors.redAccent)),
+                        if (isLoadingTags)
+                          const Text(
+                              'Loading tags for auto-selected channel...',
+                              style: TextStyle(color: Colors.white54)),
+                        if (pubTags.isNotEmpty)
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: pubTags.asMap().entries.map((entry) {
+                              final idx = entry.key;
+                              final tag = entry.value;
+                              final tagName = tag['tag'] ??
+                                  tag['tagName'] ??
+                                  tag['tagid']?.toString() ??
+                                  'Tag';
+                              final tagDescription = tag['tagdescription'] ??
+                                  tag['tagDescription'] ??
+                                  '';
+                              final isSelected = selectedTagIndexLocal == idx;
+                              return Tooltip(
+                                message: tagDescription.isNotEmpty
+                                    ? tagDescription
+                                    : tagName,
+                                child: ChoiceChip(
+                                  label: Text(tagName,
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          color: isSelected
+                                              ? Colors.white
+                                              : Colors.white70)),
+                                  labelStyle: TextStyle(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.white70,
+                                  ),
+                                  selected: isSelected,
+                                  selectedColor: Colors.green,
+                                  backgroundColor: Colors.grey[700],
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  onSelected: (bool selected) async {
+                                    if (selected) {
+                                      final tagId = tag['tagid'] ??
+                                          tag['tagId'] ??
+                                          'Unknown TagID';
+                                      final channelName =
+                                          selectedChannelIndexLocal != null
+                                              ? pubChannels[
+                                                          selectedChannelIndexLocal!]
+                                                      ['channelname'] ??
+                                                  'Unknown Channel'
+                                              : 'Unknown Channel';
+                                      final entityName =
+                                          _entityController.text.trim();
+                                      print('Selected tag: $tagName');
+                                      print('Tag ID: $tagId');
+                                      print('Channel Name: $channelName');
+                                      print('Entity Name: $entityName');
+
+                                      // Fetch context data asynchronously
+                                      final contextData =
+                                          await dashboardController
+                                              .getContextAndPublicKey(
+                                                  entityName,
+                                                  channelName,
+                                                  tagId);
+                                      // print("Context Data: $contextData");
+                                      if (contextData != null) {
+                                        if (contextData["contextform"] !=
+                                            null) {
+                                          htmlForm = contextData["contextform"];
+                                          print(
+                                              "Context form found, rendering...");
+                                        } else {
+                                          print(
+                                              "No context template found for this tag.");
+                                        }
+                                      }
+                                      setState(() {
+                                        selectedTagIndexLocal = idx;
+                                        showWebView = true;
+                                        selectedTagData =
+                                            tag; // Store the selected tag data
+                                      });
+                                    } else {
+                                      setState(() {
+                                        selectedTagIndexLocal = null;
+                                        showWebView = false;
+                                        selectedTagData =
+                                            null; // Clear selected tag data
+                                      });
+                                      print('Tag deselected');
+                                    }
+                                  },
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // Show InAppWebView below tag selection when a tag is selected
+                      if (showWebView) ...[
+                        Container(
+                          height: 530,
+                          margin: const EdgeInsets.only(top: 16, right: 20),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[600]!),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: InAppWebView(
+                                  initialData: InAppWebViewInitialData(
+                                    data: appendScriptWithHtml(htmlForm,
+                                        isSubmitButtonNeeded: true),
+                                  ),
+                                  onWebViewCreated: (controller) {
+                                    webViewController =
+                                        controller; // Store controller reference
+                                    print(
+                                        '🔧 WebView controller stored successfully');
+                                    if (!kIsWeb) {
+                                      // Add handler for MessageChannel setup
+                                      controller.addJavaScriptHandler(
+                                        handlerName: 'setupMessageChannel',
+                                        callback: (args) {
+                                          print(
+                                              '✅ Submit trigger setup complete: ${args[0]}');
+                                        },
+                                      );
+
+                                      controller.addJavaScriptHandler(
+                                        handlerName: 'onFormSubmit',
+                                        callback: (args) {
+                                          String jsonString = args[0];
+                                          print(
+                                              'Received JSON string: $jsonString');
+                                          // Add bounds checking before accessing joinedTags array
+                                          if (jsonString.isNotEmpty) {
+                                            final entityName =
+                                                _entityController.text.trim();
+                                            final channelName =
+                                                selectedChannelIndexLocal !=
+                                                        null
+                                                    ? pubChannels[
+                                                                selectedChannelIndexLocal!]
+                                                            ['channelname'] ??
+                                                        'Unknown Channel'
+                                                    : 'Unknown Channel';
+                                            final tagId = selectedTagData !=
+                                                    null
+                                                ? (selectedTagData!['tagid'] ??
+                                                        selectedTagData![
+                                                            'tagId'] ??
+                                                        'Unknown TagID')
+                                                    .toString()
+                                                : 'Unknown TagID';
+                                            print('Entity Name: $entityName');
+                                            print('Channel Name: $channelName');
+                                            print('Tag ID: $tagId');
+                                            createEncryptedDocument(entityName,
+                                                channelName, tagId, jsonString);
+                                          } else {
+                                            print(
+                                                'Error: Invalid selectedjoinedTagIndex when handling form submit');
+                                          }
+                                        },
+                                      );
+                                    } else {
+                                      handleWebMessage();
+                                    }
+                                  },
+                                ),
+                              ),
+                              // Floating close button
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: FloatingActionButton(
+                                  mini: true,
+                                  backgroundColor: Colors.red.withOpacity(0.8),
+                                  onPressed: () {
+                                    setState(() {
+                                      showWebView = false;
+                                      selectedTagIndexLocal = null;
+                                      selectedTagData =
+                                          null; // Clear selected tag data
+                                    });
+                                  },
+                                  child: const Icon(
+                                    Icons.close,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                     ],
-
-
-                  ],
-                ),
-              ), // ConstrainedBox child
+                  ),
+                ), // ConstrainedBox child
               ), // ConstrainedBox
-              actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              actionsPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               actionsAlignment: MainAxisAlignment.spaceBetween,
               actions: [
                 // Cancel button - always on the left
@@ -1963,7 +2097,8 @@ class _DashboardViewState extends State<DashboardView> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
                         ),
                         child: const Text(
                           'Reset',
@@ -1971,8 +2106,7 @@ class _DashboardViewState extends State<DashboardView> {
                         ),
                       ),
                     // Add spacing between Reset and Submit buttons
-                    if (hasSearched && showWebView)
-                      const SizedBox(width: 12),
+                    if (hasSearched && showWebView) const SizedBox(width: 12),
                     // Submit button - only show when WebView is visible
                     if (showWebView)
                       ElevatedButton(
@@ -1980,8 +2114,8 @@ class _DashboardViewState extends State<DashboardView> {
                           // Trigger form submission using the global function
                           if (webViewController != null) {
                             try {
-                              await webViewController!.evaluateJavascript(
-                                source: '''
+                              await webViewController!
+                                  .evaluateJavascript(source: '''
                                   console.log('🎯 Submit button clicked from Flutter');
                                   if (typeof window.triggerFormSubmit === 'function') {
                                     window.triggerFormSubmit();
@@ -1998,9 +2132,8 @@ class _DashboardViewState extends State<DashboardView> {
                                       alert('No form found to submit');
                                     }
                                   }
-                                '''
-                              );
-                              
+                                ''');
+
                               // Show user feedback
                               // ScaffoldMessenger.of(context).showSnackBar(
                               //   const SnackBar(
@@ -2012,7 +2145,8 @@ class _DashboardViewState extends State<DashboardView> {
                               print('Error triggering form submission: $e');
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Error triggering form submission: $e'),
+                                  content: Text(
+                                      'Error triggering form submission: $e'),
                                   backgroundColor: Colors.red,
                                 ),
                               );
@@ -2020,7 +2154,8 @@ class _DashboardViewState extends State<DashboardView> {
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('WebView not ready. Please wait and try again.'),
+                                content: Text(
+                                    'WebView not ready. Please wait and try again.'),
                                 backgroundColor: Colors.orange,
                               ),
                             );
@@ -2031,7 +2166,8 @@ class _DashboardViewState extends State<DashboardView> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
                         ),
                         child: const Text(
                           'Submit',
@@ -2208,11 +2344,11 @@ class _DashboardViewState extends State<DashboardView> {
         );
       },
     );
-  } 
+  }
 
   void _showDeleteChannelDialog(BuildContext context, int index) {
     final channelName = channels[index]["channelname"];
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -2264,8 +2400,9 @@ class _DashboardViewState extends State<DashboardView> {
 
   void _deleteChannel(int index) async {
     final channelName = channels[index]["channelname"];
-    final channelId = channels[index]["channelid"]?.toString() ?? channels[index]["id"]?.toString();
-    
+    final channelId = channels[index]["channelid"]?.toString() ??
+        channels[index]["id"]?.toString();
+
     if (channelId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -2275,7 +2412,7 @@ class _DashboardViewState extends State<DashboardView> {
       );
       return;
     }
-    
+
     try {
       // Show loading state
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2284,10 +2421,10 @@ class _DashboardViewState extends State<DashboardView> {
           backgroundColor: Colors.blue,
         ),
       );
-      
+
       // Call the delete channel API
       bool success = await dashboardController.deleteChannel(channelId);
-      
+
       if (success) {
         // Clear selection if deleted channel was selected
         if (selectedChannelIndex == index) {
@@ -2300,16 +2437,17 @@ class _DashboardViewState extends State<DashboardView> {
             joinedTags = [];
             currentChatMessages = [];
           });
-        } else if (selectedChannelIndex != null && selectedChannelIndex! > index) {
+        } else if (selectedChannelIndex != null &&
+            selectedChannelIndex! > index) {
           // Adjust selected index if it's after the deleted channel
           setState(() {
             selectedChannelIndex = selectedChannelIndex! - 1;
           });
         }
-        
+
         // Refresh the channels list
         fetchChannels();
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Channel "$channelName" deleted successfully'),
@@ -2415,7 +2553,7 @@ class _DashboardViewState extends State<DashboardView> {
               return {
                 "label": eventName,
                 "html":
-                    "<form><input type='text' required name='${eventName}' placeholder='Enter text...' /><br><button type='submit'>${eventName}</button></form>",
+                    "<form class='m-2'><input type='text' class='form-control' required name='${eventName}' placeholder='Enter text...' /></form>",
               };
             }).toList(),
           );
@@ -2505,7 +2643,7 @@ class _DashboardViewState extends State<DashboardView> {
                   selectedTagIndex = index;
                   selectedDocIndex = -1; // reset doc selection
                 });
-                
+
                 getContextAndPublicKey(
                   item["oldEntityId"],
                   item["oldChannelName"],
@@ -2563,11 +2701,15 @@ class _DashboardViewState extends State<DashboardView> {
                                   ? (isDarkMode
                                       ? Colors.white.withOpacity(0.2)
                                       : primaryAccent.withOpacity(0.15))
-                                  : (isDarkMode ? Colors.grey[700] : borderColor),
+                                  : (isDarkMode
+                                      ? Colors.grey[700]
+                                      : borderColor),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
-                              isTag ? Icons.label_outline : Icons.description_outlined,
+                              isTag
+                                  ? Icons.label_outline
+                                  : Icons.description_outlined,
                               color: isSelected
                                   ? (isDarkMode ? Colors.white : primaryAccent)
                                   : subtitleColor,
@@ -2577,8 +2719,8 @@ class _DashboardViewState extends State<DashboardView> {
                         ),
                       )
                     : ListTile(
-                        contentPadding:
-                            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
                         leading: Container(
                           width: 40,
                           height: 40,
@@ -2591,7 +2733,9 @@ class _DashboardViewState extends State<DashboardView> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
-                            isTag ? Icons.label_outline : Icons.description_outlined,
+                            isTag
+                                ? Icons.label_outline
+                                : Icons.description_outlined,
                             color: isSelected
                                 ? (isDarkMode ? Colors.white : primaryAccent)
                                 : subtitleColor,
@@ -2604,7 +2748,8 @@ class _DashboardViewState extends State<DashboardView> {
                             color: isSelected
                                 ? (isDarkMode ? Colors.white : primaryAccent)
                                 : textColor,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                            fontWeight:
+                                isSelected ? FontWeight.w600 : FontWeight.w500,
                             fontSize: 14,
                           ),
                         ),
@@ -3233,30 +3378,31 @@ class _DashboardViewState extends State<DashboardView> {
         height: 60,
         margin: const EdgeInsets.all(8.0),
         decoration: BoxDecoration(
-          color: _isProfileHovered 
-            ? surfaceColor.withOpacity(0.9)
-            : surfaceColor.withOpacity(0.8),
+          color: _isProfileHovered
+              ? surfaceColor.withOpacity(0.9)
+              : surfaceColor.withOpacity(0.8),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: _isProfileHovered 
-              ? borderColor.withOpacity(0.6)
-              : borderColor.withOpacity(0.3),
+            color: _isProfileHovered
+                ? borderColor.withOpacity(0.6)
+                : borderColor.withOpacity(0.3),
             width: _isProfileHovered ? 1.5 : 1,
           ),
           boxShadow: _isProfileHovered
-            ? [
-                BoxShadow(
-                  color: primaryAccent.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
+              ? [
+                  BoxShadow(
+                    color: primaryAccent.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: GestureDetector(
           onTap: () => _showDiscordStyleProfile(context),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
             child: Row(
               children: [
                 // User avatar with hover effect
@@ -3265,19 +3411,19 @@ class _DashboardViewState extends State<DashboardView> {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: _isProfileHovered 
-                      ? primaryAccent.withOpacity(0.9)
-                      : primaryAccent,
+                    color: _isProfileHovered
+                        ? primaryAccent.withOpacity(0.9)
+                        : primaryAccent,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: _isProfileHovered
-                      ? [
-                          BoxShadow(
-                            color: primaryAccent.withOpacity(0.4),
-                            blurRadius: 6,
-                            offset: const Offset(0, 1),
-                          ),
-                        ]
-                      : null,
+                        ? [
+                            BoxShadow(
+                              color: primaryAccent.withOpacity(0.4),
+                              blurRadius: 6,
+                              offset: const Offset(0, 1),
+                            ),
+                          ]
+                        : null,
                   ),
                   child: const Icon(
                     Icons.person,
@@ -3294,11 +3440,14 @@ class _DashboardViewState extends State<DashboardView> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          selectedEntityForSwitching ?? (selectedEntity.isNotEmpty ? selectedEntity : 'No Entity'),
+                          selectedEntityForSwitching ??
+                              (selectedEntity.isNotEmpty
+                                  ? selectedEntity
+                                  : 'No Entity'),
                           style: TextStyle(
-                            color: _isProfileHovered 
-                              ? textColor.withOpacity(0.95)
-                              : textColor,
+                            color: _isProfileHovered
+                                ? textColor.withOpacity(0.95)
+                                : textColor,
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                           ),
@@ -3307,9 +3456,9 @@ class _DashboardViewState extends State<DashboardView> {
                         Text(
                           'Online',
                           style: TextStyle(
-                            color: _isProfileHovered 
-                              ? subtitleColor.withOpacity(0.9)
-                              : subtitleColor,
+                            color: _isProfileHovered
+                                ? subtitleColor.withOpacity(0.9)
+                                : subtitleColor,
                             fontSize: 10,
                           ),
                           overflow: TextOverflow.ellipsis,
@@ -3344,11 +3493,11 @@ class _DashboardViewState extends State<DashboardView> {
           if (_isDragging) {
             final deltaX = details.globalPosition.dx - _dragStartX;
             final newWidth = _dragStartWidth + deltaX;
-            
+
             // Apply constraints - allow dragging left until only logo shows
-            const minWidth = 80.0;  // Increased slightly for better usability
+            const minWidth = 80.0; // Increased slightly for better usability
             const maxWidth = 400.0;
-            
+
             setState(() {
               _docsWidth = newWidth.clamp(minWidth, maxWidth);
             });
@@ -3418,7 +3567,10 @@ class _DashboardViewState extends State<DashboardView> {
                           width: double.infinity,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [primaryAccent, primaryAccent.withOpacity(0.8)],
+                              colors: [
+                                primaryAccent,
+                                primaryAccent.withOpacity(0.8)
+                              ],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
@@ -3440,7 +3592,10 @@ class _DashboardViewState extends State<DashboardView> {
                                       decoration: BoxDecoration(
                                         color: Colors.white.withOpacity(0.2),
                                         borderRadius: BorderRadius.circular(24),
-                                        border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+                                        border: Border.all(
+                                            color:
+                                                Colors.white.withOpacity(0.3),
+                                            width: 2),
                                       ),
                                       child: const Icon(
                                         Icons.person,
@@ -3457,8 +3612,10 @@ class _DashboardViewState extends State<DashboardView> {
                                         height: 14,
                                         decoration: BoxDecoration(
                                           color: Colors.green,
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: primaryAccent, width: 2),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          border: Border.all(
+                                              color: primaryAccent, width: 2),
                                         ),
                                       ),
                                     ),
@@ -3468,10 +3625,14 @@ class _DashboardViewState extends State<DashboardView> {
                                 // User info
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        selectedEntityForSwitching ?? (selectedEntity.isNotEmpty ? selectedEntity : 'No Entity'),
+                                        selectedEntityForSwitching ??
+                                            (selectedEntity.isNotEmpty
+                                                ? selectedEntity
+                                                : 'No Entity'),
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 14,
@@ -3480,15 +3641,18 @@ class _DashboardViewState extends State<DashboardView> {
                                       ),
                                       const SizedBox(height: 2),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
                                         decoration: BoxDecoration(
                                           color: Colors.white.withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                         ),
                                         child: Text(
                                           'Online',
                                           style: TextStyle(
-                                            color: Colors.white.withOpacity(0.9),
+                                            color:
+                                                Colors.white.withOpacity(0.9),
                                             fontSize: 11,
                                           ),
                                         ),
@@ -3500,32 +3664,37 @@ class _DashboardViewState extends State<DashboardView> {
                             ),
                           ),
                         ),
-                        
+
                         const SizedBox(height: 8),
-                        
+
                         // Menu Options
-                        _buildSimpleProfileMenuItem(Icons.swap_horiz, 'Switch Account'),
-                        _buildSimpleProfileMenuItem(Icons.language, 'Select Language'),
-                        _buildSimpleProfileMenuItem(Icons.list_alt, 'View Logs'),
-                        
+                        _buildSimpleProfileMenuItem(
+                            Icons.swap_horiz, 'Switch Account'),
+                        _buildSimpleProfileMenuItem(
+                            Icons.language, 'Select Language'),
+                        _buildSimpleProfileMenuItem(
+                            Icons.list_alt, 'View Logs'),
+
                         // Divider
                         Container(
                           margin: const EdgeInsets.symmetric(vertical: 4),
                           height: 1,
                           color: borderColor.withOpacity(0.3),
                         ),
-                        
+
                         // Logout option (in red)
                         GestureDetector(
                           onTap: () {
                             Navigator.of(context).pop();
                             // Use a slight delay to ensure the profile popup is fully closed
-                            Future.delayed(const Duration(milliseconds: 100), () {
+                            Future.delayed(const Duration(milliseconds: 100),
+                                () {
                               _showLogoutDialog();
                             });
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 8),
                             child: Row(
                               children: [
                                 Icon(Icons.logout, color: Colors.red, size: 18),
@@ -3541,7 +3710,6 @@ class _DashboardViewState extends State<DashboardView> {
                             ),
                           ),
                         ),
-
                       ],
                     ),
                   ),
@@ -3594,18 +3762,19 @@ class _DashboardViewState extends State<DashboardView> {
 
   // Show switch account dialog
   void _showSwitchAccountDialog() {
-    print("Opening switch account dialog - entities: $entities, length: ${entities.length}");
-    
+    print(
+        "Opening switch account dialog - entities: $entities, length: ${entities.length}");
+
     // Fallback test data if entities are empty
-    List<dynamic> displayEntities = entities.isNotEmpty 
-      ? entities 
-      : [
-          {'tenant': 'basit.munir19@gmail.com'},
-          {'tenant': 'info@advcomm.net'},
-        ];
-    
+    List<dynamic> displayEntities = entities.isNotEmpty
+        ? entities
+        : [
+            {'tenant': 'basit.munir19@gmail.com'},
+            {'tenant': 'info@advcomm.net'},
+          ];
+
     print("Display entities: $displayEntities");
-    
+
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.3),
@@ -3670,7 +3839,7 @@ class _DashboardViewState extends State<DashboardView> {
                     ],
                   ),
                 ),
-                
+
                 // Entities list
                 // Container(
                 //   padding: const EdgeInsets.all(16),
@@ -3684,52 +3853,62 @@ class _DashboardViewState extends State<DashboardView> {
                     padding: const EdgeInsets.all(8),
                     child: Column(
                       children: displayEntities.map<Widget>((entity) {
-                        final isSelected = entity['tenant'] == selectedEntityForSwitching;
+                        final isSelected =
+                            entity['tenant'] == selectedEntityForSwitching;
                         final entityName = entity['tenant'] ?? 'Unknown Tenant';
-                        
+
                         return Container(
                           margin: const EdgeInsets.symmetric(vertical: 2),
                           decoration: BoxDecoration(
-                            color: isSelected 
-                              ? primaryAccent.withOpacity(0.1)
-                              : Colors.transparent,
+                            color: isSelected
+                                ? primaryAccent.withOpacity(0.1)
+                                : Colors.transparent,
                             borderRadius: BorderRadius.circular(8),
                             border: isSelected
-                              ? Border.all(color: primaryAccent.withOpacity(0.3))
-                              : null,
+                                ? Border.all(
+                                    color: primaryAccent.withOpacity(0.3))
+                                : null,
                           ),
                           child: Material(
                             color: Colors.transparent,
                             child: InkWell(
                               borderRadius: BorderRadius.circular(8),
-                              onTap: isSelected ? null : () {
-                                setState(() {
-                                  selectedEntityForSwitching = entity['tenant'];
-                                });
-                                Navigator.of(context).pop();
-                                
-                                // Show success notification
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Row(
-                                      children: [
-                                        Icon(Icons.check_circle, color: Colors.white, size: 20),
-                                        const SizedBox(width: 12),
-                                        Text('Switched to $entityName'),
-                                      ],
-                                    ),
-                                    backgroundColor: Colors.green,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    margin: const EdgeInsets.all(16),
-                                    duration: const Duration(seconds: 2),
-                                  ),
-                                );
-                              },
+                              onTap: isSelected
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        selectedEntityForSwitching =
+                                            entity['tenant'];
+                                      });
+                                      Navigator.of(context).pop();
+
+                                      // Show success notification
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Row(
+                                            children: [
+                                              Icon(Icons.check_circle,
+                                                  color: Colors.white,
+                                                  size: 20),
+                                              const SizedBox(width: 12),
+                                              Text('Switched to $entityName'),
+                                            ],
+                                          ),
+                                          backgroundColor: Colors.green,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          margin: const EdgeInsets.all(16),
+                                          duration: const Duration(seconds: 2),
+                                        ),
+                                      );
+                                    },
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
                                 child: Row(
                                   children: [
                                     // Entity icon
@@ -3737,40 +3916,45 @@ class _DashboardViewState extends State<DashboardView> {
                                       width: 32,
                                       height: 32,
                                       decoration: BoxDecoration(
-                                        color: isSelected 
-                                          ? primaryAccent
-                                          : subtitleColor.withOpacity(0.1),
+                                        color: isSelected
+                                            ? primaryAccent
+                                            : subtitleColor.withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Icon(
                                         Icons.business,
-                                        color: isSelected 
-                                          ? Colors.white
-                                          : primaryAccent,
+                                        color: isSelected
+                                            ? Colors.white
+                                            : primaryAccent,
                                         size: 18,
                                       ),
                                     ),
                                     const SizedBox(width: 12),
-                                    
+
                                     // Entity name
                                     Expanded(
                                       child: Text(
                                         entityName,
                                         style: TextStyle(
-                                          color: isSelected ? primaryAccent : textColor,
-                                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                          color: isSelected
+                                              ? primaryAccent
+                                              : textColor,
+                                          fontWeight: isSelected
+                                              ? FontWeight.w600
+                                              : FontWeight.normal,
                                           fontSize: 15,
                                         ),
                                       ),
                                     ),
-                                    
+
                                     // Check icon for selected entity
                                     if (isSelected)
                                       Container(
                                         padding: const EdgeInsets.all(2),
                                         decoration: BoxDecoration(
                                           color: primaryAccent,
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
                                         ),
                                         child: const Icon(
                                           Icons.check,
@@ -3808,10 +3992,11 @@ class _DashboardViewState extends State<DashboardView> {
                       ],
                     ),
                   ),
-                
+
                 // Cancel button
                 Padding(
-                  padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                  padding:
+                      const EdgeInsets.only(left: 16, right: 16, bottom: 16),
                   child: SizedBox(
                     width: double.infinity,
                     child: TextButton(
@@ -3908,25 +4093,27 @@ class _DashboardViewState extends State<DashboardView> {
                     ],
                   ),
                 ),
-                
+
                 // Language options
                 Padding(
                   padding: const EdgeInsets.all(8),
                   child: Column(
                     children: context.supportedLocales.map((locale) {
-                      final isCurrentLanguage = _currentLocale?.languageCode == locale.languageCode;
+                      final isCurrentLanguage =
+                          _currentLocale?.languageCode == locale.languageCode;
                       final languageName = _getLanguageName(locale);
-                      
+
                       return Container(
                         margin: const EdgeInsets.symmetric(vertical: 2),
                         decoration: BoxDecoration(
-                          color: isCurrentLanguage 
-                            ? primaryAccent.withOpacity(0.1)
-                            : Colors.transparent,
+                          color: isCurrentLanguage
+                              ? primaryAccent.withOpacity(0.1)
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                           border: isCurrentLanguage
-                            ? Border.all(color: primaryAccent.withOpacity(0.3))
-                            : null,
+                              ? Border.all(
+                                  color: primaryAccent.withOpacity(0.3))
+                              : null,
                         ),
                         child: Material(
                           color: Colors.transparent,
@@ -3938,13 +4125,14 @@ class _DashboardViewState extends State<DashboardView> {
                               });
                               context.setLocale(locale);
                               Navigator.of(context).pop();
-                              
+
                               // Show elegant success notification
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Row(
                                     children: [
-                                      Icon(Icons.check_circle, color: Colors.white, size: 20),
+                                      Icon(Icons.check_circle,
+                                          color: Colors.white, size: 20),
                                       const SizedBox(width: 12),
                                       Text('Language changed to $languageName'),
                                     ],
@@ -3960,7 +4148,8 @@ class _DashboardViewState extends State<DashboardView> {
                               );
                             },
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
                               child: Row(
                                 children: [
                                   // Language flag/icon placeholder
@@ -3968,33 +4157,37 @@ class _DashboardViewState extends State<DashboardView> {
                                     width: 32,
                                     height: 32,
                                     decoration: BoxDecoration(
-                                      color: isCurrentLanguage 
-                                        ? primaryAccent
-                                        : subtitleColor.withOpacity(0.1),
+                                      color: isCurrentLanguage
+                                          ? primaryAccent
+                                          : subtitleColor.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Icon(
                                       Icons.translate,
-                                      color: isCurrentLanguage 
-                                        ? Colors.white
-                                        : subtitleColor,
+                                      color: isCurrentLanguage
+                                          ? Colors.white
+                                          : subtitleColor,
                                       size: 18,
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  
+
                                   // Language name
                                   Expanded(
                                     child: Text(
                                       languageName,
                                       style: TextStyle(
-                                        color: isCurrentLanguage ? primaryAccent : textColor,
-                                        fontWeight: isCurrentLanguage ? FontWeight.w600 : FontWeight.normal,
+                                        color: isCurrentLanguage
+                                            ? primaryAccent
+                                            : textColor,
+                                        fontWeight: isCurrentLanguage
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
                                         fontSize: 15,
                                       ),
                                     ),
                                   ),
-                                  
+
                                   // Check icon for selected language
                                   if (isCurrentLanguage)
                                     Container(
@@ -4018,10 +4211,11 @@ class _DashboardViewState extends State<DashboardView> {
                     }).toList(),
                   ),
                 ),
-                
+
                 // Cancel button
                 Padding(
-                  padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                  padding:
+                      const EdgeInsets.only(left: 16, right: 16, bottom: 16),
                   child: SizedBox(
                     width: double.infinity,
                     child: TextButton(
@@ -4139,7 +4333,7 @@ class _DashboardViewState extends State<DashboardView> {
     final collapsedSidebarWidth = 75.0; // Width when collapsed
     final sidebarWidth =
         isSidebarCollapsed ? collapsedSidebarWidth : normalSidebarWidth;
-    
+
     // Initialize docs width if not set, make it responsive
     if (_docsWidth == 250.0) {
       _docsWidth = constraints.maxWidth > 1200 ? 280.0 : 220.0;
@@ -4158,20 +4352,21 @@ class _DashboardViewState extends State<DashboardView> {
                 children: [
                   // Logo Section (always visible)
                   Padding(
-                    padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 8.0),
+                    padding:
+                        const EdgeInsets.only(left: 8.0, right: 8.0, top: 8.0),
                     child: CircleAvatar(
-                      radius: isSidebarCollapsed 
-                        ? 18 
-                        : (constraints.maxWidth > 1200 ? 24 : 20),
+                      radius: isSidebarCollapsed
+                          ? 18
+                          : (constraints.maxWidth > 1200 ? 24 : 20),
                       backgroundColor: Colors.transparent,
                       child: SvgPicture.asset(
                         'assets/images/xdoc_logo.svg',
-                        width: isSidebarCollapsed 
-                          ? 28 
-                          : (constraints.maxWidth > 1200 ? 40 : 32),
-                        height: isSidebarCollapsed 
-                          ? 28 
-                          : (constraints.maxWidth > 1200 ? 40 : 32),
+                        width: isSidebarCollapsed
+                            ? 28
+                            : (constraints.maxWidth > 1200 ? 40 : 32),
+                        height: isSidebarCollapsed
+                            ? 28
+                            : (constraints.maxWidth > 1200 ? 40 : 32),
                       ),
                     ),
                   ),
