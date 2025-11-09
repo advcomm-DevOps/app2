@@ -1069,6 +1069,7 @@ class DashboardController {
         "data": data,
         "jsonData": decryptedDoc,
         "htmlTheme": details["contexttemplate"],
+        "current_user_active_states": details["current_user_active_states"]
       };
     } on DioException catch (e) {
       print("Dio error fetching document details: ${e.message}");

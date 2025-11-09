@@ -93,6 +93,7 @@ class _DashboardViewState extends State<DashboardView> {
   String htmlForm = getResumeForm();
   String htmlResume = "";
   String jsonHtmlTheme = "";
+  List<Map<String, dynamic>> allChannelStateNames = []; // Store active states with full data
 
   List<Map<String, dynamic>> currentChatMessages = [];
 
@@ -2586,6 +2587,22 @@ class _DashboardViewState extends State<DashboardView> {
       // print("......................................${docDetails['htmlTheme']}");
       final availableEvents = docDetails['data']['documentDetails']
           ['available_events'] as List<dynamic>;
+      // ...existing code...
+      final activeStates = docDetails['current_user_active_states']; // Changed to correct path
+      List<Map<String, dynamic>> currentActiveStates = [];
+      if (activeStates != null && activeStates is List && activeStates.isNotEmpty) {
+        print("=== All Channel State Names ===");
+        for (var state in activeStates) {
+          print("Channel State Name: ${state['channel_state_name']}");
+        }
+        
+        // Store the list of active states with full data
+        currentActiveStates = activeStates.cast<Map<String, dynamic>>();
+        print("All Channel States: $currentActiveStates");
+      } else {
+        print("No active states found");
+      }
+      // ...existing code...
       if (docDetails["jsonData"] != null) {
         setState(() {
           // currentChatMessages = [];
@@ -2593,6 +2610,7 @@ class _DashboardViewState extends State<DashboardView> {
           // selectedDocIndex = index;
           htmlResume = docDetails['htmlTheme'];
           jsonHtmlTheme = docDetails['jsonData'];
+          allChannelStateNames = currentActiveStates; // Store in state variable
 
           currentChatMessages = dashboardController.documentChats[docId] ?? [];
           actionButtons = [];
@@ -2623,6 +2641,7 @@ class _DashboardViewState extends State<DashboardView> {
         setState(() {
           currentChatMessages = [];
           selectedjoinedTagIndex = index;
+          allChannelStateNames = []; // Clear active states
           currentChatMessages.add({
             "sender": "Unknown",
             "message":
@@ -3217,62 +3236,82 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   Widget buildDocStatusTree({required String? currentDocStatus}) {
-    List<StatusNode> roots = parseStatusTree(dashboardController.statusJson);
-    Widget statusNodeWidget(StatusNode node, {double indent = 0}) {
-      bool active = currentDocStatus == node.value;
-      Color nodeColor = active
-          ? Colors.blueAccent
-          : (isDarkMode ? Colors.grey[600]! : Colors.grey[500]!);
-      FontWeight nodeFontWeight = active ? FontWeight.bold : FontWeight.normal;
-
-      return Padding(
-        padding: EdgeInsets.only(left: indent),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 12,
-                  height: 12,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: nodeColor,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: isDarkMode ? Colors.white : Colors.grey[700]!,
-                        width: 2),
-                  ),
-                ),
-                Text(
-                  node.label,
-                  style: TextStyle(
-                    color: nodeColor,
-                    fontWeight: nodeFontWeight,
-                  ),
-                ),
-              ],
-            ),
-            ...node.children
-                .map((c) => statusNodeWidget(c, indent: indent + 24))
-                .toList(),
-          ],
-        ),
-      );
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16.0),
-          child: Text(
-            "Document Status",
-            style: TextStyle(
-                fontSize: 20, color: textColor, fontWeight: FontWeight.bold),
+        // Active States Section
+        if (allChannelStateNames.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: Text(
+              "Active States",
+              style: TextStyle(
+                  fontSize: 20, color: textColor, fontWeight: FontWeight.bold),
+            ),
           ),
-        ),
-        ...roots.map((node) => statusNodeWidget(node)).toList(),
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: allChannelStateNames.map<Widget>((state) {
+                // Check if this state is final
+                bool isFinal = state['is_final'] == true;
+                String stateName = state['channel_state_name'] ?? 'Unknown';
+                
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isFinal 
+                        ? Colors.blue.withOpacity(0.2)  // Blue for final states
+                        : Colors.orange.withOpacity(0.2),  // Orange for non-final states
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isFinal 
+                          ? Colors.blue.withOpacity(0.5)
+                          : Colors.orange.withOpacity(0.5),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: isFinal ? Colors.blue[700] : Colors.orange[700],
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          stateName,
+                          style: TextStyle(
+                            color: isFinal ? Colors.blue[700] : Colors.orange[700],
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      if (isFinal)
+                        Icon(
+                          Icons.check_circle,
+                          size: 16,
+                          color: Colors.blue[700],
+                        ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
       ],
     );
   }
