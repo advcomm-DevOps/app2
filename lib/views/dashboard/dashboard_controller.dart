@@ -921,7 +921,7 @@ class DashboardController {
   }
 
   Future<Map<String, dynamic>?> getContextAndPublicKey(
-      String entityName, String channelName, String tagId) async {
+      String entityName, String channelName, String? tagId) async {
     String token = await getJwt();
     try {
       // Set headers including Content-Type
@@ -931,13 +931,20 @@ class DashboardController {
         "Accept": "application/json",
       };
 
+      // Build query parameters conditionally
+      final queryParams = {
+        "entityName": entityName,
+        "channelName": channelName,
+      };
+      
+      // Only add tagId if it's not null
+      if (tagId != null) {
+        queryParams["tagId"] = tagId;
+      }
+
       final response = await dio.get(
         '$apiUrl/context-and-public-key',
-        queryParameters: {
-          "entityName": entityName,
-          "channelName": channelName,
-          "tagId": tagId,
-        },
+        queryParameters: queryParams,
         options: Options(
           contentType: 'application/json',
         ),
@@ -952,10 +959,12 @@ class DashboardController {
         // print("................................");
         // String? existing = await secureStorage.read(key: "entityRSAKeys");
         // print("Existing stored entityRSAKeys: $existing");
-        _logSuccess("Context and public key fetched successfully for entity '$entityName', channel '$channelName', tag '$tagId'");
+        final tagInfo = tagId != null ? ", tag '$tagId'" : " (no tag)";
+        _logSuccess("Context and public key fetched successfully for entity '$entityName', channel '$channelName'$tagInfo");
         return response.data;
       } else {
-        _logFailure("Failed to fetch context and public key for entity '$entityName', channel '$channelName', tag '$tagId' - Status: ${response.statusCode}");
+        final tagInfo = tagId != null ? ", tag '$tagId'" : " (no tag)";
+        _logFailure("Failed to fetch context and public key for entity '$entityName', channel '$channelName'$tagInfo - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error fetching context and public key: ${e.message}");
@@ -1207,7 +1216,7 @@ class DashboardController {
   Future<bool> createEncryptedDocument({
     required String entityName,
     required String channelName,
-    required String tagId,
+    String? tagId,
     required String submittedData,
   }) async {
     print('Creating encrypted document with entityName: $entityName, channelName: $channelName, tagId: $tagId');
@@ -1221,11 +1230,6 @@ class DashboardController {
     if (channelName.isEmpty) {
       print("❌ Channel name is empty.");
       _logFailure("Channel name is empty when creating encrypted document");
-      return false;
-    }
-    if (tagId.isEmpty) {
-      print("❌ Tag ID is empty.");
-      _logFailure("Tag ID is empty when creating encrypted document");
       return false;
     }
     if (submittedData.isEmpty) {

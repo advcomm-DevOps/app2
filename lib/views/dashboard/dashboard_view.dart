@@ -434,7 +434,7 @@ class _DashboardViewState extends State<DashboardView> {
   void createEncryptedDocument(
     String entityName,
     String channelName,
-    String tagid,
+    String? tagid,
     String submittedData,
   ) async {
     bool joined = await dashboardController.createEncryptedDocument(
@@ -445,10 +445,12 @@ class _DashboardViewState extends State<DashboardView> {
     );
 
     if (joined) {
-      await dashboardController.removeTagById(
-        channelName: channels[selectedChannelIndex!]["channelname"],
-        tagId: tagid,
-      );
+      if (tagid != null) {
+        await dashboardController.removeTagById(
+          channelName: channels[selectedChannelIndex!]["channelname"],
+          tagId: tagid,
+        );
+      }
       fetchDocs(channels[selectedChannelIndex!]["channelname"]);
       fetchJoinedTags(channels[selectedChannelIndex!]["channelname"]);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1846,8 +1848,60 @@ class _DashboardViewState extends State<DashboardView> {
                         ),
                         const SizedBox(height: 12),
                         if (pubTags.isEmpty && !isLoadingTags)
-                          const Text('No tags found for this channel',
-                              style: TextStyle(color: Colors.redAccent)),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('No tags found for this channel',
+                                  style: TextStyle(color: Colors.redAccent)),
+                              const SizedBox(height: 8),
+                              ElevatedButton.icon(
+                                onPressed: () async {
+                                  // Get context data without tag
+                                  final entityName = _entityController.text.trim();
+                                  final channelName = selectedChannelIndexLocal != null
+                                      ? pubChannels[selectedChannelIndexLocal!]['channelname'] ?? 'Unknown Channel'
+                                      : 'Unknown Channel';
+                                  
+                                  print('Sending without tag for channel: $channelName');
+                                  print('Entity Name: $entityName');
+                                  
+                                  // Fetch context data without tagId
+                                  final contextData = await dashboardController.getContextAndPublicKey(
+                                      entityName, channelName, null);
+                                  
+                                  if (contextData != null) {
+                                    if (contextData["contextform"] != null) {
+                                      htmlForm = contextData["contextform"];
+                                      print("Context form found, rendering without tag...");
+                                      setState(() {
+                                        showWebView = true;
+                                        selectedTagData = null; // No tag selected
+                                      });
+                                    } else {
+                                      print("No context template found for this channel.");
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('No form template available for this channel')),
+                                      );
+                                    }
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Failed to fetch channel data')),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.send, size: 16),
+                                label: const Text('Send without tag'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orange,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         if (isLoadingTags)
                           const Text(
                               'Loading tags for auto-selected channel...',
@@ -2001,14 +2055,13 @@ class _DashboardViewState extends State<DashboardView> {
                                                             ['channelname'] ??
                                                         'Unknown Channel'
                                                     : 'Unknown Channel';
-                                            final tagId = selectedTagData !=
-                                                    null
+                                            final tagId = selectedTagData != null
                                                 ? (selectedTagData!['tagid'] ??
                                                         selectedTagData![
                                                             'tagId'] ??
                                                         'Unknown TagID')
                                                     .toString()
-                                                : 'Unknown TagID';
+                                                : null; // Pass null when no tag selected
                                             print('Entity Name: $entityName');
                                             print('Channel Name: $channelName');
                                             print('Tag ID: $tagId');
