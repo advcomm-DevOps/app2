@@ -94,6 +94,7 @@ class _DashboardViewState extends State<DashboardView> {
   String htmlResume = "";
   String jsonHtmlTheme = "";
   List<Map<String, dynamic>> allChannelStateNames = []; // Store active states with full data
+  List<Map<String, dynamic>> expectedStateTransitions = []; // Store expected state transitions
 
   List<Map<String, dynamic>> currentChatMessages = [];
 
@@ -2602,6 +2603,22 @@ class _DashboardViewState extends State<DashboardView> {
       } else {
         print("No active states found");
       }
+      
+      // Extract expected state transitions
+      final stateTransitions = docDetails['expected_state_transitions'];
+      List<Map<String, dynamic>> currentExpectedTransitions = [];
+      if (stateTransitions != null && stateTransitions is List && stateTransitions.isNotEmpty) {
+        print("=== Expected State Transitions ===");
+        for (var transition in stateTransitions) {
+          print("Triggered by channel state: ${transition['triggered_by_channel_state_name']}");
+        }
+        
+        // Store the list of expected transitions with full data
+        currentExpectedTransitions = stateTransitions.cast<Map<String, dynamic>>();
+        // print("All Expected Transitions: $currentExpectedTransitions");
+      } else {
+        print("No expected state transitions found");
+      }
       // ...existing code...
       if (docDetails["jsonData"] != null) {
         setState(() {
@@ -2611,6 +2628,7 @@ class _DashboardViewState extends State<DashboardView> {
           htmlResume = docDetails['htmlTheme'];
           jsonHtmlTheme = docDetails['jsonData'];
           allChannelStateNames = currentActiveStates; // Store in state variable
+          expectedStateTransitions = currentExpectedTransitions; // Store expected transitions
 
           currentChatMessages = dashboardController.documentChats[docId] ?? [];
           actionButtons = [];
@@ -2642,6 +2660,7 @@ class _DashboardViewState extends State<DashboardView> {
           currentChatMessages = [];
           selectedjoinedTagIndex = index;
           allChannelStateNames = []; // Clear active states
+          expectedStateTransitions = []; // Clear expected transitions
           currentChatMessages.add({
             "sender": "Unknown",
             "message":
@@ -3305,6 +3324,143 @@ class _DashboardViewState extends State<DashboardView> {
                           size: 16,
                           color: Colors.blue[700],
                         ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+        // Expected State Transitions Section
+        if (expectedStateTransitions.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: Text(
+              "Expected State Transitions",
+              style: TextStyle(
+                  fontSize: 20, color: textColor, fontWeight: FontWeight.bold),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.purple.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.purple.withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: expectedStateTransitions.map<Widget>((transition) {
+                // Extract transition data
+                String transitionDesc = transition['transition_description'] ?? 'Unknown';
+                String triggeredByStateName = transition['triggered_by_channel_state_name'] ?? 'Unknown';
+                String resultsInStateName = transition['results_in_actor_state_name'] ?? 'Unknown';
+                bool otherActorInTriggerState = transition['other_actor_currently_in_trigger_state'] == true;
+                
+                // Determine colors based on transition type and current state
+                Color containerColor;
+                Color borderColor;
+                Color textColor;
+                IconData? iconData;
+                
+                if (transitionDesc == 'immediate_transition' && otherActorInTriggerState) {
+                  // Active transition - red/urgent
+                  containerColor = Colors.red.withOpacity(0.2);
+                  borderColor = Colors.red.withOpacity(0.5);
+                  textColor = Colors.red[700]!;
+                  iconData = Icons.warning;
+                } else if (transitionDesc == 'potential_transition') {
+                  // Potential transition - yellow/pending
+                  containerColor = Colors.amber.withOpacity(0.2);
+                  borderColor = Colors.amber.withOpacity(0.5);
+                  textColor = Colors.amber[700]!;
+                  iconData = Icons.schedule;
+                } else {
+                  // Default - purple
+                  containerColor = Colors.purple.withOpacity(0.2);
+                  borderColor = Colors.purple.withOpacity(0.5);
+                  textColor = Colors.purple[700]!;
+                  iconData = Icons.arrow_forward;
+                }
+                
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: containerColor,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header row with icon and transition type
+                      Row(
+                        children: [
+                          Icon(
+                            iconData,
+                            size: 18,
+                            color: textColor,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              triggeredByStateName,
+                              style: TextStyle(
+                                color: textColor,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      // Transition arrow and result
+                      Row(
+                        children: [
+                          const SizedBox(width: 26), // Align with icon above
+                          Icon(
+                            Icons.arrow_downward,
+                            size: 16,
+                            color: textColor.withOpacity(0.7),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              "Results in: $resultsInStateName",
+                              style: TextStyle(
+                                color: textColor.withOpacity(0.8),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (otherActorInTriggerState) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const SizedBox(width: 26),
+                            Icon(
+                              Icons.flash_on,
+                              size: 14,
+                              color: Colors.red[600],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              "Currently active",
+                              style: TextStyle(
+                                color: Colors.red[600],
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 );
