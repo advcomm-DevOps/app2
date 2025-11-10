@@ -3414,6 +3414,12 @@ class _DashboardViewState extends State<DashboardView> {
                               ),
                             ),
                           ),
+                          if (otherActorInTriggerState)
+                            Icon(
+                              Icons.check_circle,
+                              size: 16,
+                              color: Colors.red[600],
+                            ),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -3439,28 +3445,6 @@ class _DashboardViewState extends State<DashboardView> {
                           ),
                         ],
                       ),
-                      if (otherActorInTriggerState) ...[
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const SizedBox(width: 26),
-                            Icon(
-                              Icons.flash_on,
-                              size: 14,
-                              color: Colors.red[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              "Currently active",
-                              style: TextStyle(
-                                color: Colors.red[600],
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
                     ],
                   ),
                 );
@@ -4762,7 +4746,7 @@ class _DashboardViewState extends State<DashboardView> {
                       channels[selectedChannelIndex!]["actorsequence"] == 0)
                     Container(
                       padding: const EdgeInsets.all(16.0),
-                      child: ElevatedButton.icon(
+                      child: _docsWidth > 150 ? ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue[600],
                           minimumSize: const Size(double.infinity, 45),
@@ -4779,6 +4763,22 @@ class _DashboardViewState extends State<DashboardView> {
                           // Show compose dialog instead of toggling mode
                           _showComposeDialog(context);
                         },
+                      ) : ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[600],
+                          minimumSize: const Size(double.infinity, 45),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: EdgeInsets.zero,
+                        ),
+                        onPressed: () {
+                          // Show compose dialog instead of toggling mode
+                          _showComposeDialog(context);
+                        },
+                        child: const Center(
+                          child: Icon(Icons.add, color: Colors.white, size: 24),
+                        ),
                       ),
                     ),
                   buildDocsListOrTagsList(),
