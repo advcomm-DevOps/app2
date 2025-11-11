@@ -89,10 +89,12 @@ class _DashboardViewState extends State<DashboardView> {
   final TextEditingController _entityController = TextEditingController();
   final TextEditingController _composeChannelController =
       TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   String htmlForm = getResumeForm();
   String htmlResume = "";
   String jsonHtmlTheme = "";
+  String searchQuery = ""; // Search query for filtering docs and tags
   List<Map<String, dynamic>> allChannelStateNames = []; // Store active states with full data
   List<Map<String, dynamic>> expectedStateTransitions = []; // Store expected state transitions
 
@@ -2695,12 +2697,26 @@ class _DashboardViewState extends State<DashboardView> {
       ...docsList.map((item) => {...item, "type": "doc"}),
     ];
 
+    // Filter combinedList based on search query
+    final List<Map<String, dynamic>> filteredList = searchQuery.isEmpty
+        ? combinedList
+        : combinedList.where((item) {
+            final isTag = item["type"] == "tag";
+            final itemName = isTag
+                ? (item["tagName"] ?? "Tag ${item["tagId"]}")?.toLowerCase() ?? ""
+                : (item["docname"] ?? "")?.toLowerCase() ?? "";
+            return itemName.contains(searchQuery.toLowerCase());
+          }).toList();
+
     // Show generic message if no tags nor docs
-    if (combinedList.isEmpty) {
+    if (filteredList.isEmpty) {
+      final message = searchQuery.isEmpty 
+          ? "No document found"
+          : "No results found for '$searchQuery'";
       return Expanded(
         child: Center(
           child: Text(
-            "No document found",
+            message,
             style: TextStyle(color: subtitleColor),
           ),
         ),
@@ -2708,18 +2724,19 @@ class _DashboardViewState extends State<DashboardView> {
     }
     return Expanded(
       child: ListView.builder(
-        itemCount: combinedList.length,
+        itemCount: filteredList.length,
         padding: const EdgeInsets.all(8),
         itemBuilder: (context, index) {
-          final item = combinedList[index];
+          final item = filteredList[index];
           final isTag = item["type"] == "tag";
 
-          // Compute correct relative index for docs
-          final docRelativeIndex = index - tagsList.length;
+          // Find original indices for selection logic
+          final originalIndex = combinedList.indexOf(item);
+          final docRelativeIndex = originalIndex - tagsList.length;
 
-          // Selection logic
+          // Selection logic using original indices
           final isSelected = isTag
-              ? selectedTagIndex == index // use real tag index
+              ? selectedTagIndex == originalIndex // use original tag index
               : selectedDocIndex == docRelativeIndex; // relative doc index
 
           // Display name
@@ -2731,7 +2748,7 @@ class _DashboardViewState extends State<DashboardView> {
             onTap: () {
               if (isTag) {
                 setState(() {
-                  selectedTagIndex = index;
+                  selectedTagIndex = originalIndex;
                   selectedDocIndex = -1; // reset doc selection
                 });
 
@@ -2740,7 +2757,7 @@ class _DashboardViewState extends State<DashboardView> {
                   item["oldChannelName"],
                   item["tagId"],
                   false,
-                  index,
+                  originalIndex,
                 );
               } else {
                 setState(() {
@@ -4782,6 +4799,60 @@ class _DashboardViewState extends State<DashboardView> {
                       ),
                     ),
                   buildDocsListOrTagsList(),
+                  // Search input at bottom of middle panel
+                  Container(
+                    padding: const EdgeInsets.all(12.0),
+                    decoration: BoxDecoration(
+                      color: surfaceColor,
+                      border: Border(
+                        top: BorderSide(color: borderColor, width: 1),
+                      ),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      style: TextStyle(color: textColor, fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: 'Search documents and tags...',
+                        hintStyle: TextStyle(color: subtitleColor, fontSize: 14),
+                        prefixIcon: Icon(Icons.search, color: subtitleColor, size: 20),
+                        suffixIcon: searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(Icons.clear, color: subtitleColor, size: 18),
+                                onPressed: () {
+                                  setState(() {
+                                    searchQuery = '';
+                                    _searchController.clear();
+                                  });
+                                },
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: cardColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: borderColor),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: borderColor),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: primaryAccent, width: 2),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        isDense: true,
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          searchQuery = value;
+                        });
+                      },
+                    ),
+                  ),
                 ],
               ),
             ),
