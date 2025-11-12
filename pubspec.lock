@@ -1285,7 +1285,7 @@ packages:
   tenant_replication:
     dependency: "direct main"
     description:
-      path: "../tenant_replication"
+      path: tenant_replication
       relative: true
     source: path
     version: "0.0.6"
