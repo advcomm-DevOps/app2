@@ -22,6 +22,7 @@ import 'dashboard_logs_view.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uids_io_sdk_flutter/auth_logout.dart';
+import 'package:encrypt/encrypt.dart' as encrypt;
 
 class DashboardView extends StatefulWidget {
   final String? entity;
@@ -95,8 +96,10 @@ class _DashboardViewState extends State<DashboardView> {
   String htmlResume = "";
   String jsonHtmlTheme = "";
   String searchQuery = ""; // Search query for filtering docs and tags
-  List<Map<String, dynamic>> allChannelStateNames = []; // Store active states with full data
-  List<Map<String, dynamic>> expectedStateTransitions = []; // Store expected state transitions
+  List<Map<String, dynamic>> allChannelStateNames =
+      []; // Store active states with full data
+  List<Map<String, dynamic>> expectedStateTransitions =
+      []; // Store expected state transitions
 
   List<Map<String, dynamic>> currentChatMessages = [];
 
@@ -481,7 +484,7 @@ class _DashboardViewState extends State<DashboardView> {
     );
 
     if (isUpdated) {
-       getDocumentDetails(docid, docRelativeIndex);
+      getDocumentDetails(docid, docRelativeIndex);
       // fetchDocs(channels[selectedChannelIndex!]["channelname"]);
       // fetchJoinedTags(channels[selectedChannelIndex!]["channelname"]);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1211,8 +1214,8 @@ class _DashboardViewState extends State<DashboardView> {
             width: 400,
             height: 100,
             child: InAppWebView(
-              initialData:
-                  InAppWebViewInitialData(data: appendScriptWithHtml(html, isSubmitButtonNeeded: true)),
+              initialData: InAppWebViewInitialData(
+                  data: appendScriptWithHtml(html, isSubmitButtonNeeded: true)),
               onWebViewCreated: (controller) {
                 webViewController = controller; // Store controller reference
                 if (!kIsWeb) {
@@ -1232,8 +1235,11 @@ class _DashboardViewState extends State<DashboardView> {
                       if (selectedDocIndex != null &&
                           selectedDocIndex! >= 0 &&
                           selectedDocIndex! < docs.length) {
-                        updateEncryptedEvent(action,
-                            docs[selectedDocIndex!]["docid"], jsonString,selectedDocIndex);
+                        updateEncryptedEvent(
+                            action,
+                            docs[selectedDocIndex!]["docid"],
+                            jsonString,
+                            selectedDocIndex);
                       } else {
                         print(
                             'Error: Invalid selectedDocIndex when handling form submit');
@@ -1252,8 +1258,7 @@ class _DashboardViewState extends State<DashboardView> {
                 // Trigger form submission using the global function
                 if (webViewController != null) {
                   try {
-                    await webViewController!
-                        .evaluateJavascript(source: '''
+                    await webViewController!.evaluateJavascript(source: '''
                         console.log('🎯 Submit button clicked from Flutter');
                         if (typeof window.triggerFormSubmit === 'function') {
                           window.triggerFormSubmit();
@@ -1283,8 +1288,7 @@ class _DashboardViewState extends State<DashboardView> {
                     print('Error triggering form submission: $e');
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(
-                            'Error triggering form submission: $e'),
+                        content: Text('Error triggering form submission: $e'),
                         backgroundColor: Colors.red,
                       ),
                     );
@@ -1292,8 +1296,8 @@ class _DashboardViewState extends State<DashboardView> {
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text(
-                          'WebView not ready. Please wait and try again.'),
+                      content:
+                          Text('WebView not ready. Please wait and try again.'),
                       backgroundColor: Colors.orange,
                     ),
                   );
@@ -1304,8 +1308,8 @@ class _DashboardViewState extends State<DashboardView> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
               child: const Text(
                 'Submit',
@@ -1861,35 +1865,50 @@ class _DashboardViewState extends State<DashboardView> {
                               ElevatedButton.icon(
                                 onPressed: () async {
                                   // Get context data without tag
-                                  final entityName = _entityController.text.trim();
-                                  final channelName = selectedChannelIndexLocal != null
-                                      ? pubChannels[selectedChannelIndexLocal!]['channelname'] ?? 'Unknown Channel'
-                                      : 'Unknown Channel';
-                                  
-                                  print('Sending without tag for channel: $channelName');
+                                  final entityName =
+                                      _entityController.text.trim();
+                                  final channelName =
+                                      selectedChannelIndexLocal != null
+                                          ? pubChannels[
+                                                      selectedChannelIndexLocal!]
+                                                  ['channelname'] ??
+                                              'Unknown Channel'
+                                          : 'Unknown Channel';
+
+                                  print(
+                                      'Sending without tag for channel: $channelName');
                                   print('Entity Name: $entityName');
-                                  
+
                                   // Fetch context data without tagId
-                                  final contextData = await dashboardController.getContextAndPublicKey(
-                                      entityName, channelName, null);
-                                  
+                                  final contextData = await dashboardController
+                                      .getContextAndPublicKey(
+                                          entityName, channelName, null);
+
                                   if (contextData != null) {
                                     if (contextData["contextform"] != null) {
                                       htmlForm = contextData["contextform"];
-                                      print("Context form found, rendering without tag...");
+                                      print(
+                                          "Context form found, rendering without tag...");
                                       setState(() {
                                         showWebView = true;
-                                        selectedTagData = null; // No tag selected
+                                        selectedTagData =
+                                            null; // No tag selected
                                       });
                                     } else {
-                                      print("No context template found for this channel.");
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('No form template available for this channel')),
+                                      print(
+                                          "No context template found for this channel.");
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                'No form template available for this channel')),
                                       );
                                     }
                                   } else {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Failed to fetch channel data')),
+                                      const SnackBar(
+                                          content: Text(
+                                              'Failed to fetch channel data')),
                                     );
                                   }
                                 },
@@ -1898,7 +1917,8 @@ class _DashboardViewState extends State<DashboardView> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.orange,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(20),
                                   ),
@@ -2059,7 +2079,8 @@ class _DashboardViewState extends State<DashboardView> {
                                                             ['channelname'] ??
                                                         'Unknown Channel'
                                                     : 'Unknown Channel';
-                                            final tagId = selectedTagData != null
+                                            final tagId = selectedTagData !=
+                                                    null
                                                 ? (selectedTagData!['tagid'] ??
                                                         selectedTagData![
                                                             'tagId'] ??
@@ -2591,32 +2612,39 @@ class _DashboardViewState extends State<DashboardView> {
       final availableEvents = docDetails['data']['documentDetails']
           ['available_events'] as List<dynamic>;
       // ...existing code...
-      final activeStates = docDetails['current_user_active_states']; // Changed to correct path
+      final activeStates =
+          docDetails['current_user_active_states']; // Changed to correct path
       List<Map<String, dynamic>> currentActiveStates = [];
-      if (activeStates != null && activeStates is List && activeStates.isNotEmpty) {
+      if (activeStates != null &&
+          activeStates is List &&
+          activeStates.isNotEmpty) {
         print("=== All Channel State Names ===");
         for (var state in activeStates) {
           print("Channel State Name: ${state['channel_state_name']}");
         }
-        
+
         // Store the list of active states with full data
         currentActiveStates = activeStates.cast<Map<String, dynamic>>();
         print("All Channel States: $currentActiveStates");
       } else {
         print("No active states found");
       }
-      
+
       // Extract expected state transitions
       final stateTransitions = docDetails['expected_state_transitions'];
       List<Map<String, dynamic>> currentExpectedTransitions = [];
-      if (stateTransitions != null && stateTransitions is List && stateTransitions.isNotEmpty) {
+      if (stateTransitions != null &&
+          stateTransitions is List &&
+          stateTransitions.isNotEmpty) {
         print("=== Expected State Transitions ===");
         for (var transition in stateTransitions) {
-          print("Triggered by channel state: ${transition['triggered_by_channel_state_name']}");
+          print(
+              "Triggered by channel state: ${transition['triggered_by_channel_state_name']}");
         }
-        
+
         // Store the list of expected transitions with full data
-        currentExpectedTransitions = stateTransitions.cast<Map<String, dynamic>>();
+        currentExpectedTransitions =
+            stateTransitions.cast<Map<String, dynamic>>();
         // print("All Expected Transitions: $currentExpectedTransitions");
       } else {
         print("No expected state transitions found");
@@ -2630,7 +2658,8 @@ class _DashboardViewState extends State<DashboardView> {
           htmlResume = docDetails['htmlTheme'];
           jsonHtmlTheme = docDetails['jsonData'];
           allChannelStateNames = currentActiveStates; // Store in state variable
-          expectedStateTransitions = currentExpectedTransitions; // Store expected transitions
+          expectedStateTransitions =
+              currentExpectedTransitions; // Store expected transitions
 
           currentChatMessages = dashboardController.documentChats[docId] ?? [];
           actionButtons = [];
@@ -2703,14 +2732,15 @@ class _DashboardViewState extends State<DashboardView> {
         : combinedList.where((item) {
             final isTag = item["type"] == "tag";
             final itemName = isTag
-                ? (item["tagName"] ?? "Tag ${item["tagId"]}")?.toLowerCase() ?? ""
+                ? (item["tagName"] ?? "Tag ${item["tagId"]}")?.toLowerCase() ??
+                    ""
                 : (item["docname"] ?? "")?.toLowerCase() ?? "";
             return itemName.contains(searchQuery.toLowerCase());
           }).toList();
 
     // Show generic message if no tags nor docs
     if (filteredList.isEmpty) {
-      final message = searchQuery.isEmpty 
+      final message = searchQuery.isEmpty
           ? "No document found"
           : "No results found for '$searchQuery'";
       return Expanded(
@@ -3299,17 +3329,18 @@ class _DashboardViewState extends State<DashboardView> {
                 // Check if this state is final
                 bool isFinal = state['is_final'] == true;
                 String stateName = state['channel_state_name'] ?? 'Unknown';
-                
+
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: isFinal 
-                        ? Colors.blue.withOpacity(0.2)  // Blue for final states
-                        : Colors.orange.withOpacity(0.2),  // Orange for non-final states
+                    color: isFinal
+                        ? Colors.blue.withOpacity(0.2) // Blue for final states
+                        : Colors.orange
+                            .withOpacity(0.2), // Orange for non-final states
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: isFinal 
+                      color: isFinal
                           ? Colors.blue.withOpacity(0.5)
                           : Colors.orange.withOpacity(0.5),
                     ),
@@ -3320,7 +3351,8 @@ class _DashboardViewState extends State<DashboardView> {
                         width: 8,
                         height: 8,
                         decoration: BoxDecoration(
-                          color: isFinal ? Colors.blue[700] : Colors.orange[700],
+                          color:
+                              isFinal ? Colors.blue[700] : Colors.orange[700],
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -3329,7 +3361,8 @@ class _DashboardViewState extends State<DashboardView> {
                         child: Text(
                           stateName,
                           style: TextStyle(
-                            color: isFinal ? Colors.blue[700] : Colors.orange[700],
+                            color:
+                                isFinal ? Colors.blue[700] : Colors.orange[700],
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
@@ -3370,18 +3403,24 @@ class _DashboardViewState extends State<DashboardView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: expectedStateTransitions.map<Widget>((transition) {
                 // Extract transition data
-                String transitionDesc = transition['transition_description'] ?? 'Unknown';
-                String triggeredByStateName = transition['triggered_by_channel_state_name'] ?? 'Unknown';
-                String resultsInStateName = transition['results_in_actor_state_name'] ?? 'Unknown';
-                bool otherActorInTriggerState = transition['other_actor_currently_in_trigger_state'] == true;
-                
+                String transitionDesc =
+                    transition['transition_description'] ?? 'Unknown';
+                String triggeredByStateName =
+                    transition['triggered_by_channel_state_name'] ?? 'Unknown';
+                String resultsInStateName =
+                    transition['results_in_actor_state_name'] ?? 'Unknown';
+                bool otherActorInTriggerState =
+                    transition['other_actor_currently_in_trigger_state'] ==
+                        true;
+
                 // Determine colors based on transition type and current state
                 Color containerColor;
                 Color borderColor;
                 Color textColor;
                 IconData? iconData;
-                
-                if (transitionDesc == 'immediate_transition' && otherActorInTriggerState) {
+
+                if (transitionDesc == 'immediate_transition' &&
+                    otherActorInTriggerState) {
                   // Active transition - red/urgent
                   containerColor = Colors.red.withOpacity(0.2);
                   borderColor = Colors.red.withOpacity(0.5);
@@ -3400,7 +3439,7 @@ class _DashboardViewState extends State<DashboardView> {
                   textColor = Colors.purple[700]!;
                   iconData = Icons.arrow_forward;
                 }
-                
+
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(12),
@@ -3923,6 +3962,7 @@ class _DashboardViewState extends State<DashboardView> {
                             Icons.language, 'Select Language'),
                         _buildSimpleProfileMenuItem(
                             Icons.list_alt, 'View Logs'),
+                        _buildSimpleProfileMenuItem(Icons.key, 'View Keys'),
 
                         // Divider
                         Container(
@@ -4005,6 +4045,9 @@ class _DashboardViewState extends State<DashboardView> {
         break;
       case 'View Logs':
         DashboardLogsView.showLogsDialog(context, dashboardController);
+        break;
+      case 'View Keys':
+        _showRSAKeysDialog();
         break;
     }
   }
@@ -4547,6 +4590,792 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
+  void _showRSAKeysDialog() async {
+    // Show loading dialog first
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // Fetch RSA keys
+      final keys = await dashboardController.getSelectedEntityRSAKeys();
+
+      // Close loading dialog
+      Navigator.pop(context);
+
+      if (keys == null) {
+        // Show error if no keys found
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No RSA keys found for this entity'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final privateKey = keys['privateKey'] ?? 'Not available';
+
+      // Show key management dialog
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: surfaceColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.vpn_key, color: primaryAccent, size: 24),
+              const SizedBox(width: 12),
+              Text(
+                'Key Management',
+                style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: Container(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Manage your RSA private key',
+                  style: TextStyle(color: subtitleColor, fontSize: 14),
+                ),
+                const SizedBox(height: 24),
+
+                // Export Key Card
+                InkWell(
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showExportKeyDialog(privateKey);
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child:
+                              Icon(Icons.upload, color: Colors.blue, size: 28),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Export Private Key',
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Encrypt and export your private key',
+                                style: TextStyle(
+                                  color: subtitleColor,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.arrow_forward_ios,
+                            color: subtitleColor, size: 16),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Import Key Card
+                InkWell(
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showImportKeyDialog();
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.download,
+                              color: Colors.green, size: 28),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Import Private Key',
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Decrypt and import an encrypted key',
+                                style: TextStyle(
+                                  color: subtitleColor,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.arrow_forward_ios,
+                            color: subtitleColor, size: 16),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Warning message
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Keep your private key secure and never share it with anyone.',
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Close', style: TextStyle(color: subtitleColor)),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      // Close loading dialog if still open
+      Navigator.pop(context);
+
+      // Show error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading RSA keys: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _showExportKeyDialog(String privateKey) {
+    final TextEditingController passwordController = TextEditingController();
+    bool isPasswordVisible = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: surfaceColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.lock, color: Colors.blue, size: 24),
+              const SizedBox(width: 12),
+              Text(
+                'Export Private Key',
+                style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Enter a password to encrypt your private key:',
+                style: TextStyle(color: subtitleColor, fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: passwordController,
+                obscureText: !isPasswordVisible,
+                style: TextStyle(color: textColor),
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  labelStyle: TextStyle(color: subtitleColor),
+                  hintText: 'Enter a strong password',
+                  hintStyle: TextStyle(color: subtitleColor.withOpacity(0.5)),
+                  filled: true,
+                  fillColor: cardColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: borderColor),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: borderColor),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: primaryAccent),
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      isPasswordVisible
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                      color: subtitleColor,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        isPasswordVisible = !isPasswordVisible;
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Remember this password! You\'ll need it to import the key.',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel', style: TextStyle(color: subtitleColor)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final password = passwordController.text.trim();
+                if (password.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Please enter a password'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                if (password.length < 6) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Password must be at least 6 characters'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                try {
+                  // Encrypt the private key with password
+                  final encryptedKey =
+                      await _encryptPrivateKey(privateKey, password);
+
+                  Navigator.pop(context);
+
+                  // Show encrypted key for copying
+                  _showEncryptedKeyDialog(encryptedKey);
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error encrypting key: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+              child: Text('Export'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEncryptedKeyDialog(String encryptedKey) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: surfaceColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green, size: 24),
+            const SizedBox(width: 12),
+            Text(
+              'Encrypted Private Key',
+              style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Container(
+          width: 600,
+          constraints: BoxConstraints(maxHeight: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Your encrypted private key:',
+                style: TextStyle(color: subtitleColor, fontSize: 14),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: borderColor),
+                ),
+                constraints: BoxConstraints(maxHeight: 250),
+                child: SingleChildScrollView(
+                  child: SelectableText(
+                    encryptedKey,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle_outline,
+                        color: Colors.green, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Key successfully encrypted! Copy and store it securely.',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close', style: TextStyle(color: subtitleColor)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: encryptedKey));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Encrypted key copied to clipboard'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            icon: Icon(Icons.copy, size: 18),
+            label: Text('Copy'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showImportKeyDialog() {
+    final TextEditingController encryptedKeyController =
+        TextEditingController();
+    final TextEditingController passwordController = TextEditingController();
+    bool isPasswordVisible = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: surfaceColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.upload, color: Colors.green, size: 24),
+              const SizedBox(width: 12),
+              Text(
+                'Import Private Key',
+                style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Paste your encrypted private key:',
+                  style: TextStyle(color: subtitleColor, fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: encryptedKeyController,
+                  maxLines: 5,
+                  style: TextStyle(
+                      color: textColor, fontSize: 12, fontFamily: 'monospace'),
+                  decoration: InputDecoration(
+                    hintText: 'Paste encrypted key here...',
+                    hintStyle: TextStyle(color: subtitleColor.withOpacity(0.5)),
+                    filled: true,
+                    fillColor: cardColor,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: primaryAccent),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Enter the password used to encrypt:',
+                  style: TextStyle(color: subtitleColor, fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: passwordController,
+                  obscureText: !isPasswordVisible,
+                  style: TextStyle(color: textColor),
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    labelStyle: TextStyle(color: subtitleColor),
+                    hintText: 'Enter decryption password',
+                    hintStyle: TextStyle(color: subtitleColor.withOpacity(0.5)),
+                    filled: true,
+                    fillColor: cardColor,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: primaryAccent),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        isPasswordVisible
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: subtitleColor,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          isPasswordVisible = !isPasswordVisible;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel', style: TextStyle(color: subtitleColor)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final encryptedKey = encryptedKeyController.text.trim();
+                final password = passwordController.text.trim();
+
+                if (encryptedKey.isEmpty || password.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Please fill all fields'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                try {
+                  // Decrypt the private key
+                  final decryptedKey =
+                      await _decryptPrivateKey(encryptedKey, password);
+
+                  Navigator.pop(context);
+
+                  // Show decrypted key
+                  _showDecryptedKeyDialog(decryptedKey);
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          'Decryption failed: Invalid password or corrupted key'),
+                      backgroundColor: Colors.red,
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              child: Text('Import'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDecryptedKeyDialog(String decryptedKey) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: surfaceColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green, size: 24),
+            const SizedBox(width: 12),
+            Text(
+              'Import Successful',
+              style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Container(
+          width: 600,
+          constraints: BoxConstraints(maxHeight: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Decrypted Private Key:',
+                style: TextStyle(color: subtitleColor, fontSize: 14),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: borderColor),
+                ),
+                constraints: BoxConstraints(maxHeight: 250),
+                child: SingleChildScrollView(
+                  child: SelectableText(
+                    decryptedKey,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle_outline,
+                        color: Colors.green, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Key successfully decrypted!',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close', style: TextStyle(color: subtitleColor)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: decryptedKey));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Private key copied to clipboard'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            icon: Icon(Icons.copy, size: 18),
+            label: Text('Copy'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<String> _encryptPrivateKey(String privateKey, String password) async {
+    try {
+      // Use AES encryption with the password
+      final key =
+          encrypt.Key.fromUtf8(password.padRight(32, '0').substring(0, 32));
+      final iv = encrypt.IV.fromLength(16);
+      final encrypter = encrypt.Encrypter(encrypt.AES(key));
+
+      final encrypted = encrypter.encrypt(privateKey, iv: iv);
+
+      // Combine IV and encrypted data for storage
+      return '${iv.base64}:${encrypted.base64}';
+    } catch (e) {
+      throw Exception('Encryption failed: $e');
+    }
+  }
+
+  Future<String> _decryptPrivateKey(
+      String encryptedData, String password) async {
+    try {
+      // Split IV and encrypted data
+      final parts = encryptedData.split(':');
+      if (parts.length != 2) {
+        throw Exception('Invalid encrypted data format');
+      }
+
+      final iv = encrypt.IV.fromBase64(parts[0]);
+      final encryptedText = encrypt.Encrypted.fromBase64(parts[1]);
+
+      // Use the same key derivation as encryption
+      final key =
+          encrypt.Key.fromUtf8(password.padRight(32, '0').substring(0, 32));
+      final encrypter = encrypt.Encrypter(encrypt.AES(key));
+
+      final decrypted = encrypter.decrypt(encryptedText, iv: iv);
+      return decrypted;
+    } catch (e) {
+      throw Exception('Decryption failed: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool hasChannels = channels.isNotEmpty;
@@ -4763,40 +5592,44 @@ class _DashboardViewState extends State<DashboardView> {
                       channels[selectedChannelIndex!]["actorsequence"] == 0)
                     Container(
                       padding: const EdgeInsets.all(16.0),
-                      child: _docsWidth > 150 ? ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[600],
-                          minimumSize: const Size(double.infinity, 45),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        icon: const Icon(Icons.add, color: Colors.white),
-                        label: const Text(
-                          'Document',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
-                        ),
-                        onPressed: () {
-                          // Show compose dialog instead of toggling mode
-                          _showComposeDialog(context);
-                        },
-                      ) : ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[600],
-                          minimumSize: const Size(double.infinity, 45),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: EdgeInsets.zero,
-                        ),
-                        onPressed: () {
-                          // Show compose dialog instead of toggling mode
-                          _showComposeDialog(context);
-                        },
-                        child: const Center(
-                          child: Icon(Icons.add, color: Colors.white, size: 24),
-                        ),
-                      ),
+                      child: _docsWidth > 150
+                          ? ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue[600],
+                                minimumSize: const Size(double.infinity, 45),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              icon: const Icon(Icons.add, color: Colors.white),
+                              label: const Text(
+                                'Document',
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.white),
+                              ),
+                              onPressed: () {
+                                // Show compose dialog instead of toggling mode
+                                _showComposeDialog(context);
+                              },
+                            )
+                          : ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue[600],
+                                minimumSize: const Size(double.infinity, 45),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: EdgeInsets.zero,
+                              ),
+                              onPressed: () {
+                                // Show compose dialog instead of toggling mode
+                                _showComposeDialog(context);
+                              },
+                              child: const Center(
+                                child: Icon(Icons.add,
+                                    color: Colors.white, size: 24),
+                              ),
+                            ),
                     ),
                   buildDocsListOrTagsList(),
                   // Search input at bottom of middle panel
@@ -4813,11 +5646,14 @@ class _DashboardViewState extends State<DashboardView> {
                       style: TextStyle(color: textColor, fontSize: 14),
                       decoration: InputDecoration(
                         hintText: 'Search documents and tags...',
-                        hintStyle: TextStyle(color: subtitleColor, fontSize: 14),
-                        prefixIcon: Icon(Icons.search, color: subtitleColor, size: 20),
+                        hintStyle:
+                            TextStyle(color: subtitleColor, fontSize: 14),
+                        prefixIcon:
+                            Icon(Icons.search, color: subtitleColor, size: 20),
                         suffixIcon: searchQuery.isNotEmpty
                             ? IconButton(
-                                icon: Icon(Icons.clear, color: subtitleColor, size: 18),
+                                icon: Icon(Icons.clear,
+                                    color: subtitleColor, size: 18),
                                 onPressed: () {
                                   setState(() {
                                     searchQuery = '';
@@ -4838,7 +5674,8 @@ class _DashboardViewState extends State<DashboardView> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: primaryAccent, width: 2),
+                          borderSide:
+                              BorderSide(color: primaryAccent, width: 2),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
