@@ -3972,7 +3972,7 @@ class _DashboardViewState extends State<DashboardView> {
                             Icons.language, 'Select Language'),
                         _buildSimpleProfileMenuItem(
                             Icons.list_alt, 'View Logs'),
-                        _buildSimpleProfileMenuItem(Icons.key, 'View Keys'),
+                        _buildSimpleProfileMenuItem(Icons.key, 'Import/Export Keys'),
 
                         // Divider
                         Container(
@@ -4056,7 +4056,7 @@ class _DashboardViewState extends State<DashboardView> {
       case 'View Logs':
         DashboardLogsView.showLogsDialog(context, dashboardController);
         break;
-      case 'View Keys':
+      case 'Import/Export Keys':
         _showRSAKeysDialog();
         break;
     }
