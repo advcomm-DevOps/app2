@@ -69,12 +69,55 @@ jobs:
           path: build/windows/x64/runner/Release/xdoc.msix
           retention-days: 30
 
+      - name: Upload to Hetzner Storage Box
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          # Setup SSH key
+          $sshDir = "$env:USERPROFILE\.ssh"
+          New-Item -ItemType Directory -Force -Path $sshDir | Out-Null
+
+          # Write SSH private key
+          "${{ secrets.HETZNER_STORAGE_SSH_KEY }}" | Out-File -FilePath "$sshDir\hetzner_key" -Encoding ASCII
+
+          # Create SSH config
+          @"
+          Host storagebox
+            HostName ${{ secrets.HETZNER_STORAGE_HOST }}
+            User ${{ secrets.HETZNER_STORAGE_USER }}
+            Port 23
+            IdentityFile ~/.ssh/hetzner_key
+            StrictHostKeyChecking no
+          "@ | Out-File -FilePath "$sshDir\config" -Encoding ASCII
+
+          # Set correct permissions (on Windows)
+          icacls "$sshDir\hetzner_key" /inheritance:r
+          icacls "$sshDir\hetzner_key" /grant:r "$($env:USERNAME):(R)"
+
+          # Create directory on Storage Box
+          ssh storagebox "mkdir -p windows"
+
+          # Upload files
+          scp build/windows/x64/runner/Release/xdoc.msix storagebox:windows/xdoc-latest.msix
+          scp build/windows/x64/runner/Release/xdoc.msix storagebox:windows/xdoc-${{ github.ref_name }}.msix
+        shell: pwsh
+
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            build/windows/x64/runner/Release/xdoc.msix
+          body: |
+            ## Download XDoc for Windows
+
+            **Direct Download (Recommended):**
+            https://${{ secrets.HETZNER_STORAGE_HOST }}/windows/xdoc-${{ github.ref_name }}.msix
+
+            **Always Latest Version:**
+            https://${{ secrets.HETZNER_STORAGE_HOST }}/windows/xdoc-latest.msix
+
+            ## Installation
+            1. Download the .msix file  
+            2. Double-click to install  
+            3. Launch XDoc from Start Menu
           draft: false
           prerelease: false
         env:
