@@ -232,7 +232,17 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   Future<void> initSetup() async {
-    await generateRSAKeyPair();
+    final keysStatus = await generateRSAKeyPair();
+    
+    // Show import dialog only when keys exist on server but not locally (keysStatus == true)
+    if (keysStatus == true && mounted) {
+      // Small delay to ensure the UI is ready
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _showImportKeyDialogAutomatic();
+        }
+      });
+    }
   }
 
   Future<void> fetchChannels() async {
@@ -5223,6 +5233,201 @@ class _DashboardViewState extends State<DashboardView> {
                 foregroundColor: Colors.white,
               ),
               child: Text('Import'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showImportKeyDialogAutomatic() {
+    final TextEditingController encryptedKeyController =
+        TextEditingController();
+    final TextEditingController passwordController = TextEditingController();
+    bool isPasswordVisible = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // User must import keys or close manually
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: surfaceColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.warning, color: Colors.orange, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Import Required',
+                  style:
+                      TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'No keys found. Please import your encrypted private key from another device.',
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Paste your encrypted private key:',
+                  style: TextStyle(color: subtitleColor, fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: encryptedKeyController,
+                  maxLines: 5,
+                  style: TextStyle(
+                      color: textColor, fontSize: 12, fontFamily: 'monospace'),
+                  decoration: InputDecoration(
+                    hintText: 'Paste encrypted key here...',
+                    hintStyle: TextStyle(color: subtitleColor.withOpacity(0.5)),
+                    filled: true,
+                    fillColor: cardColor,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: primaryAccent),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Enter the password used to encrypt:',
+                  style: TextStyle(color: subtitleColor, fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: passwordController,
+                  obscureText: !isPasswordVisible,
+                  style: TextStyle(color: textColor),
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    labelStyle: TextStyle(color: subtitleColor),
+                    hintText: 'Enter decryption password',
+                    hintStyle: TextStyle(color: subtitleColor.withOpacity(0.5)),
+                    filled: true,
+                    fillColor: cardColor,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: primaryAccent),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        isPasswordVisible
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: subtitleColor,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          isPasswordVisible = !isPasswordVisible;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Skip for Now',
+                  style: TextStyle(color: subtitleColor)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final encryptedKey = encryptedKeyController.text.trim();
+                final password = passwordController.text.trim();
+
+                if (encryptedKey.isEmpty || password.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Please fill all fields'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                try {
+                  // Decrypt the private key
+                  final decryptedKey =
+                      await _decryptPrivateKey(encryptedKey, password);
+
+                  Navigator.pop(context);
+
+                  // Show success message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Keys imported successfully!'),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+
+                  // Optionally show the decrypted key
+                  _showDecryptedKeyDialog(decryptedKey);
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          'Decryption failed: Invalid password or corrupted key'),
+                      backgroundColor: Colors.red,
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              child: Text('Import Keys'),
             ),
           ],
         ),
