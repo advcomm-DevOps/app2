@@ -1,19 +1,22 @@
-  name: Build Windows App
+name: Build Windows App
 
-  on:
-    push:
-      branches: [ main, master, 'feature/windows-build' ]
-      tags:
-        - 'v*'
-    pull_request:
-      branches: [ main, master ]
-    workflow_dispatch:
+on:
+  push:
+    branches: [main, master, 'feature/windows-build']
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
 
-  jobs:
-    build-windows:
-      runs-on: windows-latest
+permissions:
+  contents: write
 
-      steps:
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
