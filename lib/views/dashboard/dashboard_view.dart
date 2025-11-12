@@ -4628,6 +4628,7 @@ class _DashboardViewState extends State<DashboardView> {
         return;
       }
 
+      final publicKey = keys['publicKey'] ?? 'Not available';
       final privateKey = keys['privateKey'] ?? 'Not available';
 
       // Show key management dialog
@@ -4655,16 +4656,16 @@ class _DashboardViewState extends State<DashboardView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Manage your RSA private key',
+                  'Manage your RSA keys',
                   style: TextStyle(color: subtitleColor, fontSize: 14),
                 ),
                 const SizedBox(height: 24),
 
-                // Export Key Card
+                // Export Keys Card
                 InkWell(
                   onTap: () {
                     Navigator.pop(context);
-                    _showExportKeyDialog(privateKey);
+                    _showExportKeysDialog(publicKey, privateKey);
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
@@ -4691,7 +4692,7 @@ class _DashboardViewState extends State<DashboardView> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Export Private Key',
+                                'Export Keys',
                                 style: TextStyle(
                                   color: textColor,
                                   fontSize: 16,
@@ -4700,7 +4701,7 @@ class _DashboardViewState extends State<DashboardView> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Encrypt and export your private key',
+                                'Encrypt and export your public & private keys',
                                 style: TextStyle(
                                   color: subtitleColor,
                                   fontSize: 13,
@@ -4825,7 +4826,7 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
-  void _showExportKeyDialog(String privateKey) {
+  void _showExportKeysDialog(String publicKey, String privateKey) {
     final TextEditingController passwordController = TextEditingController();
     bool isPasswordVisible = false;
 
@@ -4842,7 +4843,7 @@ class _DashboardViewState extends State<DashboardView> {
               Icon(Icons.lock, color: Colors.blue, size: 24),
               const SizedBox(width: 12),
               Text(
-                'Export Private Key',
+                'Export Keys',
                 style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
               ),
             ],
@@ -4852,7 +4853,7 @@ class _DashboardViewState extends State<DashboardView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Enter a password to encrypt your private key:',
+                'Enter a password to encrypt your RSA keys:',
                 style: TextStyle(color: subtitleColor, fontSize: 14),
               ),
               const SizedBox(height: 16),
@@ -4949,18 +4950,18 @@ class _DashboardViewState extends State<DashboardView> {
                 }
 
                 try {
-                  // Encrypt the private key with password
-                  final encryptedKey =
-                      await _encryptPrivateKey(privateKey, password);
+                  // Encrypt both keys with password
+                  final encryptedKeys =
+                      await _encryptKeys(publicKey, privateKey, password);
 
                   Navigator.pop(context);
 
-                  // Show encrypted key for copying
-                  _showEncryptedKeyDialog(encryptedKey);
+                  // Show encrypted keys for copying
+                  _showEncryptedKeyDialog(encryptedKeys);
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Error encrypting key: $e'),
+                      content: Text('Error encrypting keys: $e'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -4991,7 +4992,7 @@ class _DashboardViewState extends State<DashboardView> {
             Icon(Icons.check_circle, color: Colors.green, size: 24),
             const SizedBox(width: 12),
             Text(
-              'Encrypted Private Key',
+              'Encrypted Keys',
               style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
             ),
           ],
@@ -5004,7 +5005,7 @@ class _DashboardViewState extends State<DashboardView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Your encrypted private key:',
+                'Your encrypted keys (public & private):',
                 style: TextStyle(color: subtitleColor, fontSize: 14),
               ),
               const SizedBox(height: 12),
@@ -5065,7 +5066,7 @@ class _DashboardViewState extends State<DashboardView> {
               Clipboard.setData(ClipboardData(text: encryptedKey));
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Encrypted key copied to clipboard'),
+                  content: Text('Encrypted keys copied to clipboard'),
                   backgroundColor: Colors.green,
                   duration: Duration(seconds: 2),
                 ),
@@ -5113,7 +5114,7 @@ class _DashboardViewState extends State<DashboardView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Paste your encrypted private key:',
+                  'Paste your encrypted keys:',
                   style: TextStyle(color: subtitleColor, fontSize: 14),
                 ),
                 const SizedBox(height: 12),
@@ -5123,7 +5124,7 @@ class _DashboardViewState extends State<DashboardView> {
                   style: TextStyle(
                       color: textColor, fontSize: 12, fontFamily: 'monospace'),
                   decoration: InputDecoration(
-                    hintText: 'Paste encrypted key here...',
+                    hintText: 'Paste encrypted keys here...',
                     hintStyle: TextStyle(color: subtitleColor.withOpacity(0.5)),
                     filled: true,
                     fillColor: cardColor,
@@ -5209,19 +5210,33 @@ class _DashboardViewState extends State<DashboardView> {
                 }
 
                 try {
-                  // Decrypt the private key
-                  final decryptedKey =
-                      await _decryptPrivateKey(encryptedKey, password);
+                  // Decrypt both keys
+                  final decryptedKeys =
+                      await _decryptKeys(encryptedKey, password);
+
+                  // Save the keys
+                  final entityName = await dashboardController.getSelectedEntity();
+                  await dashboardController.addOrUpdateEntityKeys(
+                    entityName,
+                    decryptedKeys['publicKey']!,
+                    decryptedKeys['privateKey']!,
+                  );
 
                   Navigator.pop(context);
 
-                  // Show decrypted key
-                  _showDecryptedKeyDialog(decryptedKey);
+                  // Show success message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Keys imported successfully!'),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                          'Decryption failed: Invalid password or corrupted key'),
+                          'Decryption failed: Invalid password or corrupted keys'),
                       backgroundColor: Colors.red,
                       duration: Duration(seconds: 3),
                     ),
@@ -5286,7 +5301,7 @@ class _DashboardViewState extends State<DashboardView> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'No keys found. Please import your encrypted private key from another device.',
+                          'No keys found. Please import your encrypted keys from another device.',
                           style: TextStyle(
                             color: Colors.orange,
                             fontSize: 13,
@@ -5298,7 +5313,7 @@ class _DashboardViewState extends State<DashboardView> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Paste your encrypted private key:',
+                  'Paste your encrypted keys:',
                   style: TextStyle(color: subtitleColor, fontSize: 14),
                 ),
                 const SizedBox(height: 12),
@@ -5308,7 +5323,7 @@ class _DashboardViewState extends State<DashboardView> {
                   style: TextStyle(
                       color: textColor, fontSize: 12, fontFamily: 'monospace'),
                   decoration: InputDecoration(
-                    hintText: 'Paste encrypted key here...',
+                    hintText: 'Paste encrypted keys here...',
                     hintStyle: TextStyle(color: subtitleColor.withOpacity(0.5)),
                     filled: true,
                     fillColor: cardColor,
@@ -5395,9 +5410,17 @@ class _DashboardViewState extends State<DashboardView> {
                 }
 
                 try {
-                  // Decrypt the private key
-                  final decryptedKey =
-                      await _decryptPrivateKey(encryptedKey, password);
+                  // Decrypt both keys
+                  final decryptedKeys =
+                      await _decryptKeys(encryptedKey, password);
+
+                  // Save the keys
+                  final entityName = await dashboardController.getSelectedEntity();
+                  await dashboardController.addOrUpdateEntityKeys(
+                    entityName,
+                    decryptedKeys['publicKey']!,
+                    decryptedKeys['privateKey']!,
+                  );
 
                   Navigator.pop(context);
 
@@ -5409,14 +5432,11 @@ class _DashboardViewState extends State<DashboardView> {
                       duration: Duration(seconds: 3),
                     ),
                   );
-
-                  // Optionally show the decrypted key
-                  _showDecryptedKeyDialog(decryptedKey);
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                          'Decryption failed: Invalid password or corrupted key'),
+                          'Decryption failed: Invalid password or corrupted keys'),
                       backgroundColor: Colors.red,
                       duration: Duration(seconds: 3),
                     ),
@@ -5435,120 +5455,18 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  void _showDecryptedKeyDialog(String decryptedKey) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: surfaceColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 24),
-            const SizedBox(width: 12),
-            Text(
-              'Import Successful',
-              style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        content: Container(
-          width: 600,
-          constraints: BoxConstraints(maxHeight: 400),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Decrypted Private Key:',
-                style: TextStyle(color: subtitleColor, fontSize: 14),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: borderColor),
-                ),
-                constraints: BoxConstraints(maxHeight: 250),
-                child: SingleChildScrollView(
-                  child: SelectableText(
-                    decryptedKey,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 12,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.check_circle_outline,
-                        color: Colors.green, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Key successfully decrypted!',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Close', style: TextStyle(color: subtitleColor)),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: decryptedKey));
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Private key copied to clipboard'),
-                  backgroundColor: Colors.green,
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            icon: Icon(Icons.copy, size: 18),
-            label: Text('Copy'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<String> _encryptPrivateKey(String privateKey, String password) async {
+  Future<String> _encryptKeys(String publicKey, String privateKey, String password) async {
     try {
+      // Combine both keys with a separator
+      final combinedKeys = '$publicKey|||KEYSEPARATOR|||$privateKey';
+      
       // Use AES encryption with the password
       final key =
           encrypt.Key.fromUtf8(password.padRight(32, '0').substring(0, 32));
       final iv = encrypt.IV.fromLength(16);
       final encrypter = encrypt.Encrypter(encrypt.AES(key));
 
-      final encrypted = encrypter.encrypt(privateKey, iv: iv);
+      final encrypted = encrypter.encrypt(combinedKeys, iv: iv);
 
       // Combine IV and encrypted data for storage
       return '${iv.base64}:${encrypted.base64}';
@@ -5557,7 +5475,7 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
-  Future<String> _decryptPrivateKey(
+  Future<Map<String, String>> _decryptKeys(
       String encryptedData, String password) async {
     try {
       // Split IV and encrypted data
@@ -5575,7 +5493,17 @@ class _DashboardViewState extends State<DashboardView> {
       final encrypter = encrypt.Encrypter(encrypt.AES(key));
 
       final decrypted = encrypter.decrypt(encryptedText, iv: iv);
-      return decrypted;
+      
+      // Split the combined keys
+      final keyParts = decrypted.split('|||KEYSEPARATOR|||');
+      if (keyParts.length != 2) {
+        throw Exception('Invalid key data format');
+      }
+      
+      return {
+        'publicKey': keyParts[0],
+        'privateKey': keyParts[1],
+      };
     } catch (e) {
       throw Exception('Decryption failed: $e');
     }
