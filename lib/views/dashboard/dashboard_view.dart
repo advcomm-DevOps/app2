@@ -94,7 +94,7 @@ class _DashboardViewState extends State<DashboardView> {
 
   String htmlForm = getResumeForm();
   String htmlTheme = "";
-  String updatedJson = "";
+  String updatedJson = "{}";
   String jsonHtmlTheme = "";
   String searchQuery = ""; // Search query for filtering docs and tags
   List<Map<String, dynamic>> allChannelStateNames =
@@ -1584,8 +1584,12 @@ class _DashboardViewState extends State<DashboardView> {
     Map<String, dynamic>? selectedTagData;
     bool isLoadingTags = false;
     bool isViewDocumentOpen = false; // Track if View Document dialog is open
+    ScrollController scrollController = ScrollController(); // Add scroll controller
     InAppWebViewController?
         webViewController; // Add WebView controller reference
+    InAppWebViewController?
+        previewWebViewController; // Add WebView controller for preview
+    String lastRenderedJson = ""; // Track last rendered JSON to avoid unnecessary reloads
 
     showDialog(
       context: context,
@@ -1670,24 +1674,42 @@ class _DashboardViewState extends State<DashboardView> {
               }
             }
 
-            // Calculate dialog position based on whether View Document is open
+            // Responsive layout calculations
             final screenWidth = MediaQuery.of(context).size.width;
-            final dialogWidth = 820.0; // Approximate width of compose dialog
-            final leftPosition = isViewDocumentOpen 
-                ? 20.0  // Shifted to left when View Document is open
-                : (screenWidth - dialogWidth) / 2; // Centered when alone
+            final screenHeight = MediaQuery.of(context).size.height;
+            final isMobile = screenWidth < 900; // Mobile breakpoint
+            // Responsive width: use 95% on mobile, scale between 780-95% on desktop based on screen size
+            final dialogWidth = isMobile 
+                ? screenWidth * 0.95 
+                : (screenWidth > 1400 ? 780.0 : screenWidth * 0.56).clamp(600.0, 780.0);
+            
+            // Desktop: side by side, Mobile: full screen scrollable
+            final createDocTop = isMobile ? 20.0 : 50.0;
+            final createDocLeft = isMobile 
+                ? (screenWidth - dialogWidth) / 2 
+                : (isViewDocumentOpen ? 20.0 : (screenWidth - dialogWidth) / 2);
+            
+            final previewTop = isMobile 
+                ? screenHeight + 40  // Below viewport - need to scroll to see
+                : 50.0; // Same top position as Create New Document on desktop
+            final previewRight = isMobile ? null : 20.0;  // Match the right margin
+            final previewLeft = isMobile 
+                ? (screenWidth - dialogWidth) / 2  // Centered on mobile
+                : (screenWidth - dialogWidth - 20.0);  // Positioned on right with margin on desktop
 
-            return Stack(
+            final stackContent = Stack(
               children: [
                 Positioned(
-                  top: 50,
-                  left: leftPosition,
+                  top: createDocTop,
+                  left: createDocLeft,
                   child: Material(
                     color: Colors.transparent,
                     child: Container(
                       width: dialogWidth,
                       constraints: BoxConstraints(
-                        maxHeight: MediaQuery.of(context).size.height - 100,
+                        maxHeight: isMobile 
+                            ? screenHeight - 100  // Full height on mobile
+                            : screenHeight - 100,
                       ),
                       child: AlertDialog(
                         backgroundColor: surfaceColor,
@@ -2095,12 +2117,29 @@ class _DashboardViewState extends State<DashboardView> {
                                       );
                                       controller.addJavaScriptHandler(
                                         handlerName: 'onFormChange',
-                                        callback: (args) {
+                                        callback: (args) async {
                                           String jsonString = args[0];
                                           setState(() {
                                             updatedJson = jsonString;
                                           });
-                                          print('Form changed: $jsonString');
+                                          // Update preview WebView smoothly without rebuild
+                                          if (previewWebViewController != null && 
+                                              htmlTheme.isNotEmpty && 
+                                              jsonString.isNotEmpty && 
+                                              jsonString != "{}" &&
+                                              jsonString != lastRenderedJson) {
+                                            try {
+                                              final rendered = await renderResume(jsonString);
+                                              await previewWebViewController!.loadData(
+                                                data: rendered,
+                                                baseUrl: WebUri('about:blank'),
+                                              );
+                                              lastRenderedJson = jsonString;
+                                            } catch (e) {
+                                              print('Error updating preview on form change: $e');
+                                            }
+                                          }
+                                          // print('Form changed: $jsonString');
                                           // Handle the form change - update preview, validate, etc.
                                         },
                                       );
@@ -2203,7 +2242,13 @@ class _DashboardViewState extends State<DashboardView> {
               actions: [
                 // Cancel button - always on the left
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    // Reset updatedJson when closing the dialog (using main setState)
+                    this.setState(() {
+                      updatedJson = "{}";
+                    });
+                    Navigator.pop(context);
+                  },
                   child: const Text(
                     'Cancel',
                     style: TextStyle(color: Colors.white70),
@@ -2324,14 +2369,17 @@ class _DashboardViewState extends State<DashboardView> {
                 // View Document Dialog - shown conditionally
                 if (isViewDocumentOpen)
                   Positioned(
-                    top: 50, // Same top position as compose dialog
-                    right: 20,
+                    top: previewTop,
+                    right: previewRight,
+                    left: previewLeft,
                     child: Material(
                       color: Colors.transparent,
                       child: Container(
-                        width: 820.0, // Same width as compose dialog
+                        width: dialogWidth,  // Same width as Create New Document dialog
                         constraints: BoxConstraints(
-                          maxHeight: MediaQuery.of(context).size.height - 100, // Same as compose dialog
+                          maxHeight: isMobile 
+                              ? screenHeight - 100  // Full height on mobile
+                              : screenHeight - 100,  // Same height as Create New Document dialog
                         ),
                         child: AlertDialog(
                           backgroundColor: surfaceColor,
@@ -2339,7 +2387,7 @@ class _DashboardViewState extends State<DashboardView> {
                             borderRadius: BorderRadius.circular(16),
                           ),
                           title: Text(
-                            'Document Preview 2',
+                            'Document Preview',
                             style: TextStyle(
                               color: textColor,
                               fontWeight: FontWeight.bold,
@@ -2347,31 +2395,29 @@ class _DashboardViewState extends State<DashboardView> {
                           ),
                           content: htmlTheme.isNotEmpty
                               ? SizedBox(
-                                  height: 500,
-                                  child: FutureBuilder<String>(
-                                    future: renderResume(updatedJson),
-                                    builder: (context, snapshot) {
-                                      if (snapshot.connectionState == ConnectionState.waiting) {
-                                        return const Center(
-                                          child: CircularProgressIndicator(),
-                                        );
-                                      } else if (snapshot.hasError) {
-                                        return Center(
-                                          child: Text(
-                                            'Error rendering preview: ${snapshot.error}',
-                                            style: TextStyle(color: Colors.red),
-                                          ),
-                                        );
-                                      } else if (snapshot.hasData) {
-                                        return InAppWebView(
-                                          initialData: InAppWebViewInitialData(
-                                            data: snapshot.data!,
-                                          ),
-                                        );
-                                      } else {
-                                        return const Center(
-                                          child: Text('No data available'),
-                                        );
+                                  width: 800,  // Match the width constraint from Create New Document
+                                  height: isMobile 
+                                      ? screenHeight * 0.75  // 75% height on mobile for good viewing
+                                      : 1200,  // Match the height from Create New Document when showWebView is true
+                                  child: InAppWebView(
+                                    key: ValueKey('preview_webview'), // Stable key to prevent recreation
+                                    initialData: InAppWebViewInitialData(
+                                      data: '', // Start with empty, will update via controller
+                                    ),
+                                    onWebViewCreated: (controller) async {
+                                      previewWebViewController = controller;
+                                      // Load initial content if available
+                                      if (updatedJson.isNotEmpty && updatedJson != "{}") {
+                                        try {
+                                          final rendered = await renderResume(updatedJson);
+                                          await controller.loadData(
+                                            data: rendered,
+                                            baseUrl: WebUri('about:blank'),
+                                          );
+                                          lastRenderedJson = updatedJson;
+                                        } catch (e) {
+                                          print('Error rendering initial preview: $e');
+                                        }
                                       }
                                     },
                                   ),
@@ -2402,6 +2448,19 @@ class _DashboardViewState extends State<DashboardView> {
                   ),
               ],
             ); // Stack
+            
+            // Wrap in SingleChildScrollView for mobile to allow scrolling between dialogs
+            return isMobile 
+                ? SingleChildScrollView(
+                    controller: scrollController,
+                    child: SizedBox(
+                      height: isViewDocumentOpen 
+                          ? screenHeight * 2 + 100  // Double height when both dialogs shown
+                          : screenHeight,
+                      child: stackContent,
+                    ),
+                  )
+                : stackContent; // Desktop: just return the Stack
           },
         );
       },
