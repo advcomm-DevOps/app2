@@ -61,8 +61,8 @@ jobs:
           # Copy Flutter bundle
           cp -r build/linux/x64/release/bundle/* AppDir/usr/bin/
 
-          # Desktop entry
-          cat > AppDir/usr/share/applications/xdoc.desktop << EOF
+          # Desktop entry (needs to be in both root and usr/share/applications)
+          cat > AppDir/xdoc.desktop << EOF
           [Desktop Entry]
           Name=XDoc
           Exec=flutter_starter
@@ -70,12 +70,15 @@ jobs:
           Type=Application
           Categories=Office;
           EOF
+          cp AppDir/xdoc.desktop AppDir/usr/share/applications/
 
-          # Icon
+          # Icon (needs to be in both root and usr/share/icons)
           if [ -f "assets/images/xdoc_logo.png" ]; then
+            cp assets/images/xdoc_logo.png AppDir/xdoc.png
             cp assets/images/xdoc_logo.png AppDir/usr/share/icons/hicolor/256x256/apps/xdoc.png
           else
-            convert -size 256x256 xc:blue AppDir/usr/share/icons/hicolor/256x256/apps/xdoc.png || true
+            convert -size 256x256 xc:blue AppDir/xdoc.png || true
+            cp AppDir/xdoc.png AppDir/usr/share/icons/hicolor/256x256/apps/xdoc.png || true
           fi
 
           # AppRun script
