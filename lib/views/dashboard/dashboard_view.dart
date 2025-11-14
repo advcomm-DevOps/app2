@@ -93,7 +93,8 @@ class _DashboardViewState extends State<DashboardView> {
   final TextEditingController _searchController = TextEditingController();
 
   String htmlForm = getResumeForm();
-  String htmlResume = "";
+  String htmlTheme = "";
+  String updatedJson = "";
   String jsonHtmlTheme = "";
   String searchQuery = ""; // Search query for filtering docs and tags
   List<Map<String, dynamic>> allChannelStateNames =
@@ -1582,11 +1583,13 @@ class _DashboardViewState extends State<DashboardView> {
     bool showWebView = false;
     Map<String, dynamic>? selectedTagData;
     bool isLoadingTags = false;
+    bool isViewDocumentOpen = false; // Track if View Document dialog is open
     InAppWebViewController?
         webViewController; // Add WebView controller reference
 
     showDialog(
       context: context,
+      barrierDismissible: false, // Prevent closing on outside click
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
@@ -1667,20 +1670,39 @@ class _DashboardViewState extends State<DashboardView> {
               }
             }
 
-            return AlertDialog(
-              backgroundColor: surfaceColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              title: Text(
-                'Create New Document',
-                style: TextStyle(
-                  color: textColor,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              content: ConstrainedBox(
-                constraints: BoxConstraints(
+            // Calculate dialog position based on whether View Document is open
+            final screenWidth = MediaQuery.of(context).size.width;
+            final dialogWidth = 820.0; // Approximate width of compose dialog
+            final leftPosition = isViewDocumentOpen 
+                ? 20.0  // Shifted to left when View Document is open
+                : (screenWidth - dialogWidth) / 2; // Centered when alone
+
+            return Stack(
+              children: [
+                Positioned(
+                  top: 50,
+                  left: leftPosition,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Container(
+                      width: dialogWidth,
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height - 100,
+                      ),
+                      child: AlertDialog(
+                        backgroundColor: surfaceColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        title: Text(
+                          'Create New Document',
+                          style: TextStyle(
+                            color: textColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        content: ConstrainedBox(
+                          constraints: BoxConstraints(
                   maxWidth: 800,
                   maxHeight: showWebView ? 1200 : 500,
                 ),
@@ -2008,6 +2030,7 @@ class _DashboardViewState extends State<DashboardView> {
                                         if (contextData["contextform"] !=
                                             null) {
                                           htmlForm = contextData["contextform"];
+                                          htmlTheme = contextData['contexttemplate'];
                                           print(
                                               "Context form found, rendering...");
                                         } else {
@@ -2070,7 +2093,17 @@ class _DashboardViewState extends State<DashboardView> {
                                               '✅ Submit trigger setup complete: ${args[0]}');
                                         },
                                       );
-
+                                      controller.addJavaScriptHandler(
+                                        handlerName: 'onFormChange',
+                                        callback: (args) {
+                                          String jsonString = args[0];
+                                          setState(() {
+                                            updatedJson = jsonString;
+                                          });
+                                          print('Form changed: $jsonString');
+                                          // Handle the form change - update preview, validate, etc.
+                                        },
+                                      );
                                       controller.addJavaScriptHandler(
                                         handlerName: 'onFormSubmit',
                                         callback: (args) {
@@ -2131,6 +2164,25 @@ class _DashboardViewState extends State<DashboardView> {
                                   },
                                   child: const Icon(
                                     Icons.close,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ),
+                              ),
+                              // Floating View Document button
+                              Positioned(
+                                top: 8,
+                                right: 60, // Position to the left of close button
+                                child: FloatingActionButton(
+                                  mini: true,
+                                  backgroundColor: Colors.blue.withOpacity(0.8),
+                                  onPressed: () {
+                                    setState(() {
+                                      isViewDocumentOpen = !isViewDocumentOpen;
+                                    });
+                                  },
+                                  child: const Icon(
+                                    Icons.visibility,
                                     color: Colors.white,
                                     size: 18,
                                   ),
@@ -2265,7 +2317,91 @@ class _DashboardViewState extends State<DashboardView> {
                   ],
                 ),
               ],
-            ); // AlertDialog
+            ), // AlertDialog
+                    ),
+                  ),
+                ),
+                // View Document Dialog - shown conditionally
+                if (isViewDocumentOpen)
+                  Positioned(
+                    top: 50, // Same top position as compose dialog
+                    right: 20,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Container(
+                        width: 820.0, // Same width as compose dialog
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height - 100, // Same as compose dialog
+                        ),
+                        child: AlertDialog(
+                          backgroundColor: surfaceColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          title: Text(
+                            'Document Preview 2',
+                            style: TextStyle(
+                              color: textColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          content: htmlTheme.isNotEmpty
+                              ? SizedBox(
+                                  height: 500,
+                                  child: FutureBuilder<String>(
+                                    future: renderResume(updatedJson),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState == ConnectionState.waiting) {
+                                        return const Center(
+                                          child: CircularProgressIndicator(),
+                                        );
+                                      } else if (snapshot.hasError) {
+                                        return Center(
+                                          child: Text(
+                                            'Error rendering preview: ${snapshot.error}',
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                        );
+                                      } else if (snapshot.hasData) {
+                                        return InAppWebView(
+                                          initialData: InAppWebViewInitialData(
+                                            data: snapshot.data!,
+                                          ),
+                                        );
+                                      } else {
+                                        return const Center(
+                                          child: Text('No data available'),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                )
+                              : Center(
+                                  child: Text(
+                                    'No form data available yet. Please fill in the form.',
+                                    style: TextStyle(color: subtitleColor),
+                                  ),
+                                ),
+
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  isViewDocumentOpen = false;
+                                });
+                              },
+                              child: const Text(
+                                'Close',
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ); // Stack
           },
         );
       },
@@ -2273,7 +2409,7 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   Future<String> renderResume(String jsonContent) async {
-    final raw = htmlResume;
+    final raw = htmlTheme;
 
     final context = Context.create();
 
@@ -2665,7 +2801,7 @@ class _DashboardViewState extends State<DashboardView> {
           // currentChatMessages = [];
           selectedjoinedTagIndex = index;
           // selectedDocIndex = index;
-          htmlResume = docDetails['htmlTheme'];
+          htmlTheme = docDetails['htmlTheme'];
           jsonHtmlTheme = docDetails['jsonData'];
           allChannelStateNames = currentActiveStates; // Store in state variable
           expectedStateTransitions =

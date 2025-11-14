@@ -172,6 +172,11 @@ class DashboardController {
                             }
                           });
                           console.log('Quill editor initialized successfully');
+                          
+                          // Add change listener for Quill editor
+                          window.quill.on('text-change', function() {
+                            handleFormChange();
+                          });
                         }
                       };
                       document.body.appendChild(quillJS);
@@ -193,6 +198,11 @@ class DashboardController {
                         }
                       });
                       console.log('Quill editor initialized successfully');
+                      
+                      // Add change listener for Quill editor
+                      window.quill.on('text-change', function() {
+                        handleFormChange();
+                      });
                     }
 
                     console.log('Bootstrap 5 and Quill injected successfully');
@@ -235,7 +245,45 @@ class DashboardController {
     return data;
   }
 
+  // Function to handle form changes and send to Flutter
+  function handleFormChange() {
+    const form = document.querySelector('form');
+    if (form) {
+      const nestedData = processFormData(form);
+      const quillData = window.quill ? window.quill.root.innerHTML : '';
+      if (quillData.trim() !== '') {
+        nestedData.quillData = quillData;
+      }
+      const jsonString = JSON.stringify(nestedData, null, 2);
+      
+      console.log('📝 Form changed, sending data to Flutter');
+      if (window.flutter_inappwebview) {
+        window.flutter_inappwebview.callHandler('onFormChange', jsonString);
+      } else {
+        window.parent.postMessage({ type: 'onFormChange', payload: jsonString }, '*');
+      }
+    }
+  }
+
+  // Debounce function to avoid too many calls
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
+  // Debounced version of handleFormChange (300ms delay)
+  const debouncedFormChange = debounce(handleFormChange, 300);
+
+  // Add change listeners to all form elements
   document.querySelectorAll('form').forEach(form => {
+    // Handle form submission
     form.addEventListener('submit', function(event) {
       event.preventDefault();
       
@@ -259,6 +307,17 @@ class DashboardController {
         window.parent.postMessage({ type: 'onFormSubmit', payload: jsonString }, '*');
       }
     });
+
+    // Add change listeners to all input, select, and textarea elements
+    form.querySelectorAll('input, select, textarea').forEach(element => {
+      // Handle input events (for text fields, number fields, etc.)
+      element.addEventListener('input', debouncedFormChange);
+      
+      // Handle change events (for checkboxes, radio buttons, select dropdowns)
+      element.addEventListener('change', debouncedFormChange);
+    });
+    
+    console.log('✅ Form change listeners attached');
   });
 ''';
 
@@ -961,6 +1020,7 @@ class DashboardController {
         // print("Existing stored entityRSAKeys: $existing");
         final tagInfo = tagId != null ? ", tag '$tagId'" : " (no tag)";
         _logSuccess("Context and public key fetched successfully for entity '$entityName', channel '$channelName'$tagInfo");
+        // print("Response data.............: ${response.data}");
         return response.data;
       } else {
         final tagInfo = tagId != null ? ", tag '$tagId'" : " (no tag)";
