@@ -234,7 +234,7 @@ class _DashboardViewState extends State<DashboardView> {
 
   Future<void> initSetup() async {
     final keysStatus = await generateRSAKeyPair();
-    
+
     // Show import dialog only when keys exist on server but not locally (keysStatus == true)
     if (keysStatus == true && mounted) {
       // Small delay to ensure the UI is ready
@@ -1237,6 +1237,14 @@ class _DashboardViewState extends State<DashboardView> {
                     },
                   );
                   controller.addJavaScriptHandler(
+                    handlerName: 'onFormChange',
+                    callback: (args) async {
+                      String jsonString = args[0];
+                      print('Form changed: $jsonString');
+                      // Handle the form change - update preview, validate, etc.
+                    },
+                  );
+                  controller.addJavaScriptHandler(
                     handlerName: 'onFormSubmit',
                     //aaaaaaaaaaaaaaaaa
                     callback: (args) {
@@ -1584,12 +1592,14 @@ class _DashboardViewState extends State<DashboardView> {
     Map<String, dynamic>? selectedTagData;
     bool isLoadingTags = false;
     bool isViewDocumentOpen = false; // Track if View Document dialog is open
-    ScrollController scrollController = ScrollController(); // Add scroll controller
+    ScrollController scrollController =
+        ScrollController(); // Add scroll controller
     InAppWebViewController?
         webViewController; // Add WebView controller reference
     InAppWebViewController?
         previewWebViewController; // Add WebView controller for preview
-    String lastRenderedJson = ""; // Track last rendered JSON to avoid unnecessary reloads
+    String lastRenderedJson =
+        ""; // Track last rendered JSON to avoid unnecessary reloads
 
     showDialog(
       context: context,
@@ -1679,23 +1689,27 @@ class _DashboardViewState extends State<DashboardView> {
             final screenHeight = MediaQuery.of(context).size.height;
             final isMobile = screenWidth < 900; // Mobile breakpoint
             // Responsive width: use 95% on mobile, scale between 780-95% on desktop based on screen size
-            final dialogWidth = isMobile 
-                ? screenWidth * 0.95 
-                : (screenWidth > 1400 ? 780.0 : screenWidth * 0.56).clamp(600.0, 780.0);
-            
+            final dialogWidth = isMobile
+                ? screenWidth * 0.95
+                : (screenWidth > 1400 ? 780.0 : screenWidth * 0.56)
+                    .clamp(600.0, 780.0);
+
             // Desktop: side by side, Mobile: full screen scrollable
             final createDocTop = isMobile ? 20.0 : 50.0;
-            final createDocLeft = isMobile 
-                ? (screenWidth - dialogWidth) / 2 
+            final createDocLeft = isMobile
+                ? (screenWidth - dialogWidth) / 2
                 : (isViewDocumentOpen ? 20.0 : (screenWidth - dialogWidth) / 2);
-            
-            final previewTop = isMobile 
-                ? screenHeight + 40  // Below viewport - need to scroll to see
+
+            final previewTop = isMobile
+                ? screenHeight + 40 // Below viewport - need to scroll to see
                 : 50.0; // Same top position as Create New Document on desktop
-            final previewRight = isMobile ? null : 20.0;  // Match the right margin
-            final previewLeft = isMobile 
-                ? (screenWidth - dialogWidth) / 2  // Centered on mobile
-                : (screenWidth - dialogWidth - 20.0);  // Positioned on right with margin on desktop
+            final previewRight =
+                isMobile ? null : 20.0; // Match the right margin
+            final previewLeft = isMobile
+                ? (screenWidth - dialogWidth) / 2 // Centered on mobile
+                : (screenWidth -
+                    dialogWidth -
+                    20.0); // Positioned on right with margin on desktop
 
             final stackContent = Stack(
               children: [
@@ -1707,8 +1721,8 @@ class _DashboardViewState extends State<DashboardView> {
                     child: Container(
                       width: dialogWidth,
                       constraints: BoxConstraints(
-                        maxHeight: isMobile 
-                            ? screenHeight - 100  // Full height on mobile
+                        maxHeight: isMobile
+                            ? screenHeight - 100 // Full height on mobile
                             : screenHeight - 100,
                       ),
                       child: AlertDialog(
@@ -1725,432 +1739,233 @@ class _DashboardViewState extends State<DashboardView> {
                         ),
                         content: ConstrainedBox(
                           constraints: BoxConstraints(
-                  maxWidth: 800,
-                  maxHeight: showWebView ? 1200 : 500,
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Entity field with search button
-                      SizedBox(
-                        width: 700,
-                        child: TextField(
-                          controller: _entityController,
-                          decoration: InputDecoration(
-                            labelText: 'Entity *',
-                            labelStyle: const TextStyle(color: Colors.white70),
-                            hintText: 'Enter entity name',
-                            hintStyle: const TextStyle(color: Colors.white54),
-                            filled: true,
-                            fillColor: Colors.grey[800],
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: Colors.grey),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: Colors.blue),
-                            ),
-                            suffixIcon: isSearching
-                                ? const Padding(
-                                    padding: EdgeInsets.all(12.0),
-                                    child: SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2, color: Colors.white),
-                                    ),
-                                  )
-                                : Container(
-                                    margin: const EdgeInsets.all(8.0),
-                                    child: Material(
-                                      color: (isSearching || hasSearched)
-                                          ? Colors.grey[600]
-                                          : Colors.blueAccent,
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: InkWell(
-                                        borderRadius: BorderRadius.circular(8),
-                                        onTap: (isSearching || hasSearched)
-                                            ? null
-                                            : searchPubChannels,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: const Icon(
-                                            Icons.search,
-                                            color: Colors.white,
-                                            size: 20,
-                                          ),
-                                        ),
+                            maxWidth: 800,
+                            maxHeight: showWebView ? 1200 : 500,
+                          ),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Entity field with search button
+                                SizedBox(
+                                  width: 700,
+                                  child: TextField(
+                                    controller: _entityController,
+                                    decoration: InputDecoration(
+                                      labelText: 'Entity *',
+                                      labelStyle: const TextStyle(
+                                          color: Colors.white70),
+                                      hintText: 'Enter entity name',
+                                      hintStyle: const TextStyle(
+                                          color: Colors.white54),
+                                      filled: true,
+                                      fillColor: Colors.grey[800],
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: const BorderSide(
+                                            color: Colors.grey),
                                       ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: const BorderSide(
+                                            color: Colors.blue),
+                                      ),
+                                      suffixIcon: isSearching
+                                          ? const Padding(
+                                              padding: EdgeInsets.all(12.0),
+                                              child: SizedBox(
+                                                width: 16,
+                                                height: 16,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: Colors.white),
+                                              ),
+                                            )
+                                          : Container(
+                                              margin: const EdgeInsets.all(8.0),
+                                              child: Material(
+                                                color:
+                                                    (isSearching || hasSearched)
+                                                        ? Colors.grey[600]
+                                                        : Colors.blueAccent,
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                child: InkWell(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  onTap: (isSearching ||
+                                                          hasSearched)
+                                                      ? null
+                                                      : searchPubChannels,
+                                                  child: Container(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            8.0),
+                                                    child: const Icon(
+                                                      Icons.search,
+                                                      color: Colors.white,
+                                                      size: 20,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
                                     ),
+                                    style: const TextStyle(color: Colors.white),
+                                    enabled: !isSearching && !hasSearched,
+                                    onSubmitted: (_) {
+                                      if (!isSearching && !hasSearched)
+                                        searchPubChannels();
+                                    },
                                   ),
-                          ),
-                          style: const TextStyle(color: Colors.white),
-                          enabled: !isSearching && !hasSearched,
-                          onSubmitted: (_) {
-                            if (!isSearching && !hasSearched)
-                              searchPubChannels();
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                                ),
+                                const SizedBox(height: 16),
 
-                      // After search, show channels or no match
-                      if (hasSearched)
-                        pubChannels.isEmpty
-                            ? const Text('No matching channel found',
-                                style: TextStyle(color: Colors.redAccent))
-                            : Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                      pubChannels.length == 1
-                                          ? 'Channel Auto-Selected:'
-                                          : 'Select Channel:',
-                                      style: TextStyle(
-                                          color: pubChannels.length == 1
-                                              ? Colors.green
-                                              : Colors.white70,
-                                          fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 12),
-                                  Wrap(
-                                    spacing: 10,
-                                    runSpacing: 10,
-                                    children: pubChannels
-                                        .asMap()
-                                        .entries
-                                        .map((entry) {
-                                      final idx = entry.key;
-                                      final channel = entry.value;
-                                      final channelName =
-                                          channel['channelname'] ??
-                                              channel.toString();
-                                      final isSelected =
-                                          selectedChannelIndexLocal == idx;
-                                      final description =
-                                          channel['channeldescription'] ?? '';
-                                      return Tooltip(
-                                        message: description.isNotEmpty
-                                            ? description
-                                            : channelName,
-                                        child: ChoiceChip(
-                                          label: Text(channelName,
-                                              style: TextStyle(
-                                                  fontSize: 13,
-                                                  color: isSelected
-                                                      ? Colors.white
-                                                      : Colors.white70)),
-                                          labelStyle: TextStyle(
-                                            color: isSelected
-                                                ? Colors.white
-                                                : Colors.white70,
-                                          ),
-                                          selected: isSelected,
-                                          selectedColor: Colors.blueAccent,
-                                          backgroundColor: Colors.grey[700],
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                          ),
-                                          onSelected: (bool selected) {
-                                            setState(() {
-                                              if (selected) {
-                                                selectedChannelIndexLocal = idx;
-                                                _composeChannelController.text =
-                                                    channelName;
-                                                fetchChannelTags(idx);
-                                                // Hide InAppWebView when channel changes
-                                                showWebView = false;
-                                                selectedTagIndexLocal = null;
-                                                selectedTagData =
-                                                    null; // Clear selected tag data
-                                              } else {
-                                                selectedChannelIndexLocal =
-                                                    null;
-                                                pubTags = [];
-                                                selectedTagIndexLocal = null;
-                                                selectedTagData =
-                                                    null; // Clear selected tag data
-                                                // Hide InAppWebView when channel deselected
-                                                showWebView = false;
-                                              }
-                                            });
-                                          },
+                                // After search, show channels or no match
+                                if (hasSearched)
+                                  pubChannels.isEmpty
+                                      ? const Text('No matching channel found',
+                                          style: TextStyle(
+                                              color: Colors.redAccent))
+                                      : Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                                pubChannels.length == 1
+                                                    ? 'Channel Auto-Selected:'
+                                                    : 'Select Channel:',
+                                                style: TextStyle(
+                                                    color:
+                                                        pubChannels.length == 1
+                                                            ? Colors.green
+                                                            : Colors.white70,
+                                                    fontWeight:
+                                                        FontWeight.bold)),
+                                            const SizedBox(height: 12),
+                                            Wrap(
+                                              spacing: 10,
+                                              runSpacing: 10,
+                                              children: pubChannels
+                                                  .asMap()
+                                                  .entries
+                                                  .map((entry) {
+                                                final idx = entry.key;
+                                                final channel = entry.value;
+                                                final channelName =
+                                                    channel['channelname'] ??
+                                                        channel.toString();
+                                                final isSelected =
+                                                    selectedChannelIndexLocal ==
+                                                        idx;
+                                                final description = channel[
+                                                        'channeldescription'] ??
+                                                    '';
+                                                return Tooltip(
+                                                  message:
+                                                      description.isNotEmpty
+                                                          ? description
+                                                          : channelName,
+                                                  child: ChoiceChip(
+                                                    label: Text(channelName,
+                                                        style: TextStyle(
+                                                            fontSize: 13,
+                                                            color: isSelected
+                                                                ? Colors.white
+                                                                : Colors
+                                                                    .white70)),
+                                                    labelStyle: TextStyle(
+                                                      color: isSelected
+                                                          ? Colors.white
+                                                          : Colors.white70,
+                                                    ),
+                                                    selected: isSelected,
+                                                    selectedColor:
+                                                        Colors.blueAccent,
+                                                    backgroundColor:
+                                                        Colors.grey[700],
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              20),
+                                                    ),
+                                                    onSelected:
+                                                        (bool selected) {
+                                                      setState(() {
+                                                        if (selected) {
+                                                          selectedChannelIndexLocal =
+                                                              idx;
+                                                          _composeChannelController
+                                                                  .text =
+                                                              channelName;
+                                                          fetchChannelTags(idx);
+                                                          // Hide InAppWebView when channel changes
+                                                          showWebView = false;
+                                                          selectedTagIndexLocal =
+                                                              null;
+                                                          selectedTagData =
+                                                              null; // Clear selected tag data
+                                                        } else {
+                                                          selectedChannelIndexLocal =
+                                                              null;
+                                                          pubTags = [];
+                                                          selectedTagIndexLocal =
+                                                              null;
+                                                          selectedTagData =
+                                                              null; // Clear selected tag data
+                                                          // Hide InAppWebView when channel deselected
+                                                          showWebView = false;
+                                                        }
+                                                      });
+                                                    },
+                                                  ),
+                                                );
+                                              }).toList(),
+                                            ),
+                                            const SizedBox(height: 16),
+                                          ],
                                         ),
-                                      );
-                                    }).toList(),
+
+                                // Tag selection chips and Create button only after channel selected
+                                if (hasSearched &&
+                                    pubChannels.isNotEmpty &&
+                                    selectedChannelIndexLocal != null) ...[
+                                  Row(
+                                    children: [
+                                      const Text('Select Tag:',
+                                          style: TextStyle(
+                                              color: Colors.white70,
+                                              fontWeight: FontWeight.bold)),
+                                      if (isLoadingTags)
+                                        const Padding(
+                                          padding: EdgeInsets.only(left: 8.0),
+                                          child: SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.white70),
+                                          ),
+                                        ),
+                                    ],
                                   ),
-                                  const SizedBox(height: 16),
-                                ],
-                              ),
-
-                      // Tag selection chips and Create button only after channel selected
-                      if (hasSearched &&
-                          pubChannels.isNotEmpty &&
-                          selectedChannelIndexLocal != null) ...[
-                        Row(
-                          children: [
-                            const Text('Select Tag:',
-                                style: TextStyle(
-                                    color: Colors.white70,
-                                    fontWeight: FontWeight.bold)),
-                            if (isLoadingTags)
-                              const Padding(
-                                padding: EdgeInsets.only(left: 8.0),
-                                child: SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: Colors.white70),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        if (pubTags.isEmpty && !isLoadingTags)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('No tags found for this channel',
-                                  style: TextStyle(color: Colors.redAccent)),
-                              const SizedBox(height: 8),
-                              ElevatedButton.icon(
-                                onPressed: () async {
-                                  // Get context data without tag
-                                  final entityName =
-                                      _entityController.text.trim();
-                                  final channelName =
-                                      selectedChannelIndexLocal != null
-                                          ? pubChannels[
-                                                      selectedChannelIndexLocal!]
-                                                  ['channelname'] ??
-                                              'Unknown Channel'
-                                          : 'Unknown Channel';
-
-                                  print(
-                                      'Sending without tag for channel: $channelName');
-                                  print('Entity Name: $entityName');
-
-                                  // Fetch context data without tagId
-                                  final contextData = await dashboardController
-                                      .getContextAndPublicKey(
-                                          entityName, channelName, null);
-
-                                  if (contextData != null) {
-                                    if (contextData["contextform"] != null) {
-                                      htmlForm = contextData["contextform"];
-                                      print(
-                                          "Context form found, rendering without tag...");
-                                      setState(() {
-                                        showWebView = true;
-                                        selectedTagData =
-                                            null; // No tag selected
-                                      });
-                                    } else {
-                                      print(
-                                          "No context template found for this channel.");
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                            content: Text(
-                                                'No form template available for this channel')),
-                                      );
-                                    }
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text(
-                                              'Failed to fetch channel data')),
-                                    );
-                                  }
-                                },
-                                icon: const Icon(Icons.send, size: 16),
-                                label: const Text('Send without tag'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.orange,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 8),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        if (isLoadingTags)
-                          const Text(
-                              'Loading tags for auto-selected channel...',
-                              style: TextStyle(color: Colors.white54)),
-                        if (pubTags.isNotEmpty)
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 10,
-                            children: pubTags.asMap().entries.map((entry) {
-                              final idx = entry.key;
-                              final tag = entry.value;
-                              final tagName = tag['tag'] ??
-                                  tag['tagName'] ??
-                                  tag['tagid']?.toString() ??
-                                  'Tag';
-                              final tagDescription = tag['tagdescription'] ??
-                                  tag['tagDescription'] ??
-                                  '';
-                              final isSelected = selectedTagIndexLocal == idx;
-                              return Tooltip(
-                                message: tagDescription.isNotEmpty
-                                    ? tagDescription
-                                    : tagName,
-                                child: ChoiceChip(
-                                  label: Text(tagName,
-                                      style: TextStyle(
-                                          fontSize: 13,
-                                          color: isSelected
-                                              ? Colors.white
-                                              : Colors.white70)),
-                                  labelStyle: TextStyle(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : Colors.white70,
-                                  ),
-                                  selected: isSelected,
-                                  selectedColor: Colors.green,
-                                  backgroundColor: Colors.grey[700],
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  onSelected: (bool selected) async {
-                                    if (selected) {
-                                      final tagId = tag['tagid'] ??
-                                          tag['tagId'] ??
-                                          'Unknown TagID';
-                                      final channelName =
-                                          selectedChannelIndexLocal != null
-                                              ? pubChannels[
-                                                          selectedChannelIndexLocal!]
-                                                      ['channelname'] ??
-                                                  'Unknown Channel'
-                                              : 'Unknown Channel';
-                                      final entityName =
-                                          _entityController.text.trim();
-                                      print('Selected tag: $tagName');
-                                      print('Tag ID: $tagId');
-                                      print('Channel Name: $channelName');
-                                      print('Entity Name: $entityName');
-
-                                      // Fetch context data asynchronously
-                                      final contextData =
-                                          await dashboardController
-                                              .getContextAndPublicKey(
-                                                  entityName,
-                                                  channelName,
-                                                  tagId);
-                                      // print("Context Data: $contextData");
-                                      if (contextData != null) {
-                                        if (contextData["contextform"] !=
-                                            null) {
-                                          htmlForm = contextData["contextform"];
-                                          htmlTheme = contextData['contexttemplate'];
-                                          print(
-                                              "Context form found, rendering...");
-                                        } else {
-                                          print(
-                                              "No context template found for this tag.");
-                                        }
-                                      }
-                                      setState(() {
-                                        selectedTagIndexLocal = idx;
-                                        showWebView = true;
-                                        selectedTagData =
-                                            tag; // Store the selected tag data
-                                      });
-                                    } else {
-                                      setState(() {
-                                        selectedTagIndexLocal = null;
-                                        showWebView = false;
-                                        selectedTagData =
-                                            null; // Clear selected tag data
-                                      });
-                                      print('Tag deselected');
-                                    }
-                                  },
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // Show InAppWebView below tag selection when a tag is selected
-                      if (showWebView) ...[
-                        Container(
-                          height: 530,
-                          margin: const EdgeInsets.only(top: 16, right: 20),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[600]!),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: InAppWebView(
-                                  initialData: InAppWebViewInitialData(
-                                    data: appendScriptWithHtml(htmlForm,
-                                        isSubmitButtonNeeded: true),
-                                  ),
-                                  onWebViewCreated: (controller) {
-                                    webViewController =
-                                        controller; // Store controller reference
-                                    print(
-                                        '🔧 WebView controller stored successfully');
-                                    if (!kIsWeb) {
-                                      // Add handler for MessageChannel setup
-                                      controller.addJavaScriptHandler(
-                                        handlerName: 'setupMessageChannel',
-                                        callback: (args) {
-                                          print(
-                                              '✅ Submit trigger setup complete: ${args[0]}');
-                                        },
-                                      );
-                                      controller.addJavaScriptHandler(
-                                        handlerName: 'onFormChange',
-                                        callback: (args) async {
-                                          String jsonString = args[0];
-                                          setState(() {
-                                            updatedJson = jsonString;
-                                          });
-                                          // Update preview WebView smoothly without rebuild
-                                          if (previewWebViewController != null && 
-                                              htmlTheme.isNotEmpty && 
-                                              jsonString.isNotEmpty && 
-                                              jsonString != "{}" &&
-                                              jsonString != lastRenderedJson) {
-                                            try {
-                                              final rendered = await renderResume(jsonString);
-                                              await previewWebViewController!.loadData(
-                                                data: rendered,
-                                                baseUrl: WebUri('about:blank'),
-                                              );
-                                              lastRenderedJson = jsonString;
-                                            } catch (e) {
-                                              print('Error updating preview on form change: $e');
-                                            }
-                                          }
-                                          // print('Form changed: $jsonString');
-                                          // Handle the form change - update preview, validate, etc.
-                                        },
-                                      );
-                                      controller.addJavaScriptHandler(
-                                        handlerName: 'onFormSubmit',
-                                        callback: (args) {
-                                          String jsonString = args[0];
-                                          print(
-                                              'Received JSON string: $jsonString');
-                                          // Add bounds checking before accessing joinedTags array
-                                          if (jsonString.isNotEmpty) {
+                                  const SizedBox(height: 12),
+                                  if (pubTags.isEmpty && !isLoadingTags)
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                            'No tags found for this channel',
+                                            style: TextStyle(
+                                                color: Colors.redAccent)),
+                                        const SizedBox(height: 8),
+                                        ElevatedButton.icon(
+                                          onPressed: () async {
+                                            // Get context data without tag
                                             final entityName =
                                                 _entityController.text.trim();
                                             final channelName =
@@ -2161,146 +1976,428 @@ class _DashboardViewState extends State<DashboardView> {
                                                             ['channelname'] ??
                                                         'Unknown Channel'
                                                     : 'Unknown Channel';
-                                            final tagId = selectedTagData !=
-                                                    null
-                                                ? (selectedTagData!['tagid'] ??
-                                                        selectedTagData![
-                                                            'tagId'] ??
-                                                        'Unknown TagID')
-                                                    .toString()
-                                                : null; // Pass null when no tag selected
-                                            print('Entity Name: $entityName');
-                                            print('Channel Name: $channelName');
-                                            print('Tag ID: $tagId');
-                                            createEncryptedDocument(entityName,
-                                                channelName, tagId, jsonString);
-                                          } else {
+
                                             print(
-                                                'Error: Invalid selectedjoinedTagIndex when handling form submit');
-                                          }
-                                        },
-                                      );
-                                    } else {
-                                      handleWebMessage();
-                                    }
-                                  },
-                                ),
-                              ),
-                              // Floating close button
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: FloatingActionButton(
-                                  mini: true,
-                                  backgroundColor: Colors.red.withOpacity(0.8),
+                                                'Sending without tag for channel: $channelName');
+                                            print('Entity Name: $entityName');
+
+                                            // Fetch context data without tagId
+                                            final contextData =
+                                                await dashboardController
+                                                    .getContextAndPublicKey(
+                                                        entityName,
+                                                        channelName,
+                                                        null);
+
+                                            if (contextData != null) {
+                                              if (contextData["contextform"] !=
+                                                  null) {
+                                                htmlForm =
+                                                    contextData["contextform"];
+                                                print(
+                                                    "Context form found, rendering without tag...");
+                                                setState(() {
+                                                  showWebView = true;
+                                                  selectedTagData =
+                                                      null; // No tag selected
+                                                });
+                                              } else {
+                                                print(
+                                                    "No context template found for this channel.");
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  const SnackBar(
+                                                      content: Text(
+                                                          'No form template available for this channel')),
+                                                );
+                                              }
+                                            } else {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                    content: Text(
+                                                        'Failed to fetch channel data')),
+                                              );
+                                            }
+                                          },
+                                          icon:
+                                              const Icon(Icons.send, size: 16),
+                                          label: const Text('Send without tag'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.orange,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 8),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  if (isLoadingTags)
+                                    const Text(
+                                        'Loading tags for auto-selected channel...',
+                                        style:
+                                            TextStyle(color: Colors.white54)),
+                                  if (pubTags.isNotEmpty)
+                                    Wrap(
+                                      spacing: 10,
+                                      runSpacing: 10,
+                                      children:
+                                          pubTags.asMap().entries.map((entry) {
+                                        final idx = entry.key;
+                                        final tag = entry.value;
+                                        final tagName = tag['tag'] ??
+                                            tag['tagName'] ??
+                                            tag['tagid']?.toString() ??
+                                            'Tag';
+                                        final tagDescription =
+                                            tag['tagdescription'] ??
+                                                tag['tagDescription'] ??
+                                                '';
+                                        final isSelected =
+                                            selectedTagIndexLocal == idx;
+                                        return Tooltip(
+                                          message: tagDescription.isNotEmpty
+                                              ? tagDescription
+                                              : tagName,
+                                          child: ChoiceChip(
+                                            label: Text(tagName,
+                                                style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: isSelected
+                                                        ? Colors.white
+                                                        : Colors.white70)),
+                                            labelStyle: TextStyle(
+                                              color: isSelected
+                                                  ? Colors.white
+                                                  : Colors.white70,
+                                            ),
+                                            selected: isSelected,
+                                            selectedColor: Colors.green,
+                                            backgroundColor: Colors.grey[700],
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                            onSelected: (bool selected) async {
+                                              if (selected) {
+                                                final tagId = tag['tagid'] ??
+                                                    tag['tagId'] ??
+                                                    'Unknown TagID';
+                                                final channelName =
+                                                    selectedChannelIndexLocal !=
+                                                            null
+                                                        ? pubChannels[
+                                                                    selectedChannelIndexLocal!]
+                                                                [
+                                                                'channelname'] ??
+                                                            'Unknown Channel'
+                                                        : 'Unknown Channel';
+                                                final entityName =
+                                                    _entityController.text
+                                                        .trim();
+                                                print('Selected tag: $tagName');
+                                                print('Tag ID: $tagId');
+                                                print(
+                                                    'Channel Name: $channelName');
+                                                print(
+                                                    'Entity Name: $entityName');
+
+                                                // Fetch context data asynchronously
+                                                final contextData =
+                                                    await dashboardController
+                                                        .getContextAndPublicKey(
+                                                            entityName,
+                                                            channelName,
+                                                            tagId);
+                                                // print("Context Data: $contextData");
+                                                if (contextData != null) {
+                                                  if (contextData[
+                                                          "contextform"] !=
+                                                      null) {
+                                                    htmlForm = contextData[
+                                                        "contextform"];
+                                                    htmlTheme = contextData[
+                                                        'contexttemplate'];
+                                                    print(
+                                                        "Context form found, rendering...");
+                                                  } else {
+                                                    print(
+                                                        "No context template found for this tag.");
+                                                  }
+                                                }
+                                                setState(() {
+                                                  selectedTagIndexLocal = idx;
+                                                  showWebView = true;
+                                                  selectedTagData =
+                                                      tag; // Store the selected tag data
+                                                });
+                                              } else {
+                                                setState(() {
+                                                  selectedTagIndexLocal = null;
+                                                  showWebView = false;
+                                                  selectedTagData =
+                                                      null; // Clear selected tag data
+                                                });
+                                                print('Tag deselected');
+                                              }
+                                            },
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  const SizedBox(height: 16),
+                                ],
+
+                                // Show InAppWebView below tag selection when a tag is selected
+                                if (showWebView) ...[
+                                  Container(
+                                    height: 530,
+                                    margin: const EdgeInsets.only(
+                                        top: 16, right: 20),
+                                    decoration: BoxDecoration(
+                                      border:
+                                          Border.all(color: Colors.grey[600]!),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Stack(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          child: InAppWebView(
+                                            initialData:
+                                                InAppWebViewInitialData(
+                                              data: appendScriptWithHtml(
+                                                  htmlForm,
+                                                  isSubmitButtonNeeded: true),
+                                            ),
+                                            onWebViewCreated: (controller) {
+                                              webViewController =
+                                                  controller; // Store controller reference
+                                              print(
+                                                  '🔧 WebView controller stored successfully');
+                                              if (!kIsWeb) {
+                                                // Add handler for MessageChannel setup
+                                                controller.addJavaScriptHandler(
+                                                  handlerName:
+                                                      'setupMessageChannel',
+                                                  callback: (args) {
+                                                    print(
+                                                        '✅ Submit trigger setup complete: ${args[0]}');
+                                                  },
+                                                );
+                                                controller.addJavaScriptHandler(
+                                                  handlerName: 'onFormChange',
+                                                  callback: (args) async {
+                                                    String jsonString = args[0];
+                                                    setState(() {
+                                                      updatedJson = jsonString;
+                                                    });
+                                                    // Update preview WebView smoothly without rebuild
+                                                    if (previewWebViewController !=
+                                                            null &&
+                                                        htmlTheme.isNotEmpty &&
+                                                        jsonString.isNotEmpty &&
+                                                        jsonString != "{}" &&
+                                                        jsonString !=
+                                                            lastRenderedJson) {
+                                                      try {
+                                                        final rendered =
+                                                            await renderResume(
+                                                                jsonString);
+                                                        await previewWebViewController!
+                                                            .loadData(
+                                                          data: rendered,
+                                                          baseUrl: WebUri(
+                                                              'about:blank'),
+                                                        );
+                                                        lastRenderedJson =
+                                                            jsonString;
+                                                      } catch (e) {
+                                                        print(
+                                                            'Error updating preview on form change: $e');
+                                                      }
+                                                    }
+                                                    // print('Form changed: $jsonString');
+                                                    // Handle the form change - update preview, validate, etc.
+                                                  },
+                                                );
+                                                controller.addJavaScriptHandler(
+                                                  handlerName: 'onFormSubmit',
+                                                  callback: (args) {
+                                                    String jsonString = args[0];
+                                                    print(
+                                                        'Received JSON string: $jsonString');
+                                                    // Add bounds checking before accessing joinedTags array
+                                                    if (jsonString.isNotEmpty) {
+                                                      final entityName =
+                                                          _entityController.text
+                                                              .trim();
+                                                      final channelName =
+                                                          selectedChannelIndexLocal !=
+                                                                  null
+                                                              ? pubChannels[
+                                                                          selectedChannelIndexLocal!]
+                                                                      [
+                                                                      'channelname'] ??
+                                                                  'Unknown Channel'
+                                                              : 'Unknown Channel';
+                                                      final tagId = selectedTagData !=
+                                                              null
+                                                          ? (selectedTagData![
+                                                                      'tagid'] ??
+                                                                  selectedTagData![
+                                                                      'tagId'] ??
+                                                                  'Unknown TagID')
+                                                              .toString()
+                                                          : null; // Pass null when no tag selected
+                                                      print(
+                                                          'Entity Name: $entityName');
+                                                      print(
+                                                          'Channel Name: $channelName');
+                                                      print('Tag ID: $tagId');
+                                                      createEncryptedDocument(
+                                                          entityName,
+                                                          channelName,
+                                                          tagId,
+                                                          jsonString);
+                                                    } else {
+                                                      print(
+                                                          'Error: Invalid selectedjoinedTagIndex when handling form submit');
+                                                    }
+                                                  },
+                                                );
+                                              } else {
+                                                handleWebMessage();
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                        // Floating close button
+                                        Positioned(
+                                          top: 8,
+                                          right: 8,
+                                          child: FloatingActionButton(
+                                            mini: true,
+                                            backgroundColor:
+                                                Colors.red.withOpacity(0.8),
+                                            onPressed: () {
+                                              setState(() {
+                                                showWebView = false;
+                                                selectedTagIndexLocal = null;
+                                                selectedTagData =
+                                                    null; // Clear selected tag data
+                                              });
+                                            },
+                                            child: const Icon(
+                                              Icons.close,
+                                              color: Colors.white,
+                                              size: 18,
+                                            ),
+                                          ),
+                                        ),
+                                        // Floating View Document button
+                                        Positioned(
+                                          top: 8,
+                                          right:
+                                              60, // Position to the left of close button
+                                          child: FloatingActionButton(
+                                            mini: true,
+                                            backgroundColor:
+                                                Colors.blue.withOpacity(0.8),
+                                            onPressed: () {
+                                              setState(() {
+                                                isViewDocumentOpen =
+                                                    !isViewDocumentOpen;
+                                              });
+                                            },
+                                            child: const Icon(
+                                              Icons.visibility,
+                                              color: Colors.white,
+                                              size: 18,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
+                              ],
+                            ),
+                          ), // ConstrainedBox child
+                        ), // ConstrainedBox
+                        actionsPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
+                        actionsAlignment: MainAxisAlignment.spaceBetween,
+                        actions: [
+                          // Cancel button - always on the left
+                          TextButton(
+                            onPressed: () {
+                              // Reset updatedJson when closing the dialog (using main setState)
+                              this.setState(() {
+                                updatedJson = "{}";
+                              });
+                              Navigator.pop(context);
+                            },
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(color: Colors.white70),
+                            ),
+                          ),
+                          // Right side buttons wrapped in Row
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Reset button - only show if search has been performed
+                              if (hasSearched)
+                                ElevatedButton(
                                   onPressed: () {
                                     setState(() {
-                                      showWebView = false;
+                                      // Reset all local state for a new search
+                                      isSearching = false;
+                                      hasSearched = false;
+                                      pubChannels = [];
+                                      selectedChannelIndexLocal = null;
+                                      pubTags = [];
                                       selectedTagIndexLocal = null;
                                       selectedTagData =
                                           null; // Clear selected tag data
+                                      _entityController.clear();
+                                      _composeChannelController.clear();
+                                      // Hide InAppWebView when reset is clicked
+                                      showWebView = false;
                                     });
                                   },
-                                  child: const Icon(
-                                    Icons.close,
-                                    color: Colors.white,
-                                    size: 18,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.orange,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20, vertical: 12),
+                                  ),
+                                  child: const Text(
+                                    'Reset',
+                                    style: TextStyle(color: Colors.white),
                                   ),
                                 ),
-                              ),
-                              // Floating View Document button
-                              Positioned(
-                                top: 8,
-                                right: 60, // Position to the left of close button
-                                child: FloatingActionButton(
-                                  mini: true,
-                                  backgroundColor: Colors.blue.withOpacity(0.8),
-                                  onPressed: () {
-                                    setState(() {
-                                      isViewDocumentOpen = !isViewDocumentOpen;
-                                    });
-                                  },
-                                  child: const Icon(
-                                    Icons.visibility,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    ],
-                  ),
-                ), // ConstrainedBox child
-              ), // ConstrainedBox
-              actionsPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              actionsAlignment: MainAxisAlignment.spaceBetween,
-              actions: [
-                // Cancel button - always on the left
-                TextButton(
-                  onPressed: () {
-                    // Reset updatedJson when closing the dialog (using main setState)
-                    this.setState(() {
-                      updatedJson = "{}";
-                    });
-                    Navigator.pop(context);
-                  },
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                ),
-                // Right side buttons wrapped in Row
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Reset button - only show if search has been performed
-                    if (hasSearched)
-                      ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            // Reset all local state for a new search
-                            isSearching = false;
-                            hasSearched = false;
-                            pubChannels = [];
-                            selectedChannelIndexLocal = null;
-                            pubTags = [];
-                            selectedTagIndexLocal = null;
-                            selectedTagData = null; // Clear selected tag data
-                            _entityController.clear();
-                            _composeChannelController.clear();
-                            // Hide InAppWebView when reset is clicked
-                            showWebView = false;
-                          });
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 12),
-                        ),
-                        child: const Text(
-                          'Reset',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    // Add spacing between Reset and Submit buttons
-                    if (hasSearched && showWebView) const SizedBox(width: 12),
-                    // Submit button - only show when WebView is visible
-                    if (showWebView)
-                      ElevatedButton(
-                        onPressed: () async {
-                          // Trigger form submission using the global function
-                          if (webViewController != null) {
-                            try {
-                              await webViewController!
-                                  .evaluateJavascript(source: '''
+                              // Add spacing between Reset and Submit buttons
+                              if (hasSearched && showWebView)
+                                const SizedBox(width: 12),
+                              // Submit button - only show when WebView is visible
+                              if (showWebView)
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    // Trigger form submission using the global function
+                                    if (webViewController != null) {
+                                      try {
+                                        await webViewController!
+                                            .evaluateJavascript(source: '''
                                   console.log('🎯 Submit button clicked from Flutter');
                                   if (typeof window.triggerFormSubmit === 'function') {
                                     window.triggerFormSubmit();
@@ -2319,50 +2416,53 @@ class _DashboardViewState extends State<DashboardView> {
                                   }
                                 ''');
 
-                              // Show user feedback
-                              // ScaffoldMessenger.of(context).showSnackBar(
-                              //   const SnackBar(
-                              //     content: Text('Form submission triggered'),
-                              //     backgroundColor: Colors.blue,
-                              //   ),
-                              // );
-                            } catch (e) {
-                              print('Error triggering form submission: $e');
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                      'Error triggering form submission: $e'),
-                                  backgroundColor: Colors.red,
+                                        // Show user feedback
+                                        // ScaffoldMessenger.of(context).showSnackBar(
+                                        //   const SnackBar(
+                                        //     content: Text('Form submission triggered'),
+                                        //     backgroundColor: Colors.blue,
+                                        //   ),
+                                        // );
+                                      } catch (e) {
+                                        print(
+                                            'Error triggering form submission: $e');
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                                'Error triggering form submission: $e'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    } else {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              'WebView not ready. Please wait and try again.'),
+                                          backgroundColor: Colors.orange,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20, vertical: 12),
+                                  ),
+                                  child: const Text(
+                                    'Submit',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                                 ),
-                              );
-                            }
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                    'WebView not ready. Please wait and try again.'),
-                                backgroundColor: Colors.orange,
-                              ),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            ],
                           ),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 12),
-                        ),
-                        child: const Text(
-                          'Submit',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ), // AlertDialog
+                        ],
+                      ), // AlertDialog
                     ),
                   ),
                 ),
@@ -2375,11 +2475,13 @@ class _DashboardViewState extends State<DashboardView> {
                     child: Material(
                       color: Colors.transparent,
                       child: Container(
-                        width: dialogWidth,  // Same width as Create New Document dialog
+                        width:
+                            dialogWidth, // Same width as Create New Document dialog
                         constraints: BoxConstraints(
-                          maxHeight: isMobile 
-                              ? screenHeight - 100  // Full height on mobile
-                              : screenHeight - 100,  // Same height as Create New Document dialog
+                          maxHeight: isMobile
+                              ? screenHeight - 100 // Full height on mobile
+                              : screenHeight -
+                                  100, // Same height as Create New Document dialog
                         ),
                         child: AlertDialog(
                           backgroundColor: surfaceColor,
@@ -2395,28 +2497,35 @@ class _DashboardViewState extends State<DashboardView> {
                           ),
                           content: htmlTheme.isNotEmpty
                               ? SizedBox(
-                                  width: 800,  // Match the width constraint from Create New Document
-                                  height: isMobile 
-                                      ? screenHeight * 0.75  // 75% height on mobile for good viewing
-                                      : 1200,  // Match the height from Create New Document when showWebView is true
+                                  width:
+                                      800, // Match the width constraint from Create New Document
+                                  height: isMobile
+                                      ? screenHeight *
+                                          0.75 // 75% height on mobile for good viewing
+                                      : 1200, // Match the height from Create New Document when showWebView is true
                                   child: InAppWebView(
-                                    key: ValueKey('preview_webview'), // Stable key to prevent recreation
+                                    key: ValueKey(
+                                        'preview_webview'), // Stable key to prevent recreation
                                     initialData: InAppWebViewInitialData(
-                                      data: '', // Start with empty, will update via controller
+                                      data:
+                                          '', // Start with empty, will update via controller
                                     ),
                                     onWebViewCreated: (controller) async {
                                       previewWebViewController = controller;
                                       // Load initial content if available
-                                      if (updatedJson.isNotEmpty && updatedJson != "{}") {
+                                      if (updatedJson.isNotEmpty &&
+                                          updatedJson != "{}") {
                                         try {
-                                          final rendered = await renderResume(updatedJson);
+                                          final rendered =
+                                              await renderResume(updatedJson);
                                           await controller.loadData(
                                             data: rendered,
                                             baseUrl: WebUri('about:blank'),
                                           );
                                           lastRenderedJson = updatedJson;
                                         } catch (e) {
-                                          print('Error rendering initial preview: $e');
+                                          print(
+                                              'Error rendering initial preview: $e');
                                         }
                                       }
                                     },
@@ -2428,7 +2537,6 @@ class _DashboardViewState extends State<DashboardView> {
                                     style: TextStyle(color: subtitleColor),
                                   ),
                                 ),
-
                           actions: [
                             TextButton(
                               onPressed: () {
@@ -2448,14 +2556,15 @@ class _DashboardViewState extends State<DashboardView> {
                   ),
               ],
             ); // Stack
-            
+
             // Wrap in SingleChildScrollView for mobile to allow scrolling between dialogs
-            return isMobile 
+            return isMobile
                 ? SingleChildScrollView(
                     controller: scrollController,
                     child: SizedBox(
-                      height: isViewDocumentOpen 
-                          ? screenHeight * 2 + 100  // Double height when both dialogs shown
+                      height: isViewDocumentOpen
+                          ? screenHeight * 2 +
+                              100 // Double height when both dialogs shown
                           : screenHeight,
                       child: stackContent,
                     ),
@@ -2467,17 +2576,169 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
+  // Fallback renderer that creates a simple HTML table from JSON
+  String _createFallbackHtml(Map<String, dynamic> jsonData) {
+    final buffer = StringBuffer();
+    buffer.write('''
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f9f9f9;
+          }
+          .document-container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          }
+          h1 { color: #333; margin-top: 0; }
+          h2 { color: #555; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; }
+          .section { margin: 20px 0; }
+          .field { margin: 10px 0; padding: 8px; background: #f5f5f5; border-radius: 4px; }
+          .field-label { font-weight: bold; color: #666; }
+          .field-value { color: #333; margin-left: 10px; }
+          .array-item { border-left: 3px solid #2196f3; padding-left: 15px; margin: 10px 0; }
+          .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="document-container">
+     
+    ''');
+
+    void renderValue(String key, dynamic value, int depth) {
+      if (value == null) return;
+
+      if (value is Map) {
+        buffer.write('<div class="section">');
+        buffer.write(
+            '<h${(depth + 2).clamp(2, 6)}>${key.replaceAll('_', ' ').toUpperCase()}</h${(depth + 2).clamp(2, 6)}>');
+        value.forEach((k, v) => renderValue(k.toString(), v, depth + 1));
+        buffer.write('</div>');
+      } else if (value is List) {
+        buffer.write('<div class="section">');
+        buffer.write(
+            '<h${(depth + 2).clamp(2, 6)}>${key.replaceAll('_', ' ').toUpperCase()}</h${(depth + 2).clamp(2, 6)}>');
+        for (var i = 0; i < value.length; i++) {
+          buffer.write('<div class="array-item">');
+          renderValue('Item ${i + 1}', value[i], depth + 1);
+          buffer.write('</div>');
+        }
+        buffer.write('</div>');
+      } else {
+        buffer.write('<div class="field">');
+        buffer.write(
+            '<span class="field-label">${key.replaceAll('_', ' ')}:</span>');
+        buffer.write('<span class="field-value">${value.toString()}</span>');
+        buffer.write('</div>');
+      }
+    }
+
+    jsonData.forEach((key, value) => renderValue(key, value, 0));
+
+    buffer.write('''
+        </div>
+      </body>
+      </html>
+    ''');
+
+    return buffer.toString();
+  }
+
   Future<String> renderResume(String jsonContent) async {
-    final raw = htmlTheme;
+    print('🔄 Starting renderResume with Liquid...');
 
-    final context = Context.create();
+    try {
+      final raw = htmlTheme;
 
-    // context.variables['basics'] = jsonDecode(jsonContent)["basics"];
-    context.variables = jsonDecode(jsonContent);
+      // Validate inputs
+      if (raw.isEmpty) {
+        print('❌ HTML theme is empty - using fallback');
+        final jsonData = jsonDecode(jsonContent);
+        return _createFallbackHtml(jsonData);
+      }
 
-    final template = Template.parse(context, Source.fromString(raw));
-    final result = await template.render(context);
-    return result;
+      if (jsonContent.isEmpty || jsonContent == "{}") {
+        print('❌ JSON content is empty - using fallback');
+        return _createFallbackHtml({});
+      }
+
+      print(
+          '📋 JSON length: ${jsonContent.length}, Template length: ${raw.length}');
+
+      // Parse JSON safely
+      final Map<String, dynamic> jsonData = jsonDecode(jsonContent);
+      print('✅ JSON parsed successfully');
+
+      // Try rendering with timeout protection
+      print('🎨 Creating Liquid template context...');
+      try {
+        final context = Context.create();
+        context.variables = jsonData;
+
+        print('🚀 Parsing and rendering template...');
+        final template = Template.parse(context, Source.fromString(raw));
+        final result = await template.render(context).timeout(
+          const Duration(seconds: 3),
+          onTimeout: () {
+            print('⏱️ Rendering timed out');
+            throw TimeoutException('Template rendering timeout');
+          },
+        );
+
+        print('✅ Template rendered successfully (${result.length} chars)');
+        return result;
+      } on StackOverflowError catch (e) {
+        print('❌ Stack Overflow detected: $e');
+        print('🔧 Template too complex - using fallback renderer');
+        return _createFallbackHtml(jsonData);
+      } on TimeoutException catch (e) {
+        print('⏱️ Timeout: $e');
+        print('🔧 Using fallback renderer');
+        return _createFallbackHtml(jsonData);
+      } catch (e) {
+        print('❌ Rendering error: $e');
+        print('🔧 Using fallback renderer');
+        return _createFallbackHtml(jsonData);
+      }
+    } on FormatException catch (e) {
+      print('❌ JSON parsing error: $e');
+      return '<html><body style="font-family: sans-serif; padding: 40px;"><h1 style="color: #d32f2f;">Error: Invalid JSON format</h1><p>$e</p></body></html>';
+    } catch (e) {
+      print('❌ Unexpected error: $e');
+      try {
+        final jsonData = jsonDecode(jsonContent);
+        return _createFallbackHtml(jsonData);
+      } catch (_) {
+        return '''
+          <html>
+          <body style="font-family: sans-serif; padding: 40px; max-width: 800px; margin: 0 auto;">
+            <h1 style="color: #d32f2f;">⚠️ Error rendering document</h1>
+            <p><strong>Error:</strong> $e</p>
+            <hr>
+            <h3>Solution:</h3>
+            <p><strong>Your template is too complex for the Liquid engine in release mode.</strong></p>
+            <p>Please simplify your template or break it into smaller sections.</p>
+            <p>Template size: ${htmlTheme.length} characters (recommended: < 30,000)</p>
+          </body>
+          </html>
+        ''';
+      }
+    }
   }
 
   void showHtmlPopup(BuildContext context, String jsonContent) {
@@ -2515,7 +2776,41 @@ class _DashboardViewState extends State<DashboardView> {
                         return const Center(child: CircularProgressIndicator());
                       } else if (snapshot.hasError) {
                         return Center(
-                          child: Text('Error: ${snapshot.error}'),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.error_outline,
+                                    size: 48, color: Colors.red),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Error rendering document',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '${snapshot.error}',
+                                  style: TextStyle(color: subtitleColor),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    // Print debug info
+                                    print('JSON Content: $jsonContent');
+                                    print(
+                                        'HTML Theme length: ${htmlTheme.length}');
+                                  },
+                                  child: const Text('Show Debug Info'),
+                                ),
+                              ],
+                            ),
+                          ),
                         );
                       } else {
                         return InAppWebView(
@@ -3210,6 +3505,21 @@ class _DashboardViewState extends State<DashboardView> {
                                   ),
                                   onWebViewCreated: (controller) {
                                     if (!kIsWeb) {
+                                      controller.addJavaScriptHandler(
+                                        handlerName: 'setupMessageChannel',
+                                        callback: (args) {
+                                          print(
+                                              '✅ Submit trigger setup complete: ${args[0]}');
+                                        },
+                                      );
+                                      controller.addJavaScriptHandler(
+                                        handlerName: 'onFormChange',
+                                        callback: (args) async {
+                                          String jsonString = args[0];
+                                          print('Form changed: $jsonString');
+                                          // Handle the form change - update preview, validate, etc.
+                                        },
+                                      );
                                       controller.addJavaScriptHandler(
                                         handlerName: 'onFormSubmit',
                                         callback: (args) {
@@ -4167,7 +4477,8 @@ class _DashboardViewState extends State<DashboardView> {
                             Icons.language, 'Select Language'),
                         _buildSimpleProfileMenuItem(
                             Icons.list_alt, 'View Logs'),
-                        _buildSimpleProfileMenuItem(Icons.key, 'Import/Export Keys'),
+                        _buildSimpleProfileMenuItem(
+                            Icons.key, 'Import/Export Keys'),
 
                         // Divider
                         Container(
@@ -5410,7 +5721,8 @@ class _DashboardViewState extends State<DashboardView> {
                       await _decryptKeys(encryptedKey, password);
 
                   // Save the keys
-                  final entityName = await dashboardController.getSelectedEntity();
+                  final entityName =
+                      await dashboardController.getSelectedEntity();
                   await dashboardController.addOrUpdateEntityKeys(
                     entityName,
                     decryptedKeys['publicKey']!,
@@ -5586,8 +5898,8 @@ class _DashboardViewState extends State<DashboardView> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Skip for Now',
-                  style: TextStyle(color: subtitleColor)),
+              child:
+                  Text('Skip for Now', style: TextStyle(color: subtitleColor)),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -5610,7 +5922,8 @@ class _DashboardViewState extends State<DashboardView> {
                       await _decryptKeys(encryptedKey, password);
 
                   // Save the keys
-                  final entityName = await dashboardController.getSelectedEntity();
+                  final entityName =
+                      await dashboardController.getSelectedEntity();
                   await dashboardController.addOrUpdateEntityKeys(
                     entityName,
                     decryptedKeys['publicKey']!,
@@ -5650,11 +5963,12 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  Future<String> _encryptKeys(String publicKey, String privateKey, String password) async {
+  Future<String> _encryptKeys(
+      String publicKey, String privateKey, String password) async {
     try {
       // Combine both keys with a separator
       final combinedKeys = '$publicKey|||KEYSEPARATOR|||$privateKey';
-      
+
       // Use AES encryption with the password
       final key =
           encrypt.Key.fromUtf8(password.padRight(32, '0').substring(0, 32));
@@ -5688,13 +6002,13 @@ class _DashboardViewState extends State<DashboardView> {
       final encrypter = encrypt.Encrypter(encrypt.AES(key));
 
       final decrypted = encrypter.decrypt(encryptedText, iv: iv);
-      
+
       // Split the combined keys
       final keyParts = decrypted.split('|||KEYSEPARATOR|||');
       if (keyParts.length != 2) {
         throw Exception('Invalid key data format');
       }
-      
+
       return {
         'publicKey': keyParts[0],
         'privateKey': keyParts[1],
