@@ -24,7 +24,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.7'
-          channel: 'stable'
+          channel: stable
 
       - name: Install NuGet
         run: |
@@ -37,6 +37,70 @@ jobs:
 
       - name: Get dependencies
         run: flutter pub get
+
+      - name: Auto-sync MSIX version and identity
+        shell: pwsh
+        run: |
+          $pubspecContent = Get-Content pubspec.yaml -Raw
+
+          # Check if this is a tag push
+          $isTagPush = "${{ github.ref }}" -match '^refs/tags/v'
+
+          if ($isTagPush) {
+            # Extract version from Git tag (e.g., v1.0.13-test -> 1.0.13)
+            $tagName = "${{ github.ref_name }}"
+            $versionFromTag = $tagName -replace '^v', '' -replace '-.*$', ''
+
+            Write-Host "=== TAG PUSH DETECTED ==="
+            Write-Host "Tag name: $tagName"
+            Write-Host "Extracted version: $versionFromTag"
+
+            # Determine build number (default to 0 for new versions)
+            $buildNumber = "0"
+
+            # Update pubspec.yaml version
+            $pubspecContent = $pubspecContent -replace 'version:\s*[0-9.]+\+?[0-9]*', "version: $versionFromTag+$buildNumber"
+
+            $flutterVersion = "$versionFromTag+$buildNumber"
+            $msixVersion = "$versionFromTag.$buildNumber"
+
+            Write-Host "Auto-updated Flutter version: $flutterVersion"
+            Write-Host "MSIX version (converted): $msixVersion"
+          } else {
+            # Extract version from existing pubspec.yaml (for non-tag builds)
+            $versionMatch = [regex]::Match($pubspecContent, 'version:\s*([0-9.]+)\+([0-9]+)')
+
+            if ($versionMatch.Success) {
+              $versionPart = $versionMatch.Groups[1].Value
+              $buildNumber = $versionMatch.Groups[2].Value
+              $flutterVersion = "$versionPart+$buildNumber"
+              $msixVersion = "$versionPart.$buildNumber"
+
+              Write-Host "=== BRANCH BUILD ==="
+              Write-Host "Flutter version from pubspec: $flutterVersion"
+              Write-Host "MSIX version (converted): $msixVersion"
+            } else {
+              Write-Host "ERROR: Could not extract version from pubspec.yaml"
+              Write-Host "Expected format: version: 1.0.0+8"
+              exit 1
+            }
+          }
+
+          # Update msix_version to MSIX format
+          $pubspecContent = $pubspecContent -replace 'msix_version:\s*[0-9.]+' , "msix_version: $msixVersion"
+
+          # Update identity_name to app.xdoc.test
+          $pubspecContent = $pubspecContent -replace 'identity_name:\s*com\.xdocapp\.test', 'identity_name: app.xdoc.test'
+
+          # Save updated pubspec.yaml
+          Set-Content -Path pubspec.yaml -Value $pubspecContent
+
+          Write-Host "✓ Updated msix_version to: $msixVersion"
+          Write-Host "✓ Updated identity_name to: app.xdoc.test"
+
+          # Export version for later steps
+          echo "APP_VERSION=$flutterVersion" >> $env:GITHUB_ENV
+          echo "MSIX_VERSION=$msixVersion" >> $env:GITHUB_ENV
 
       - name: Run tests
         run: flutter test
@@ -52,7 +116,8 @@ jobs:
         run: |
           echo "Build completed at: $(Get-Date)" > build/windows/x64/runner/Release/build-info.txt
           echo "App: XDoc" >> build/windows/x64/runner/Release/build-info.txt
-          echo "Version: 1.0.0+8" >> build/windows/x64/runner/Release/build-info.txt
+          echo "Version: ${{ env.APP_VERSION }}" >> build/windows/x64/runner/Release/build-info.txt
+          echo "MSIX Version: ${{ env.MSIX_VERSION }}" >> build/windows/x64/runner/Release/build-info.txt
           echo "Commit: ${{ github.sha }}" >> build/windows/x64/runner/Release/build-info.txt
 
       - name: Upload Windows executable artifact
@@ -95,15 +160,20 @@ jobs:
             ## Download XDoc for Windows
 
             **Direct Download:**
-            https://${{ secrets.S3_BUCKET_NAME }}.hel1.your-objectstorage.com/windows/xdoc-${{ github.ref_name }}.msix
+            https://downloads.xdoc.app/windows/xdoc-${{ github.ref_name }}.msix
 
             **Always Latest Version:**
-            https://${{ secrets.S3_BUCKET_NAME }}.hel1.your-objectstorage.com/windows/xdoc-latest.msix
+            https://downloads.xdoc.app/windows/xdoc-latest.msix
 
             ## Installation
             1. Download the .msix file
             2. Double-click to install
             3. Launch XDoc from Start Menu
+
+            ---
+            **Version:** ${{ env.APP_VERSION }}
+            **MSIX Version:** ${{ env.MSIX_VERSION }}
+            **Build:** ${{ github.run_number }}
           draft: false
           prerelease: false
         env:
