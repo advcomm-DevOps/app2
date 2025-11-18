@@ -1,0 +1,36 @@
+name: Mirror to DevOps
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - 'feature/**'
+  release:
+    types:
+      - published
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history for all branches and tags
+
+      - name: Set up git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Add mirror remote and push
+        env:
+          MIRROR_TOKEN: ${{ secrets.DEVOPS_PAT }}
+        run: |
+          # Add DevOps repo as remote
+          git remote add mirror https://x-access-token:${MIRROR_TOKEN}@github.com/advcomm-DevOps/app2.git
+
+          # Mirror ALL branches and tags
+          git push mirror --mirror
