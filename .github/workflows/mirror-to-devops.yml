@@ -19,11 +19,34 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # full history for all branches and tags
+          persist-credentials: false  # Don't use the default GITHUB_TOKEN
 
       - name: Set up git identity
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Debug token availability
+        env:
+          MIRROR_TOKEN: ${{ secrets.DEVOPS_PAT }}
+        run: |
+          if [ -z "$MIRROR_TOKEN" ]; then
+            echo "ERROR: MIRROR_TOKEN is empty!"
+            exit 1
+          fi
+          echo "Token is set (length: ${#MIRROR_TOKEN})"
+
+      - name: Test token access
+        env:
+          MIRROR_TOKEN: ${{ secrets.DEVOPS_PAT }}
+        run: |
+          # Test if token can access the repo via API
+          curl -f -H "Authorization: token ${MIRROR_TOKEN}" \
+               https://api.github.com/repos/advcomm-DevOps/app2 || {
+            echo "ERROR: Token cannot access repo via API"
+            exit 1
+          }
+          echo "✓ Token can access repo via API"
 
       - name: Add mirror remote and push
         env:
@@ -32,5 +55,8 @@ jobs:
           # Add DevOps repo as remote
           git remote add mirror https://x-access-token:${MIRROR_TOKEN}@github.com/advcomm-DevOps/app2.git
 
-          # Mirror ALL branches and tags
-          git push mirror --mirror
+          # Push current branch only (don't use --mirror to preserve DevOps workflows)
+          git push mirror HEAD:${GITHUB_REF#refs/heads/} --force
+
+          # Push all tags
+          git push mirror --tags --force
