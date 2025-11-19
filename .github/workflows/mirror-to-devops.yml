@@ -29,22 +29,28 @@ jobs:
         env:
           MIRROR_TOKEN: ${{ secrets.DEVOPS_PAT }}
         run: |
-          # Fetch DevOps repo to get its workflows
+          # Add DevOps repo as remote
           git remote add mirror https://x-access-token:${MIRROR_TOKEN}@github.com/advcomm-DevOps/app2.git
           git fetch mirror main
 
-          # Create a temporary branch without .github folder
-          git checkout -b temp-mirror
-          rm -rf .github
-          git add -A
-          git commit -m "temp: mirror without .github" || true
+          # Get the current commit sha
+          CURRENT_SHA=$(git rev-parse HEAD)
 
-          # Push to DevOps (this will merge, keeping DevOps workflows)
-          git push mirror temp-mirror:main
+          # Checkout the DevOps main branch
+          git checkout -b devops-merge mirror/main
+
+          # Merge our changes but keep DevOps .github folder
+          git merge --no-commit --no-ff $CURRENT_SHA || true
+          git reset HEAD .github/
+          git checkout -- .github/ || true
+          git commit -m "Mirror from main repo (preserve DevOps workflows)" || true
+
+          # Push to DevOps
+          git push mirror devops-merge:main --force
 
           # Push all tags
           git push mirror --tags --force
 
           # Clean up
           git checkout main
-          git branch -D temp-mirror
+          git branch -D devops-merge
