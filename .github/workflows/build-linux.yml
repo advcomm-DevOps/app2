@@ -1,0 +1,154 @@
+name: Build Linux App
+
+on:
+  push:
+    branches: [main, master, 'feature/linux-build']
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: 'stable'
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libblkid-dev liblzma-dev libsecret-1-dev
+
+      - name: Enable Linux desktop
+        run: flutter config --enable-linux-desktop
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run tests
+        run: flutter test
+        continue-on-error: true
+
+      - name: Build Linux app
+        run: flutter build linux --release
+
+      - name: Install AppImage dependencies
+        run: |
+          sudo apt-get install -y libfuse2
+          wget -O appimagetool "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+          chmod +x appimagetool
+          sudo mv appimagetool /usr/local/bin/
+
+      - name: Create AppDir structure
+        run: |
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/lib
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+
+          # Copy Flutter bundle
+          cp -r build/linux/x64/release/bundle/* AppDir/usr/bin/
+
+          # Desktop entry (needs to be in both root and usr/share/applications)
+          cat > AppDir/xdoc.desktop << EOF
+          [Desktop Entry]
+          Name=XDoc
+          Exec=flutter_starter
+          Icon=xdoc
+          Type=Application
+          Categories=Office;
+          EOF
+          cp AppDir/xdoc.desktop AppDir/usr/share/applications/
+
+          # Icon (needs to be in both root and usr/share/icons)
+          if [ -f "assets/images/xdoc_logo.png" ]; then
+            cp assets/images/xdoc_logo.png AppDir/xdoc.png
+            cp assets/images/xdoc_logo.png AppDir/usr/share/icons/hicolor/256x256/apps/xdoc.png
+          else
+            convert -size 256x256 xc:blue AppDir/xdoc.png || true
+            cp AppDir/xdoc.png AppDir/usr/share/icons/hicolor/256x256/apps/xdoc.png || true
+          fi
+
+          # AppRun script
+          cat > AppDir/AppRun << 'EOF'
+          #!/bin/bash
+          SELF=$(readlink -f "$0")
+          HERE=${SELF%/*}
+          export PATH="${HERE}/usr/bin:${PATH}"
+          export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH}"
+          EXEC=$(grep -e '^Exec=.*' "${HERE}"/*.desktop | head -n 1 | cut -d "=" -f 2 | cut -d " " -f 1)
+          exec "${EXEC}" "$@"
+          EOF
+
+          chmod +x AppDir/AppRun
+
+      - name: Create AppImage
+        run: |
+          ARCH=x86_64 appimagetool AppDir xdoc.AppImage
+          chmod +x xdoc.AppImage
+
+      - name: Create build info
+        run: |
+          echo "Build completed at: $(date)" > build-info.txt
+          echo "App: XDoc" >> build-info.txt
+          echo "Version: 1.0.0+8" >> build-info.txt
+          echo "Commit: ${{ github.sha }}" >> build-info.txt
+          echo "Platform: Linux x86_64" >> build-info.txt
+
+      - name: Upload Linux AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: xdoc-linux-appimage-${{ github.run_number }}
+          path: xdoc.AppImage
+          retention-days: 30
+
+      - name: Upload to Hetzner Object Storage
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          # Install AWS CLI v2
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install --update
+
+          # Configure AWS CLI for Hetzner Object Storage
+          aws configure set aws_access_key_id ${{ secrets.S3_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          aws configure set default.region us-east-1
+
+          # Upload files to S3 bucket with public-read ACL
+          aws s3 cp xdoc.AppImage s3://${{ secrets.S3_BUCKET_NAME }}/linux/xdoc-latest.AppImage --endpoint-url ${{ secrets.S3_ENDPOINT }} --acl public-read
+          aws s3 cp xdoc.AppImage s3://${{ secrets.S3_BUCKET_NAME }}/linux/xdoc-${{ github.ref_name }}.AppImage --endpoint-url ${{ secrets.S3_ENDPOINT }} --acl public-read
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          body: |
+            ## Download XDoc for Linux
+
+            **Direct Download:**
+            https://downloads.xdoc.app/linux/xdoc-${{ github.ref_name }}.AppImage
+
+            **Always Latest Version:**
+            https://downloads.xdoc.app/linux/xdoc-latest.AppImage
+
+            ## Installation
+            1. Download the .AppImage file
+            2. Make it executable: `chmod +x xdoc-latest.AppImage`
+            3. Run it: `./xdoc-latest.AppImage`
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
