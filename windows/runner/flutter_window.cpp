@@ -1,6 +1,8 @@
 #include "flutter_window.h"
 
 #include <optional>
+#include <flutter/method_channel.h>
+#include <flutter/standard_method_codec.h>
 
 #include "flutter/generated_plugin_registrant.h"
 
@@ -65,6 +67,46 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
     case WM_FONTCHANGE:
       flutter_controller_->engine()->ReloadSystemFonts();
       break;
+    case WM_COPYDATA: {
+      // Handle deep link from another instance
+      COPYDATASTRUCT* cds = (COPYDATASTRUCT*)lparam;
+      if (cds->dwData == 1 && flutter_controller_) {
+        std::wstring wcommand_line((wchar_t*)cds->lpData, cds->cbData / sizeof(wchar_t));
+        
+        // Remove null terminators
+        while (!wcommand_line.empty() && wcommand_line.back() == L'\0') {
+          wcommand_line.pop_back();
+        }
+        
+        if (wcommand_line.empty()) {
+          return TRUE;
+        }
+        
+        // Convert to UTF-8
+        int size_needed = WideCharToMultiByte(CP_UTF8, 0, wcommand_line.c_str(), 
+                                             (int)wcommand_line.length(), NULL, 0, NULL, NULL);
+        if (size_needed <= 0) {
+          return TRUE;
+        }
+        
+        std::string command_line(size_needed, 0);
+        WideCharToMultiByte(CP_UTF8, 0, wcommand_line.c_str(), (int)wcommand_line.length(),
+                           &command_line[0], size_needed, NULL, NULL);
+        
+        // Send to Flutter via method channel
+        auto channel = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+            flutter_controller_->engine()->messenger(),
+            "xdoc.app/deep_link",
+            &flutter::StandardMethodCodec::GetInstance());
+        
+        flutter::EncodableMap args;
+        args[flutter::EncodableValue("url")] = flutter::EncodableValue(command_line);
+        
+        channel->InvokeMethod("handleDeepLink",
+                            std::make_unique<flutter::EncodableValue>(args));
+      }
+      return TRUE;
+    }
   }
 
   return Win32Window::MessageHandler(hwnd, message, wparam, lparam);

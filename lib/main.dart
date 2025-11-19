@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-
+import 'dart:io' show Platform;
 
 import 'package:url_strategy/url_strategy.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:window_manager/window_manager.dart';
 import 'core/deeplinking/deep_link_handler.dart';
+import 'core/services/windows_deep_link_service.dart';
 import 'core/routing/routing.dart';
 import 'core/sdks/setup_database.dart';
 import 'core/sdks/sso.dart';
@@ -16,6 +18,23 @@ import 'custom/constants.dart';
 void main() async {
   setPathUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize window manager for desktop platforms (single instance support)
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    await windowManager.ensureInitialized();
+    
+    WindowOptions windowOptions = const WindowOptions(
+      center: true,
+      skipTaskbar: false,
+      titleBarStyle: TitleBarStyle.normal,
+    );
+    
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+  }
+  
   await setupDatabaseFactory();
   await EasyLocalization.ensureInitialized();
   // await initializeSsoSdk('https://auth1.3u.gg', 'api.3u.gg');
@@ -42,11 +61,31 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WindowListener {
   @override
   void initState() {
     super.initState();
-    DeepLinkHandler.initialize(); // Moved deep linking here
+    windowManager.addListener(this);
+    DeepLinkHandler.initialize(); // Initialize app_links deep linking
+    WindowsDeepLinkService.initialize(); // Initialize Windows IPC deep linking
+  }
+
+  @override
+  void dispose() {
+    windowManager.removeListener(this);
+    super.dispose();
+  }
+
+  // When app is already running and receives a protocol activation (deep link)
+  @override
+  void onWindowFocus() {
+    // Window has been brought to focus, deep link handler will process the link
+    print("Window focused - ready to handle deep link");
+  }
+
+  @override
+  void onWindowEvent(String eventName) {
+    print("Window event: $eventName");
   }
 
   @override

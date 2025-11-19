@@ -33,6 +33,7 @@ dependencies:
   app_links: ^6.4.0
   change_app_package_name: ^1.5.0
   qr_flutter: ^4.1.0
+  window_manager: ^0.5.1
   #================================= Custom Dependencies =================================
   file_picker: ^10.1.9
   desktop_drop: ^0.6.0
