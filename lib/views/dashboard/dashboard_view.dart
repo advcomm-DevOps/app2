@@ -24,6 +24,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uids_io_sdk_flutter/auth_logout.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 
+// Mobile view navigation enum
+enum MobileView { channels, documents, chat }
+
 class DashboardView extends StatefulWidget {
   final String? entity;
   final String? section;
@@ -107,10 +110,27 @@ class _DashboardViewState extends State<DashboardView> {
   // Stream subscription for channels
   StreamSubscription<List<Map<String, dynamic>>>? _channelsSubscription;
 
+  // Mobile navigation state
+  MobileView _currentMobileView = MobileView.channels;
+
   bool get isLastFile {
     if (currentChatMessages.isEmpty) return false;
     final lastMessage = currentChatMessages.last;
     return lastMessage["isFile"] == true;
+  }
+
+  // Helper method to check if device is mobile
+  bool isMobileDevice(BuildContext context) {
+    return MediaQuery.of(context).size.width < 900;
+  }
+
+  // Helper method to navigate mobile views
+  void _navigateToMobileView(MobileView view) {
+    if (mounted) {
+      setState(() {
+        _currentMobileView = view;
+      });
+    }
   }
 
   // Theme color getters - Use ThemeService
@@ -3296,6 +3316,11 @@ class _DashboardViewState extends State<DashboardView> {
                 });
                 getDocumentDetails(item["docid"], docRelativeIndex);
               }
+              
+              // Navigate to chat view on mobile
+              if (isMobileDevice(context)) {
+                _navigateToMobileView(MobileView.chat);
+              }
             },
             child: Container(
               margin: const EdgeInsets.symmetric(vertical: 6),
@@ -4029,8 +4054,10 @@ class _DashboardViewState extends State<DashboardView> {
 
   Widget _buildChannelItem(int index) {
     bool isSelected = selectedChannelIndex == index;
+    final isMobile = isMobileDevice(context);
+    
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      padding: EdgeInsets.symmetric(vertical: isMobile ? 8.0 : 6.0),
       child: Stack(
         children: [
           GestureDetector(
@@ -4043,6 +4070,11 @@ class _DashboardViewState extends State<DashboardView> {
               });
               fetchDocs(channels[index]["channelname"]);
               fetchJoinedTags(channels[index]["channelname"]);
+              
+              // Navigate to documents view on mobile
+              if (isMobileDevice(context)) {
+                _navigateToMobileView(MobileView.documents);
+              }
             },
             child: Tooltip(
               message: channels[index]["channelname"],
@@ -4063,19 +4095,20 @@ class _DashboardViewState extends State<DashboardView> {
                         ]
                       : null,
                 ),
-                margin: const EdgeInsets.symmetric(horizontal: 10),
-                width: (isSidebarCollapsed
+                margin: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 10),
+                width: isMobile 
+                    ? MediaQuery.of(context).size.width - 24
+                    : (isSidebarCollapsed
                         ? 75.0
                         : (MediaQuery.of(context).size.width > 1200
                             ? 160.0
-                            : 140.0)) -
-                    20,
-                height: 50,
+                            : 140.0)) - 20,
+                height: isMobile ? 64 : 50,
                 alignment: Alignment.center,
                 padding: EdgeInsets.symmetric(
-                    horizontal: isSidebarCollapsed ? 4 : 12),
+                    horizontal: isSidebarCollapsed && !isMobile ? 4 : 12),
                 child: Text(
-                  isSidebarCollapsed
+                  isSidebarCollapsed && !isMobile
                       ? channels[index]["channelname"].length >= 2
                           ? channels[index]["channelname"]
                               .substring(0, 2)
@@ -4085,11 +4118,11 @@ class _DashboardViewState extends State<DashboardView> {
                   style: TextStyle(
                     color: isSelected ? Colors.white : textColor,
                     fontWeight: FontWeight.bold,
-                    fontSize: isSidebarCollapsed ? 12 : 14,
+                    fontSize: isMobile ? 16 : (isSidebarCollapsed ? 12 : 14),
                   ),
                   textAlign: TextAlign.center,
                   overflow: TextOverflow.ellipsis,
-                  maxLines: isSidebarCollapsed ? 1 : 2,
+                  maxLines: isMobile ? 2 : (isSidebarCollapsed ? 1 : 2),
                 ),
               ),
             ),
@@ -6018,6 +6051,35 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
+  // Mobile back button widget
+  Widget _buildMobileBackButton(String label, MobileView targetView) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        border: Border(
+          bottom: BorderSide(color: borderColor, width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: Icon(Icons.arrow_back, color: primaryAccent),
+            onPressed: () => _navigateToMobileView(targetView),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool hasChannels = channels.isNotEmpty;
@@ -6048,6 +6110,9 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   Widget _buildMainLayout(bool hasChannels, BoxConstraints constraints) {
+    // Check if mobile
+    final isMobile = isMobileDevice(context);
+    
     // Dynamic sidebar width based on screen size and collapse state
     final normalSidebarWidth = constraints.maxWidth > 1200 ? 160.0 : 140.0;
     final collapsedSidebarWidth = 75.0; // Width when collapsed
@@ -6058,17 +6123,20 @@ class _DashboardViewState extends State<DashboardView> {
     if (_docsWidth == 250.0) {
       _docsWidth = constraints.maxWidth > 1200 ? 280.0 : 220.0;
     }
-    // No need for channelSize since we're always showing full names
+    
+    // On mobile, make panels full width
+    final mobileSidebarWidth = isMobile ? constraints.maxWidth : sidebarWidth;
 
     return Stack(
       children: [
         Row(
           children: [
-            // Left Sidebar (Channels with Long Press Options)
-            Container(
-              width: sidebarWidth,
-              color: backgroundColor,
-              child: Column(
+            // Left Sidebar (Channels) - Show on desktop OR mobile channels view
+            if (!isMobile || _currentMobileView == MobileView.channels)
+              Container(
+                width: mobileSidebarWidth,
+                color: backgroundColor,
+                child: Column(
                 children: [
                   // Logo Section (always visible)
                   Padding(
@@ -6179,7 +6247,7 @@ class _DashboardViewState extends State<DashboardView> {
                   ),
                   // Add Channel Button (bottom)
                   Padding(
-                    padding: const EdgeInsets.all(8.0),
+                    padding: EdgeInsets.all(isMobile ? 12.0 : 8.0),
                     child: GestureDetector(
                       onTap: () => _showCreateChannelDialog(context),
                       child: Container(
@@ -6187,23 +6255,23 @@ class _DashboardViewState extends State<DashboardView> {
                           color: Colors.green,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        width: sidebarWidth - 20,
-                        height: 50,
-                        child: isSidebarCollapsed
+                        width: mobileSidebarWidth - (isMobile ? 24 : 20),
+                        height: isMobile ? 60 : 50,
+                        child: isSidebarCollapsed && !isMobile
                             ? const Icon(Icons.add,
                                 color: Colors.white, size: 20)
-                            : const Row(
+                            : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(Icons.add,
-                                      color: Colors.white, size: 20),
-                                  SizedBox(width: 8),
+                                      color: Colors.white, size: isMobile ? 24 : 20),
+                                  SizedBox(width: isMobile ? 12 : 8),
                                   Text(
                                     'Add Channel',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 12,
+                                      fontSize: isMobile ? 16 : 12,
                                     ),
                                   ),
                                 ],
@@ -6212,21 +6280,26 @@ class _DashboardViewState extends State<DashboardView> {
                     ),
                   ),
                   // Discord-like settings area for left sidebar
-                  _buildLeftSidebarSettingsArea(sidebarWidth),
+                  _buildLeftSidebarSettingsArea(mobileSidebarWidth),
                 ],
               ),
             ),
             // Vertical divider between Left Sidebar and Middle Panel
-            Container(
-              width: 1,
-              color: borderColor,
-            ),
-            // Middle Panel (Docs)
-            Container(
-              width: _docsWidth,
-              color: surfaceColor,
-              child: Column(
-                children: [
+            if (!isMobile)
+              Container(
+                width: 1,
+                color: borderColor,
+              ),
+            // Middle Panel (Docs) - Show on desktop OR mobile documents view
+            if (!isMobile || _currentMobileView == MobileView.documents)
+              Container(
+                width: isMobile ? constraints.maxWidth : _docsWidth,
+                color: surfaceColor,
+                child: Column(
+                  children: [
+                    // Mobile back button for documents view
+                    if (isMobile && _currentMobileView == MobileView.documents)
+                      _buildMobileBackButton('Back to Channels', MobileView.channels),
                   // Show compose button if "Sent" channel is selected
                   // if (selectedChannelIndex != null &&
                   //     channels[selectedChannelIndex!]["channelname"] == "Sent")
@@ -6336,13 +6409,27 @@ class _DashboardViewState extends State<DashboardView> {
               ),
             ),
             // Resizable divider between Middle Panel and Right Panel
-            _buildResizableDivider(),
-            // Right Panel (Chat Panel)
-            Expanded(
-              child: Stack(
-                children: [
-                  Container(
-                    color: cardColor,
+            if (!isMobile)
+              _buildResizableDivider(),
+            // Right Panel (Chat Panel) - Show on desktop OR mobile chat view
+            if (!isMobile || _currentMobileView == MobileView.chat)
+              Expanded(
+                child: Stack(
+                  children: [
+                    // Mobile back button for chat view
+                    if (isMobile && _currentMobileView == MobileView.chat)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: _buildMobileBackButton('Back to Documents', MobileView.documents),
+                      ),
+                    // Chat content
+                    Container(
+                      margin: isMobile && _currentMobileView == MobileView.chat 
+                        ? EdgeInsets.only(top: 56) // Add margin for back button
+                        : EdgeInsets.zero,
+                      color: cardColor,
                     child: (selectedChannelIndex == null)
                         ? Center(
                             child: Text(
@@ -6429,46 +6516,47 @@ class _DashboardViewState extends State<DashboardView> {
             ),
           ],
         ),
-        // Small button positioned at the divider line in front of logo
-        Positioned(
-          left: sidebarWidth - 12, // Position at the edge of sidebar
-          top: 24, // Align with logo area
-          child: Container(
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              color: primaryAccent.withOpacity(0.9),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: backgroundColor,
-                width: 2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
+        // Small button positioned at the divider line in front of logo (hide on mobile)
+        if (!isMobile)
+          Positioned(
+            left: sidebarWidth - 12, // Position at the edge of sidebar
+            top: 24, // Align with logo area
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: primaryAccent.withOpacity(0.9),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: backgroundColor,
+                  width: 2,
                 ),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () {
-                  setState(() {
-                    isSidebarCollapsed = !isSidebarCollapsed;
-                  });
-                },
-                child: Icon(
-                  isSidebarCollapsed ? Icons.chevron_right : Icons.chevron_left,
-                  color: Colors.white,
-                  size: 16,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () {
+                    setState(() {
+                      isSidebarCollapsed = !isSidebarCollapsed;
+                    });
+                  },
+                  child: Icon(
+                    isSidebarCollapsed ? Icons.chevron_right : Icons.chevron_left,
+                    color: Colors.white,
+                    size: 16,
+                  ),
                 ),
               ),
             ),
           ),
-        ),
         if (isUploading)
           Center(
             child: Container(

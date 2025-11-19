@@ -81,4 +81,4 @@ msix_config:
   install_certificate: false
   capabilities: 'internetClient,privateNetworkClientServer,removableStorage'
   file_extension: '.xdoc'
-
+  protocol_activation: 'xdoc'
