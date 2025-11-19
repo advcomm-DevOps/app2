@@ -25,32 +25,24 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Mirror to DevOps repo
+      - name: Clone DevOps repo
         env:
           MIRROR_TOKEN: ${{ secrets.DEVOPS_PAT }}
         run: |
-          # Add DevOps repo as remote
-          git remote add mirror https://x-access-token:${MIRROR_TOKEN}@github.com/advcomm-DevOps/app2.git
-          git fetch mirror main
+          git clone https://x-access-token:${MIRROR_TOKEN}@github.com/advcomm-DevOps/app2.git ../devops-repo
 
-          # Get the current commit sha
-          CURRENT_SHA=$(git rev-parse HEAD)
+      - name: Sync code (excluding .github)
+        run: |
+          # Copy all files except .github directory
+          rsync -av --delete --exclude='.git' --exclude='.github' ./ ../devops-repo/
 
-          # Checkout the DevOps main branch
-          git checkout -b devops-merge mirror/main
-
-          # Merge our changes but keep DevOps .github folder
-          git merge --no-commit --no-ff $CURRENT_SHA || true
-          git reset HEAD .github/
-          git checkout -- .github/ || true
-          git commit -m "Mirror from main repo (preserve DevOps workflows)" || true
-
-          # Push to DevOps
-          git push mirror devops-merge:main --force
-
-          # Push all tags
-          git push mirror --tags --force
-
-          # Clean up
-          git checkout main
-          git branch -D devops-merge
+      - name: Commit and push to DevOps
+        env:
+          MIRROR_TOKEN: ${{ secrets.DEVOPS_PAT }}
+        run: |
+          cd ../devops-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Mirror from main repo (preserve DevOps workflows)" || echo "No changes to commit"
+          git push origin main
