@@ -168,5 +168,3 @@ jobs:
             3. Run it: `./xdoc-latest.AppImage`
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
