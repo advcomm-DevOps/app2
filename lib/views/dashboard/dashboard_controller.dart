@@ -347,7 +347,7 @@ class DashboardController {
   }
 
   // Logging helper methods
-  void _logSuccess(String message) {
+  void logSuccess(String message) {
     final now = DateTime.now();
     final timestamp = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
     
@@ -359,7 +359,7 @@ class DashboardController {
     print("✅ SUCCESS LOG: $message at $timestamp");
   }
 
-  void _logFailure(String message) {
+  void logFailure(String message) {
     final now = DateTime.now();
     final timestamp = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
     
@@ -409,21 +409,21 @@ class DashboardController {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         print("Onboarded entity successfully: ${response.data}");
-        _logSuccess("Entity onboarded successfully");
+        logSuccess("Entity onboarded successfully");
         return true;
       } else {
         print("Failed to onboard entity: ${response.statusCode}");
-        _logFailure("Failed to onboard entity - Status: ${response.statusCode}");
+        logFailure("Failed to onboard entity - Status: ${response.statusCode}");
         return false;
       }
     } on DioException catch (e) {
       print("Dio error onboarding entity: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error onboarding entity: ${e.message} - Response: ${e.response?.data}");
+      logFailure("Dio error onboarding entity: ${e.message} - Response: ${e.response?.data}");
       return false;
     } catch (e) {
       print("Error onboarding entity: $e");
-      _logFailure("Error onboarding entity: $e");
+      logFailure("Error onboarding entity: $e");
       return false;
     }
   }
@@ -435,10 +435,10 @@ class DashboardController {
       dio.options.headers["Authorization"] = "Bearer $token";
       final response = await dio.get('$apiUrl/public-interconnects');
       publicInterconnects = response.data;
-      _logSuccess("Public interconnects fetched successfully");
+      logSuccess("Public interconnects fetched successfully");
     } catch (e) {
       print('Error fetching public interconnects: $e');
-      _logFailure("Error fetching public interconnects: $e");
+      logFailure("Error fetching public interconnects: $e");
     }
     return publicInterconnects;
   }
@@ -458,19 +458,19 @@ class DashboardController {
 
       if (response.statusCode == 200) {
         print("Channels fetched successfully: ${response.data}");
-        _logSuccess("Pub channels fetched successfully for entity '$entity'");
+        logSuccess("Pub channels fetched successfully for entity '$entity'");
         return response.data; // assuming API returns a JSON array
       } else {
         print("Failed to fetch channels. Status code: ${response.statusCode}");
-        _logFailure("Failed to fetch pub channels for entity '$entity' - Status: ${response.statusCode}");
+        logFailure("Failed to fetch pub channels for entity '$entity' - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error fetching channels: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error fetching pub channels for entity '$entity': ${e.message} - Response: ${e.response?.data}");
+      logFailure("Dio error fetching pub channels for entity '$entity': ${e.message} - Response: ${e.response?.data}");
     } catch (e) {
       print("Error fetching channels: $e");
-      _logFailure("Error fetching pub channels for entity '$entity': $e");
+      logFailure("Error fetching pub channels for entity '$entity': $e");
     }
     return [];
   }
@@ -487,19 +487,19 @@ class DashboardController {
 
       if (response.statusCode == 200) {
         print("Channel tags fetched successfully: ${response.data}");
-        _logSuccess("Pub channel tags fetched successfully for entity '$entity', channel '$channelName'");
+        logSuccess("Pub channel tags fetched successfully for entity '$entity', channel '$channelName'");
         return response.data; // assuming API returns a JSON array
       } else {
         print("Failed to fetch channel tags. Status code: ${response.statusCode}");
-        _logFailure("Failed to fetch pub channel tags for entity '$entity', channel '$channelName' - Status: ${response.statusCode}");
+        logFailure("Failed to fetch pub channel tags for entity '$entity', channel '$channelName' - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error fetching channel tags: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error fetching pub channel tags for entity '$entity', channel '$channelName': ${e.message} - Response: ${e.response?.data}");
+      logFailure("Dio error fetching pub channel tags for entity '$entity', channel '$channelName': ${e.message} - Response: ${e.response?.data}");
     } catch (e) {
       print("Error fetching channel tags: $e");
-      _logFailure("Error fetching pub channel tags for entity '$entity', channel '$channelName': $e");
+      logFailure("Error fetching pub channel tags for entity '$entity', channel '$channelName': $e");
     }
     return [];
   }
@@ -533,7 +533,7 @@ class DashboardController {
       );
     } catch (e) {
       print("Error fetching $tableName: $e");
-      _logFailure("Error fetching $tableName: $e");
+      logFailure("Error fetching $tableName: $e");
     }
   }
   // Future<List<Map<String, dynamic>>> fetchChannels() async {
@@ -570,10 +570,10 @@ class DashboardController {
           await dio.get('$apiUrl/respondent-actors/$interconnectId');
           print('Respondent actors response: ${response.data}');
       actors = response.data;
-      _logSuccess("Respondent actors fetched successfully for interconnect '$interconnectId'");
+      logSuccess("Respondent actors fetched successfully for interconnect '$interconnectId'");
     } catch (e) {
       print('Error fetching respondent actors: $e');
-      _logFailure("Error fetching respondent actors for interconnect '$interconnectId': $e");
+      logFailure("Error fetching respondent actors for interconnect '$interconnectId': $e");
     }
     return actors;
   }
@@ -603,18 +603,18 @@ class DashboardController {
       print('Create channel response: ${response.data}');
       if (response.statusCode == 200 || response.statusCode == 201) {
         print("Channel created successfully: ${response.data}");
-        _logSuccess("Channel '$channelName' created successfully");
+        logSuccess("Channel '$channelName' created successfully");
         return true;
       } else {
-        _logFailure("Failed to create channel '$channelName' - Status: ${response.statusCode}");
+        logFailure("Failed to create channel '$channelName' - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error creating channel: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error creating channel '$channelName': ${e.message} - Response: ${e.response?.data}");
+      logFailure("Dio error creating channel '$channelName': ${e.message} - Response: ${e.response?.data}");
     } catch (e) {
       print("Error creating channel: $e");
-      _logFailure("Error creating channel '$channelName': $e");
+      logFailure("Error creating channel '$channelName': $e");
     }
     return false;
   }
@@ -644,27 +644,27 @@ class DashboardController {
           final sqliteDeleted = await DashboardReplication.deleteChannel(channelId);
           if (sqliteDeleted) {
             print("Channel also deleted from SQLite successfully");
-            _logSuccess("Channel '$channelId' deleted successfully from both API and SQLite");
+            logSuccess("Channel '$channelId' deleted successfully from both API and SQLite");
           } else {
             print("Warning: Channel deleted from API but not found in SQLite");
-            _logSuccess("Channel '$channelId' deleted successfully from API (not found in SQLite)");
+            logSuccess("Channel '$channelId' deleted successfully from API (not found in SQLite)");
           }
         } catch (e) {
           print("Error deleting channel from SQLite: $e");
-          _logFailure("Channel '$channelId' deleted from API but failed to delete from SQLite: $e");
+          logFailure("Channel '$channelId' deleted from API but failed to delete from SQLite: $e");
         }
         
         return true;
       } else {
-        _logFailure("Failed to delete channel '$channelId' - Status: ${response.statusCode}");
+        logFailure("Failed to delete channel '$channelId' - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error deleting channel: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error deleting channel '$channelId': ${e.message} - Response: ${e.response?.data}");
+      logFailure("Dio error deleting channel '$channelId': ${e.message} - Response: ${e.response?.data}");
     } catch (e) {
       print("Error deleting channel: $e");
-      _logFailure("Error deleting channel '$channelId': $e");
+      logFailure("Error deleting channel '$channelId': $e");
     }
     return false;
   }
@@ -707,21 +707,21 @@ class DashboardController {
           newChannelName: newSecQr!,
           tagName: tagname!,
         );
-        _logSuccess("Joined channel '$channelName' successfully");
+        logSuccess("Joined channel '$channelName' successfully");
         return true;
       } else {
         print("Failed to join channel: ${response.statusCode}");
-        _logFailure("Failed to join channel '$channelName' - Status: ${response.statusCode}");
+        logFailure("Failed to join channel '$channelName' - Status: ${response.statusCode}");
         return false;
       }
     } on DioException catch (e) {
       print("Dio error joining channel: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error joining channel '$channelName': ${e.message} - Response: ${e.response?.data}");
+      logFailure("Dio error joining channel '$channelName': ${e.message} - Response: ${e.response?.data}");
       return false;
     } catch (e) {
       print("Error joining channel: $e");
-      _logFailure("Error joining channel '$channelName': $e");
+      logFailure("Error joining channel '$channelName': $e");
       return false;
     }
   }
@@ -928,18 +928,18 @@ class DashboardController {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         print("Tag created successfully: ${response.data}");
-        _logSuccess("Tag '$tag' created successfully in channel '$channelName'");
+        logSuccess("Tag '$tag' created successfully in channel '$channelName'");
         return true;
       } else {
-        _logFailure("Failed to create tag '$tag' in channel '$channelName' - Status: ${response.statusCode}");
+        logFailure("Failed to create tag '$tag' in channel '$channelName' - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error creating tag: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error creating tag '$tag': ${e.message} - Response: ${e.response?.data}");
+      logFailure("Dio error creating tag '$tag': ${e.message} - Response: ${e.response?.data}");
     } catch (e) {
       print("Error creating tag: $e");
-      _logFailure("Error creating tag '$tag': $e");
+      logFailure("Error creating tag '$tag': $e");
     }
     return false;
   }
@@ -962,19 +962,19 @@ class DashboardController {
 
       if (response.statusCode == 200) {
         print("Docs fetched successfully: ${response.data}");
-        _logSuccess("Docs fetched successfully for channel '$channelName'");
+        logSuccess("Docs fetched successfully for channel '$channelName'");
         return response.data; // assuming API returns a JSON array
       } else {
         print("Failed to fetch docs. Status code: ${response.statusCode}");
-        _logFailure("Failed to fetch docs for channel '$channelName' - Status: ${response.statusCode}");
+        logFailure("Failed to fetch docs for channel '$channelName' - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error fetching docs: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error fetching docs for channel '$channelName': ${e.message} - Response: ${e.response?.data}");
+      logFailure("Dio error fetching docs for channel '$channelName': ${e.message} - Response: ${e.response?.data}");
     } catch (e) {
       print("Error fetching docs: $e");
-      _logFailure("Error fetching docs for channel '$channelName': $e");
+      logFailure("Error fetching docs for channel '$channelName': $e");
     }
     return [];
   }
@@ -1019,21 +1019,21 @@ class DashboardController {
         // String? existing = await secureStorage.read(key: "entityRSAKeys");
         // print("Existing stored entityRSAKeys: $existing");
         final tagInfo = tagId != null ? ", tag '$tagId'" : " (no tag)";
-        _logSuccess("Context and public key fetched successfully for entity '$entityName', channel '$channelName'$tagInfo");
+        logSuccess("Context and public key fetched successfully for entity '$entityName', channel '$channelName'$tagInfo");
         // print("Response data.............: ${response.data}");
         return response.data;
       } else {
         final tagInfo = tagId != null ? ", tag '$tagId'" : " (no tag)";
-        _logFailure("Failed to fetch context and public key for entity '$entityName', channel '$channelName'$tagInfo - Status: ${response.statusCode}");
+        logFailure("Failed to fetch context and public key for entity '$entityName', channel '$channelName'$tagInfo - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error fetching context and public key: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error fetching context and public key for entity '$entityName': ${e.message} - Response: ${e.response?.data}");
+      logFailure("Dio error fetching context and public key for entity '$entityName': ${e.message} - Response: ${e.response?.data}");
       return e.response?.data;
     } catch (e) {
       print("Error fetching context and public key: $e");
-      _logFailure("Error fetching context and public key for entity '$entityName': $e");
+      logFailure("Error fetching context and public key for entity '$entityName': $e");
     }
     return null;
   }
@@ -1124,7 +1124,7 @@ class DashboardController {
         mac: mac,
       );
 
-      _logSuccess("Document details fetched and decrypted successfully for document '$docId'");
+      logSuccess("Document details fetched and decrypted successfully for document '$docId'");
       return {
         "data": data,
         "jsonData": decryptedDoc,
@@ -1135,11 +1135,11 @@ class DashboardController {
     } on DioException catch (e) {
       print("Dio error fetching document details: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error fetching document details for document '$docId': ${e.message} - Response: ${e.response?.data}");
+      logFailure("Dio error fetching document details for document '$docId': ${e.message} - Response: ${e.response?.data}");
       return e.response?.data;
     } catch (e) {
       print("Error fetching document details: $e");
-      _logFailure("Error fetching document details for document '$docId': $e");
+      logFailure("Error fetching document details for document '$docId': $e");
       return null;
     }
   }
@@ -1170,18 +1170,18 @@ class DashboardController {
         String parentEntity = await getSelectedEntity();
         addOrUpdateEntityKeys(parentEntity, publicKey, privateKey);
         print("Public key uploaded successfully: ${response.data}");
-        _logSuccess("Public key uploaded successfully for entity '$parentEntity'");
+        logSuccess("Public key uploaded successfully for entity '$parentEntity'");
         return true;
       } else {
-        _logFailure("Failed to upload public key - Status: ${response.statusCode}");
+        logFailure("Failed to upload public key - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error uploading public key: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error uploading public key: ${e.message} - Response: ${e.response?.data}");
+      logFailure("Dio error uploading public key: ${e.message} - Response: ${e.response?.data}");
     } catch (e) {
       print("Error uploading public key: $e");
-      _logFailure("Error uploading public key: $e");
+      logFailure("Error uploading public key: $e");
     }
     return false;
   }
@@ -1210,28 +1210,28 @@ class DashboardController {
 
       if (response.statusCode == 200) {
         print("Entity public key retrieved successfully: ${response.data}");
-        _logSuccess("Entity public key retrieved successfully for entity '$entityName'");
+        logSuccess("Entity public key retrieved successfully for entity '$entityName'");
         return response.data;
       } else if (response.statusCode == 404) {
         print("Entity not found for entity: $entityName");
-        _logFailure("Entity not found when retrieving public key for entity '$entityName' - Status: ${response.statusCode}");
+        logFailure("Entity not found when retrieving public key for entity '$entityName' - Status: ${response.statusCode}");
         return null;
       } else if (response.statusCode == 422) {
         print("Invalid request: entity name is required");
-        _logFailure("Invalid request when retrieving public key - entity name is required - Status: ${response.statusCode}");
+        logFailure("Invalid request when retrieving public key - entity name is required - Status: ${response.statusCode}");
         return null;
       } else {
         print("Failed to retrieve entity public key. Status code: ${response.statusCode}");
-        _logFailure("Failed to retrieve entity public key for entity '$entityName' - Status: ${response.statusCode}");
+        logFailure("Failed to retrieve entity public key for entity '$entityName' - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error retrieving entity public key: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error retrieving entity public key for entity '$entityName': ${e.message} - Response: ${e.response?.data}");
+      logFailure("Dio error retrieving entity public key for entity '$entityName': ${e.message} - Response: ${e.response?.data}");
       return e.response?.data;
     } catch (e) {
       print("Error retrieving entity public key: $e");
-      _logFailure("Error retrieving entity public key for entity '$entityName': $e");
+      logFailure("Error retrieving entity public key for entity '$entityName': $e");
     }
     return null;
   }
@@ -1286,17 +1286,17 @@ class DashboardController {
     // Validate input parameters
     if (entityName.isEmpty) {
       print("❌ Entity name is empty.");
-      _logFailure("Entity name is empty when creating encrypted document");
+      logFailure("Entity name is empty when creating encrypted document");
       return false;
     }
     if (channelName.isEmpty) {
       print("❌ Channel name is empty.");
-      _logFailure("Channel name is empty when creating encrypted document");
+      logFailure("Channel name is empty when creating encrypted document");
       return false;
     }
     if (submittedData.isEmpty) {
       print("❌ Submitted data is empty.");
-      _logFailure("Submitted data is empty when creating encrypted document - entity: '$entityName', channel: '$channelName'");
+      logFailure("Submitted data is empty when creating encrypted document - entity: '$entityName', channel: '$channelName'");
       return false;
     }
     
@@ -1307,12 +1307,12 @@ class DashboardController {
         symmetrickey = generate32BytesRandom();
         if (symmetrickey == null) {
           print("❌ Failed to generate symmetric key.");
-          _logFailure("Failed to generate symmetric key for entity '$entityName', channel '$channelName'");
+          logFailure("Failed to generate symmetric key for entity '$entityName', channel '$channelName'");
           return false;
         }
       } catch (e) {
         print("❌ Error generating symmetric key: $e");
-        _logFailure("Error generating symmetric key for entity '$entityName', channel '$channelName': $e");
+        logFailure("Error generating symmetric key for entity '$entityName', channel '$channelName': $e");
         return false;
       }
       
@@ -1325,7 +1325,7 @@ class DashboardController {
         );
       } catch (e) {
         print("❌ Failed to encrypt context data: $e");
-        _logFailure("Failed to encrypt context data for entity '$entityName', channel '$channelName': $e");
+        logFailure("Failed to encrypt context data for entity '$entityName', channel '$channelName': $e");
         return false;
       }
       
@@ -1333,7 +1333,7 @@ class DashboardController {
       final senderKeys = await getSelectedEntityRSAKeys();
       if (senderKeys == null) {
         print("❌ Sender keys not found.");
-        _logFailure("Sender keys not found for creating encrypted document - entity: '$entityName', channel: '$channelName'");
+        logFailure("Sender keys not found for creating encrypted document - entity: '$entityName', channel: '$channelName'");
         return false;
       }
       final senderPublicKeyPem = senderKeys["publicKey"]!;
@@ -1343,7 +1343,7 @@ class DashboardController {
       print('Recipient response: $recipientResponse');
       if (recipientResponse == null || recipientResponse['publicKey'] == null) {
         print("❌ Recipient keys not found.");
-        _logFailure("Recipient keys not found for entity '$entityName' when creating encrypted document - channel: '$channelName'");
+        logFailure("Recipient keys not found for entity '$entityName' when creating encrypted document - channel: '$channelName'");
         return false;
       }
       // Normalize the public key format from custom delimiters to standard PEM format
@@ -1369,7 +1369,7 @@ class DashboardController {
             await rsaEncryption(symmetrickey.toString(), senderPublicKeyPem);
       } catch (e) {
         print("❌ Failed to encrypt symmetric key with sender public key: $e");
-        _logFailure("Failed to encrypt symmetric key with sender public key for entity '$entityName', channel '$channelName': $e");
+        logFailure("Failed to encrypt symmetric key with sender public key for entity '$entityName', channel '$channelName': $e");
         return false;
       }
       
@@ -1378,7 +1378,7 @@ class DashboardController {
             await rsaEncryption(symmetrickey.toString(), recipientPublicPem);
       } catch (e) {
         print("❌ Failed to encrypt symmetric key with recipient public key: $e");
-        _logFailure("Failed to encrypt symmetric key with recipient public key for entity '$entityName', channel '$channelName': $e");
+        logFailure("Failed to encrypt symmetric key with recipient public key for entity '$entityName', channel '$channelName': $e");
         return false;
       }
       String encryptedEventSchema = '';
@@ -1389,12 +1389,12 @@ class DashboardController {
         token = await getJwt();
         if (token.isEmpty) {
           print("❌ JWT token is empty.");
-          _logFailure("JWT token is empty when creating encrypted document - entity: '$entityName', channel: '$channelName'");
+          logFailure("JWT token is empty when creating encrypted document - entity: '$entityName', channel: '$channelName'");
           return false;
         }
       } catch (e) {
         print("❌ Error getting JWT token: $e");
-        _logFailure("Error getting JWT token when creating encrypted document - entity: '$entityName', channel: '$channelName': $e");
+        logFailure("Error getting JWT token when creating encrypted document - entity: '$entityName', channel: '$channelName': $e");
         return false;
       }
 
@@ -1421,14 +1421,14 @@ class DashboardController {
         jsonBody = jsonEncode(body);
       } catch (e) {
         print("❌ Failed to encode request body to JSON: $e");
-        _logFailure("Failed to encode request body to JSON for entity '$entityName', channel '$channelName': $e");
+        logFailure("Failed to encode request body to JSON for entity '$entityName', channel '$channelName': $e");
         return false;
       }
       
       // Validate API URL
       if (apiUrl.isEmpty) {
         print("❌ API URL is empty.");
-        _logFailure("API URL is empty when creating encrypted document for entity '$entityName', channel '$channelName'");
+        logFailure("API URL is empty when creating encrypted document for entity '$entityName', channel '$channelName'");
         return false;
       }
       
@@ -1439,22 +1439,22 @@ class DashboardController {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         // print("Document created successfully: ${response.data}");
-        _logSuccess("Encrypted document created successfully for entity '$entityName' in channel '$channelName'");
+        logSuccess("Encrypted document created successfully for entity '$entityName' in channel '$channelName'");
         return true;
       } else {
         print("Failed to create document: ${response.statusCode}");
         print("Error: ${response.data}");
-        _logFailure("Failed to create encrypted document for entity '$entityName' - Status: ${response.statusCode} - Error: ${response.data}");
+        logFailure("Failed to create encrypted document for entity '$entityName' - Status: ${response.statusCode} - Error: ${response.data}");
         return false;
       }
     } on DioException catch (e) {
       print("Dio error creating document: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error creating encrypted document for entity '$entityName': ${e.message} - Response: ${e.response?.data}");
+      logFailure("Dio error creating encrypted document for entity '$entityName': ${e.message} - Response: ${e.response?.data}");
       return false;
     } catch (e) {
       print("Error creating document: $e");
-      _logFailure("Error creating encrypted document for entity '$entityName': $e");
+      logFailure("Error creating encrypted document for entity '$entityName': $e");
       return false;
     }
   }
@@ -1560,22 +1560,22 @@ class DashboardController {
       if (updateResponse.statusCode == 200 ||
           updateResponse.statusCode == 201) {
         print("Document updated successfully: ${updateResponse.data}");
-        _logSuccess("Document '$docid' updated successfully with action '$actionName'");
+        logSuccess("Document '$docid' updated successfully with action '$actionName'");
         return true;
       } else {
         print("Failed to create document: ${updateResponse.statusCode}");
         print("Error: ${updateResponse.data}");
-        _logFailure("Failed to update document '$docid' with action '$actionName' - Status: ${updateResponse.statusCode}");
+        logFailure("Failed to update document '$docid' with action '$actionName' - Status: ${updateResponse.statusCode}");
         return false;
       }
     } on DioException catch (e) {
       print("Dio error creating document: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error updating document '$docid' with action '$actionName': ${e.message} - Response: ${e.response?.data}");
+      logFailure("Dio error updating document '$docid' with action '$actionName': ${e.message} - Response: ${e.response?.data}");
       return false;
     } catch (e) {
       print("Error creating document: $e");
-      _logFailure("Error updating document '$docid' with action '$actionName': $e");
+      logFailure("Error updating document '$docid' with action '$actionName': $e");
       return false;
     }
   }
@@ -1601,20 +1601,20 @@ class DashboardController {
 
       if (response.statusCode == 200) {
         print("Channel details fetched successfully: ${response.data}");
-        _logSuccess("Channel details fetched successfully for entity '$entityId', channel '$channelName', tag '$tagId'");
+        logSuccess("Channel details fetched successfully for entity '$entityId', channel '$channelName', tag '$tagId'");
         return response.data; // Assuming API returns JSON object or array
       } else {
         print(
             "Failed to fetch channel details. Status code: ${response.statusCode}");
-        _logFailure("Failed to fetch channel details for entity '$entityId', channel '$channelName', tag '$tagId' - Status: ${response.statusCode}");
+        logFailure("Failed to fetch channel details for entity '$entityId', channel '$channelName', tag '$tagId' - Status: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("Dio error fetching channel details: ${e.message}");
       print("Response: ${e.response?.data}");
-      _logFailure("Dio error fetching channel details for entity '$entityId', channel '$channelName': ${e.message} - Response: ${e.response?.data}");
+      logFailure("Dio error fetching channel details for entity '$entityId', channel '$channelName': ${e.message} - Response: ${e.response?.data}");
     } catch (e) {
       print("Error fetching channel details: $e");
-      _logFailure("Error fetching channel details for entity '$entityId', channel '$channelName': $e");
+      logFailure("Error fetching channel details for entity '$entityId', channel '$channelName': $e");
     }
     return null;
   }
