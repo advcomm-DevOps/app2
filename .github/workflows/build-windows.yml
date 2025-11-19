@@ -59,12 +59,12 @@ jobs:
         run: |
           $pubspecContent = Get-Content pubspec.yaml -Raw
 
-          # Check if this is a tag push
-          $isTagPush = "${{ github.ref }}" -match '^refs/tags/v'
+          # Check if commit has a version tag
+          $hasVersionTag = "${{ steps.check_tag.outputs.HAS_VERSION_TAG }}" -eq "true"
 
-          if ($isTagPush) {
-            # Extract version from Git tag (e.g., v1.0.13-test -> 1.0.13)
-            $tagName = "${{ github.ref_name }}"
+          if ($hasVersionTag) {
+            # Extract version from detected tag
+            $tagName = "${{ steps.check_tag.outputs.VERSION_TAG }}"
             $versionFromTag = $tagName -replace '^v', '' -replace '-.*$', ''
 
             Write-Host "=== TAG PUSH DETECTED ==="
