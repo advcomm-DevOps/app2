@@ -102,8 +102,8 @@ jobs:
             }
           }
 
-          # Update msix_version to MSIX format
-          $pubspecContent = $pubspecContent -replace 'msix_version:\s*[0-9.]+' , "msix_version: $msixVersion"
+          # Replace msix_version with version (msix package expects 'version' not 'msix_version')
+          $pubspecContent = $pubspecContent -replace 'msix_version:\s*[0-9.]+' , "version: $msixVersion"
 
           # Update identity_name to app.xdoc.test
           $pubspecContent = $pubspecContent -replace 'identity_name:\s*com\.xdocapp\.test', 'identity_name: app.xdoc.test'
@@ -111,7 +111,7 @@ jobs:
           # Save updated pubspec.yaml
           Set-Content -Path pubspec.yaml -Value $pubspecContent
 
-          Write-Host "✓ Updated msix_version to: $msixVersion"
+          Write-Host "✓ Replaced msix_version with version: $msixVersion"
           Write-Host "✓ Updated identity_name to: app.xdoc.test"
 
           # Export version for later steps
