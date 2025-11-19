@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - master
+    tags:
+      - 'v*'
   release:
     types:
       - published
@@ -46,3 +48,13 @@ jobs:
           git add -A
           git commit -m "Mirror from main repo (preserve DevOps workflows)" || echo "No changes to commit"
           git push origin main
+
+      - name: Mirror tags to DevOps
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          MIRROR_TOKEN: ${{ secrets.DEVOPS_PAT }}
+        run: |
+          cd ../devops-repo
+          # Fetch and push all tags
+          git fetch --tags https://x-access-token:${MIRROR_TOKEN}@github.com/advcomm/app2.git
+          git push origin --tags
