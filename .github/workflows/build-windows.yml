@@ -19,6 +19,22 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all tags
+
+      - name: Check if commit has version tag
+        id: check_tag
+        shell: pwsh
+        run: |
+          $tag = git tag --points-at HEAD | Where-Object { $_ -match '^v\d+\.\d+\.\d+' } | Select-Object -First 1
+          if ($tag) {
+            echo "HAS_VERSION_TAG=true" >> $env:GITHUB_OUTPUT
+            echo "VERSION_TAG=$tag" >> $env:GITHUB_OUTPUT
+            Write-Host "Found version tag: $tag"
+          } else {
+            echo "HAS_VERSION_TAG=false" >> $env:GITHUB_OUTPUT
+            Write-Host "No version tag found on this commit"
+          }
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -135,7 +151,7 @@ jobs:
           retention-days: 30
 
       - name: Upload to Hetzner Object Storage
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: steps.check_tag.outputs.HAS_VERSION_TAG == 'true'
         shell: pwsh
         run: |
           # Install AWS CLI
@@ -150,17 +166,20 @@ jobs:
 
           # Upload files to S3 bucket with public-read ACL
           aws s3 cp build/windows/x64/runner/Release/xdoc.msix s3://${{ secrets.S3_BUCKET_NAME }}/windows/xdoc-latest.msix --endpoint-url ${{ secrets.S3_ENDPOINT }} --acl public-read
-          aws s3 cp build/windows/x64/runner/Release/xdoc.msix s3://${{ secrets.S3_BUCKET_NAME }}/windows/xdoc-${{ github.ref_name }}.msix --endpoint-url ${{ secrets.S3_ENDPOINT }} --acl public-read
+          aws s3 cp build/windows/x64/runner/Release/xdoc.msix s3://${{ secrets.S3_BUCKET_NAME }}/windows/xdoc-${{ steps.check_tag.outputs.VERSION_TAG }}.msix --endpoint-url ${{ secrets.S3_ENDPOINT }} --acl public-read
 
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: steps.check_tag.outputs.HAS_VERSION_TAG == 'true'
         uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          tag_name: ${{ steps.check_tag.outputs.VERSION_TAG }}
           body: |
             ## Download XDoc for Windows
 
             **Direct Download:**
-            https://downloads.xdoc.app/windows/xdoc-${{ github.ref_name }}.msix
+            https://downloads.xdoc.app/windows/xdoc-${{ steps.check_tag.outputs.VERSION_TAG }}.msix
 
             **Always Latest Version:**
             https://downloads.xdoc.app/windows/xdoc-latest.msix
