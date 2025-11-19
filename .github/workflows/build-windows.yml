@@ -175,6 +175,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.check_tag.outputs.VERSION_TAG }}
+          files: build/windows/x64/runner/Release/xdoc.msix
           body: |
             ## Download XDoc for Windows
 

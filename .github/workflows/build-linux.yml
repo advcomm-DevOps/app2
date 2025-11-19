@@ -153,6 +153,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.check_tag.outputs.VERSION_TAG }}
+          files: xdoc.AppImage
           body: |
             ## Download XDoc for Linux
 
