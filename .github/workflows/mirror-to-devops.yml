@@ -25,22 +25,26 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Remove workflows folder before mirroring
-        run: |
-          # Remove .github/workflows to prevent overwriting DevOps workflows
-          rm -rf .github/workflows
-          git add .github/workflows
-          git commit -m "temp: remove workflows for mirror" || true
-
       - name: Mirror to DevOps repo
         env:
           MIRROR_TOKEN: ${{ secrets.DEVOPS_PAT }}
         run: |
-          # Add DevOps repo as remote
+          # Fetch DevOps repo to get its workflows
           git remote add mirror https://x-access-token:${MIRROR_TOKEN}@github.com/advcomm-DevOps/app2.git
+          git fetch mirror main
 
-          # Push current branch only (preserves DevOps workflows)
-          git push mirror HEAD:${GITHUB_REF#refs/heads/} --force
+          # Create a temporary branch without .github folder
+          git checkout -b temp-mirror
+          rm -rf .github
+          git add -A
+          git commit -m "temp: mirror without .github" || true
+
+          # Push to DevOps (this will merge, keeping DevOps workflows)
+          git push mirror temp-mirror:main
 
           # Push all tags
           git push mirror --tags --force
+
+          # Clean up
+          git checkout main
+          git branch -D temp-mirror
