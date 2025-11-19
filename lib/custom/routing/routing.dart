@@ -15,6 +15,9 @@ final List<GoRoute> customRoutes = [
         buildPageWithTransition(context, state, AboutView()),
     redirect: (context, state) async {
       await checkAuthentication();
+      if (!isAuthenticated) {
+        redirectPath = state.uri.toString();
+      }
       return handleRedirect();
     },
   ),
@@ -25,6 +28,9 @@ final List<GoRoute> customRoutes = [
         buildPageWithTransition(context, state, ProfileView()),
     redirect: (context, state) async {
       await checkAuthentication();
+      if (!isAuthenticated) {
+        redirectPath = state.uri.toString();
+      }
       return handleRedirect();
     },
   ),
@@ -35,6 +41,9 @@ final List<GoRoute> customRoutes = [
         buildPageWithTransition(context, state, InterconnectsView()),
     redirect: (context, state) async {
       await checkAuthentication();
+      if (!isAuthenticated) {
+        redirectPath = state.uri.toString();
+      }
       return handleRedirect();
     },
   ),
@@ -42,11 +51,9 @@ final List<GoRoute> customRoutes = [
     name: "c",
     path: '/c/:entity/:section/:tagid',
     pageBuilder: (context, state) {
-       print('Full URI,,,: ${state.uri}');
       final entity = state.pathParameters['entity']!;
       final section = state.pathParameters['section']!;
       final tagid = state.pathParameters['tagid'];
-      print('tagid.................................: $tagid');
       return buildPageWithTransition(
         context,
         state,
@@ -55,6 +62,10 @@ final List<GoRoute> customRoutes = [
     },
     redirect: (context, state) async {
       await checkAuthentication();
+      if (!isAuthenticated) {
+        redirectPath = state.uri.toString();
+        print("Storing redirect path for /c route: $redirectPath");
+      }
       return handleRedirect();
     },
   ),

@@ -26,17 +26,20 @@ class DeepLinkHandler {
     }
   }
 
-  static void handleDeepLink(Uri uri) {
+  static void handleDeepLink(Uri uri) async {
     print("Deep link received: ${uri.toString()}");
 
     String routePath;
 
     // For web URLs (http/https), use only the path part
-    // For custom schemes, use the host as part of the path
+    // For custom schemes (like xdoc://), combine host and path
     if (uri.scheme == 'http' || uri.scheme == 'https') {
       routePath = uri.path;
     } else if (uri.host.isNotEmpty) {
-      routePath = '/' + uri.host + uri.path;
+      // For custom scheme like xdoc://c/entity/section/tagid
+      // host is 'c' and path is '/entity/section/tagid'
+      // We need to combine them: /c/entity/section/tagid
+      routePath = '/${uri.host}${uri.path}';
     } else {
       routePath = uri.path;
     }
@@ -46,10 +49,27 @@ class DeepLinkHandler {
       routePath = '/';
     }
 
-    print("Navigating to: $routePath");
+    print("Final route path to navigate: $routePath");
 
     if (routePath.isNotEmpty) {
-      router.push(routePath);
+      // Store the path for potential redirect after login
+      redirectPath = routePath;
+      print("Storing redirect path: $routePath");
+      
+      // Check authentication status
+      await checkAuthentication();
+      
+      if (!isAuthenticated) {
+        print("User not authenticated, navigating to target (will auto-redirect to auth)");
+        // Navigate to the target route - it will redirect to auth if not authenticated
+        router.go(routePath);
+      } else {
+        // User is authenticated, navigate directly
+        print("User authenticated, navigating directly to: $routePath");
+        router.go(routePath);
+      }
+    } else {
+      print("Route path is empty, cannot navigate");
     }
   }
 
