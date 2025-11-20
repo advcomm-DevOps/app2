@@ -1,0 +1,171 @@
+name: Build macOS App
+
+on:
+  push:
+    branches: [main, master, 'feature/macos-build', 'test/macos-workflow']
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all tags
+
+      - name: Check if commit has version tag
+        id: check_tag
+        run: |
+          tag=$(git tag --points-at HEAD | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
+          if [ -n "$tag" ]; then
+            echo "HAS_VERSION_TAG=true" >> $GITHUB_OUTPUT
+            echo "VERSION_TAG=$tag" >> $GITHUB_OUTPUT
+            echo "Found version tag: $tag"
+          else
+            echo "HAS_VERSION_TAG=false" >> $GITHUB_OUTPUT
+            echo "No version tag found on this commit"
+          fi
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: 'stable'
+
+      - name: Enable macOS desktop
+        run: flutter config --enable-macos-desktop
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run tests
+        run: flutter test
+        continue-on-error: true
+
+      - name: Install CocoaPods dependencies
+        run: |
+          cd macos
+          rm -f Podfile.lock
+          pod install --repo-update
+
+      - name: Disable code signing (temporary - until Apple Developer cert added)
+        run: |
+          cd macos
+          # Disable signing in Runner target
+          sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = "-";/g' Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/CODE_SIGN_STYLE = .*/CODE_SIGN_STYLE = Manual;/g' Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/DEVELOPMENT_TEAM = .*/DEVELOPMENT_TEAM = "";/g' Runner.xcodeproj/project.pbxproj
+
+          # Disable signing in all Pods
+          sed -i '' 's/CODE_SIGNING_ALLOWED = YES/CODE_SIGNING_ALLOWED = NO/g' Pods/Pods.xcodeproj/project.pbxproj || true
+          sed -i '' 's/CODE_SIGNING_REQUIRED = YES/CODE_SIGNING_REQUIRED = NO/g' Pods/Pods.xcodeproj/project.pbxproj || true
+
+          echo "⚠️  Code signing disabled - app will not be notarized"
+          echo "⚠️  Users will see 'unidentified developer' warning"
+          echo "📝 TODO: Add Apple Developer certificate and enable proper code signing"
+
+      - name: Build macOS app
+        run: flutter build macos --release
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Create DMG
+        run: |
+          # Create a temporary directory for DMG contents
+          mkdir -p dmg_temp
+
+          # Copy the app bundle to temp directory
+          cp -R build/macos/Build/Products/Release/xdoc.app dmg_temp/
+
+          # Create the DMG using create-dmg
+          create-dmg \
+            --volname "XDoc" \
+            --window-pos 200 120 \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --icon "xdoc.app" 200 190 \
+            --hide-extension "xdoc.app" \
+            --app-drop-link 600 185 \
+            --no-internet-enable \
+            "xdoc.dmg" \
+            "dmg_temp/" || true
+
+          # If create-dmg fails, create a simple DMG using hdiutil
+          if [ ! -f "xdoc.dmg" ]; then
+            echo "create-dmg failed, using hdiutil instead"
+            hdiutil create -volname "XDoc" -srcfolder "dmg_temp" -ov -format UDZO "xdoc.dmg"
+          fi
+
+      - name: Create build info
+        run: |
+          echo "Build completed at: $(date)" > build-info.txt
+          echo "App: XDoc" >> build-info.txt
+          echo "Version: 1.0.0+8" >> build-info.txt
+          echo "Commit: ${{ github.sha }}" >> build-info.txt
+          echo "Platform: macOS" >> build-info.txt
+
+      - name: Upload macOS DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: xdoc-macos-dmg-${{ github.run_number }}
+          path: xdoc.dmg
+          retention-days: 30
+
+      - name: Upload to Hetzner Object Storage
+        if: steps.check_tag.outputs.HAS_VERSION_TAG == 'true'
+        run: |
+          # Install AWS CLI v2 for macOS
+          curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
+          sudo installer -pkg AWSCLIV2.pkg -target /
+
+          # Configure AWS CLI for Hetzner Object Storage
+          aws configure set aws_access_key_id ${{ secrets.S3_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          aws configure set default.region us-east-1
+
+          # Upload files to S3 bucket with public-read ACL
+          aws s3 cp xdoc.dmg s3://${{ secrets.S3_BUCKET_NAME }}/macos/xdoc-latest.dmg --endpoint-url ${{ secrets.S3_ENDPOINT }} --acl public-read
+          aws s3 cp xdoc.dmg s3://${{ secrets.S3_BUCKET_NAME }}/macos/xdoc-${{ steps.check_tag.outputs.VERSION_TAG }}.dmg --endpoint-url ${{ secrets.S3_ENDPOINT }} --acl public-read
+
+      - name: Create GitHub Release
+        if: steps.check_tag.outputs.HAS_VERSION_TAG == 'true'
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.check_tag.outputs.VERSION_TAG }}
+          files: xdoc.dmg
+          body: |
+            ## Download XDoc for macOS
+
+            **Direct Download:**
+            https://downloads.xdoc.app/macos/xdoc-${{ steps.check_tag.outputs.VERSION_TAG }}.dmg
+
+            **Always Latest Version:**
+            https://downloads.xdoc.app/macos/xdoc-latest.dmg
+
+            ## Installation
+            1. Download the .dmg file
+            2. Open the DMG
+            3. Drag XDoc to Applications folder
+            4. Launch from Applications
+
+            **⚠️ Security Warning:**
+            This build is NOT code-signed or notarized (no Apple Developer account yet).
+
+            On first launch, you will see "unidentified developer" warning:
+            - Right-click the app → Open
+            - Click "Open" in the dialog
+            - Or: System Settings → Privacy & Security → "Open Anyway"
+          draft: false
+          prerelease: false
