@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:url_strategy/url_strategy.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -20,7 +20,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize window manager for desktop platforms (single instance support)
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+  // Skip on web as Platform checks are not supported
+  if (!kIsWeb) {
     await windowManager.ensureInitialized();
     
     WindowOptions windowOptions = const WindowOptions(
@@ -65,27 +66,37 @@ class _MyAppState extends State<MyApp> with WindowListener {
   @override
   void initState() {
     super.initState();
-    windowManager.addListener(this);
+    if (!kIsWeb) {
+      windowManager.addListener(this);
+    }
     DeepLinkHandler.initialize(); // Initialize app_links deep linking
-    WindowsDeepLinkService.initialize(); // Initialize Windows IPC deep linking
+    if (!kIsWeb) {
+      WindowsDeepLinkService.initialize(); // Initialize Windows IPC deep linking (desktop only)
+    }
   }
 
   @override
   void dispose() {
-    windowManager.removeListener(this);
+    if (!kIsWeb) {
+      windowManager.removeListener(this);
+    }
     super.dispose();
   }
 
   // When app is already running and receives a protocol activation (deep link)
   @override
   void onWindowFocus() {
-    // Window has been brought to focus, deep link handler will process the link
-    print("Window focused - ready to handle deep link");
+    if (!kIsWeb) {
+      // Window has been brought to focus, deep link handler will process the link
+      print("Window focused - ready to handle deep link");
+    }
   }
 
   @override
   void onWindowEvent(String eventName) {
-    print("Window event: $eventName");
+    if (!kIsWeb) {
+      print("Window event: $eventName");
+    }
   }
 
   @override
