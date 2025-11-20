@@ -86,9 +86,17 @@ jobs:
       - name: Create Play Store service account JSON
         if: github.event_name != 'pull_request'
         run: |
-          cat > android/service_account.json <<'EOF'
-          ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
-          EOF
+          mkdir -p android
+          printf '%s' '${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}' > android/service_account.json
+
+      - name: Validate Play Store JSON
+        if: github.event_name != 'pull_request'
+        run: |
+          python -m json.tool android/service_account.json >/dev/null || {
+            echo "Error: Invalid JSON in service account file"
+            exit 1
+          }
+          echo "JSON validation successful"
 
       - name: Install Fastlane dependencies
         if: github.event_name != 'pull_request'
