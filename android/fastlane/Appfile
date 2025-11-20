@@ -3,14 +3,5 @@
 # Package name
 package_name("com.xdoc.app")
 
-# Service account JSON file path (for CI/CD)
-json_key_file(ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json")
-
-# Issuer (for future App Store Connect API if needed)
-# issuer_id("your-issuer-id")
-
-# Key ID (for future App Store Connect API if needed)
-# key_id("your-key-id")
-
-# For local development, you can override the JSON key path
-# json_key_file("/path/to/your/local/service_account.json")
+# Note: json_key_file is set in Fastfile instead of here
+# to avoid validation errors when the file doesn't exist yet
