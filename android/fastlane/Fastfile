@@ -51,10 +51,11 @@ platform :android do
 
     # Upload to Play Store (Internal track)
     json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
+    json_key_path = File.expand_path("../#{json_key_file}", __dir__)
     upload_to_play_store(
       track: 'internal',
       aab: '../build/app/outputs/bundle/release/app-release.aab',
-      json_key_data: File.read(json_key_file),
+      json_key_data: File.read(json_key_path),
       skip_upload_metadata: false,
       skip_upload_changelogs: false,
       skip_upload_images: true,
@@ -78,10 +79,11 @@ platform :android do
 
     # Upload to Play Store (Beta track)
     json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
+    json_key_path = File.expand_path("../#{json_key_file}", __dir__)
     upload_to_play_store(
       track: 'beta',
       aab: '../build/app/outputs/bundle/release/app-release.aab',
-      json_key_data: File.read(json_key_file),
+      json_key_data: File.read(json_key_path),
       skip_upload_metadata: false,
       skip_upload_changelogs: false,
       skip_upload_images: true,
@@ -102,10 +104,11 @@ platform :android do
 
     # Upload to Play Store (Production track)
     json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
+    json_key_path = File.expand_path("../#{json_key_file}", __dir__)
     upload_to_play_store(
       track: 'production',
       aab: '../build/app/outputs/bundle/release/app-release.aab',
-      json_key_data: File.read(json_key_file),
+      json_key_data: File.read(json_key_path),
       skip_upload_metadata: false,
       skip_upload_changelogs: false,
       skip_upload_images: true,
@@ -121,10 +124,11 @@ platform :android do
   desc "Promote Beta to Production"
   lane :promote_to_production do
     json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
+    json_key_path = File.expand_path("../#{json_key_file}", __dir__)
     upload_to_play_store(
       track: 'beta',
       track_promote_to: 'production',
-      json_key_data: File.read(json_key_file),
+      json_key_data: File.read(json_key_path),
       skip_upload_metadata: true,
       skip_upload_changelogs: true,
       skip_upload_images: true,
