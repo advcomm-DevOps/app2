@@ -1,0 +1,158 @@
+# Fastfile for XDoc Android
+
+default_platform(:android)
+
+platform :android do
+  # Before all lanes
+  before_all do
+    # Ensure we're in the android directory
+    Dir.chdir("..") do
+      # Get Flutter dependencies
+      sh("flutter pub get")
+    end
+  end
+
+  # Helper method to increment version code in pubspec.yaml
+  private_lane :increment_version_code do
+    Dir.chdir("..") do
+      # Read pubspec.yaml
+      pubspec_path = "pubspec.yaml"
+      pubspec_content = File.read(pubspec_path)
+
+      # Extract current version (e.g., "1.0.0+8")
+      if pubspec_content =~ /^version:\s*(.+\+)(\d+)/
+        version_name = $1  # "1.0.0+"
+        version_code = $2.to_i  # 8
+        new_version_code = version_code + 1
+        new_version = "#{version_name}#{new_version_code}"
+
+        # Update pubspec.yaml
+        pubspec_content.gsub!(/^version:\s*.+/, "version: #{new_version}")
+        File.write(pubspec_path, pubspec_content)
+
+        UI.success("Version updated: #{new_version}")
+      else
+        UI.error("Could not find version in pubspec.yaml")
+      end
+    end
+  end
+
+  # Internal testing lane (for 3 users)
+  desc "Deploy a new version to Google Play Internal Testing"
+  lane :internal do
+    # Increment version code
+    increment_version_code
+
+    # Build the app bundle
+    Dir.chdir("..") do
+      sh("flutter build appbundle --release")
+    end
+
+    # Upload to Play Store (Internal track)
+    upload_to_play_store(
+      track: 'internal',
+      aab: '../build/app/outputs/bundle/release/app-release.aab',
+      skip_upload_metadata: false,
+      skip_upload_changelogs: false,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+
+    # Success message
+    UI.success("Successfully deployed to Internal Testing! 🎉")
+  end
+
+  # Beta testing lane (closed testing)
+  desc "Deploy a new version to Google Play Beta (Closed Testing)"
+  lane :beta do
+    # Increment version code
+    increment_version_code
+
+    # Build the app bundle
+    Dir.chdir("..") do
+      sh("flutter build appbundle --release")
+    end
+
+    # Upload to Play Store (Beta track)
+    upload_to_play_store(
+      track: 'beta',
+      aab: '../build/app/outputs/bundle/release/app-release.aab',
+      skip_upload_metadata: false,
+      skip_upload_changelogs: false,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+
+    # Success message
+    UI.success("Successfully deployed to Beta Testing! 🎉")
+  end
+
+  # Production release lane
+  desc "Deploy a new version to Google Play Production"
+  lane :production do
+    # Build the app bundle
+    Dir.chdir("..") do
+      sh("flutter build appbundle --release")
+    end
+
+    # Upload to Play Store (Production track)
+    upload_to_play_store(
+      track: 'production',
+      aab: '../build/app/outputs/bundle/release/app-release.aab',
+      skip_upload_metadata: false,
+      skip_upload_changelogs: false,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      rollout: '0.1'  # Start with 10% rollout
+    )
+
+    # Success message
+    UI.success("Successfully deployed to Production (10% rollout)! 🎉")
+  end
+
+  # Promote beta to production
+  desc "Promote Beta to Production"
+  lane :promote_to_production do
+    upload_to_play_store(
+      track: 'beta',
+      track_promote_to: 'production',
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      rollout: '0.1'  # Start with 10% rollout
+    )
+
+    UI.success("Successfully promoted Beta to Production! 🎉")
+  end
+
+  # Build APK for testing
+  desc "Build APK for direct installation"
+  lane :build_apk do
+    Dir.chdir("..") do
+      sh("flutter build apk --release")
+    end
+
+    UI.success("APK built successfully! 📦")
+    UI.message("APK location: build/app/outputs/flutter-apk/app-release.apk")
+  end
+
+  # Generate screenshots (future enhancement)
+  desc "Generate screenshots for Play Store"
+  lane :screenshots do
+    # TODO: Set up screengrab for automated screenshots
+    UI.message("Screenshots generation not yet configured")
+    UI.message("Add screengrab configuration to enable this feature")
+  end
+
+  # After all lanes
+  after_all do |lane|
+    # Clean up
+    UI.success("Lane #{lane} completed successfully! ✅")
+  end
+
+  # Error handler
+  error do |lane, exception|
+    UI.error("Error in lane #{lane}: #{exception.message}")
+  end
+end
