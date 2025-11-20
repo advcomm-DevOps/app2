@@ -1,7 +1,0 @@
-# Appfile for XDoc Android
-
-# Package name
-package_name("com.xdoc.app")
-
-# Note: json_key_file is set in Fastfile instead of here
-# to avoid validation errors when the file doesn't exist yet

@@ -46,6 +46,8 @@ class _DashboardViewState extends State<DashboardView> {
   String? entityQr = '';
   String? newSecQr = '';
   bool showRightSidebar = false;
+  bool _isValidatingSection = false; // Guard to prevent duplicate dialogs
+  bool _hasValidatedSection = false; // Track if validation already completed
 
   final dio = Dio();
   final String apiUrl = 'https://$audDomain';
@@ -314,94 +316,111 @@ class _DashboardViewState extends State<DashboardView> {
     secQr = widget.section;
     final tagid = widget.tagid;
     String? tagname = '';
-    if (secQr == null) return;
+    
+    // Guard: prevent running if already validating or already validated
+    if (secQr == null || _isValidatingSection || _hasValidatedSection) return;
+    
+    // Set guard flags
+    _isValidatingSection = true;
 
-    final details = await dashboardController.getChannelDetailsForJoin(
-      entityId: entityQr!,
-      channelName: widget.section!,
-      tagId: widget.tagid!,
-    );
-    if (details != null && details["channelDetails"] != null) {
-      newSecQr = details["channelDetails"]["newChannelName"];
-      tagname = details["channelDetails"]["tagName"];
-    }
-
-    final exists =
-        channels.any((channel) => channel['channelname'] == newSecQr);
-    final index =
-        channels.indexWhere((channel) => channel['channelname'] == newSecQr);
-    if (!exists) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: Colors.grey[900],
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Text(
-            'Channel Not Found',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: Text(
-            'Channel "$newSecQr" does not exist in the available channels. Do you want to add it?',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
-          ),
-          actionsPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          actionsAlignment: MainAxisAlignment.spaceBetween,
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                // User chose not to add
-              },
-              child: const Text(
-                'No',
-                style: TextStyle(color: Colors.white70),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              ),
-              onPressed: () {
-                joinNewChannel(entityQr!, secQr!, tagid, tagname, newSecQr!);
-                Navigator.of(context).pop();
-              },
-              child: const Text(
-                'Yes',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
+    try {
+      final details = await dashboardController.getChannelDetailsForJoin(
+        entityId: entityQr!,
+        channelName: widget.section!,
+        tagId: widget.tagid!,
       );
-    } else {
-      addTagIfNotExist(
-          oldEntityId: entityQr!,
-          tagId: tagid!,
-          oldChannelName: secQr!,
-          newChannelName: newSecQr!,
-          tagName: tagname!);
-      setState(() {
-        selectedChannelIndex = index;
-        selectedDocIndex = null;
-        docs = [];
-        currentChatMessages = [];
-      });
-      fetchDocs(channels[index]["channelname"]);
-      fetchJoinedTags(channels[index]["channelname"]);
+      if (details != null && details["channelDetails"] != null) {
+        newSecQr = details["channelDetails"]["newChannelName"];
+        tagname = details["channelDetails"]["tagName"];
+      }
+
+      final exists =
+          channels.any((channel) => channel['channelname'] == newSecQr);
+      final index =
+          channels.indexWhere((channel) => channel['channelname'] == newSecQr);
+      
+      if (!exists) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: Colors.grey[900],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text(
+              'Channel Not Found',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Text(
+              'Channel "$newSecQr" does not exist in the available channels. Do you want to add it?',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+              ),
+            ),
+            actionsPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            actionsAlignment: MainAxisAlignment.spaceBetween,
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _hasValidatedSection = true; // Mark as validated (user declined)
+                },
+                child: const Text(
+                  'No',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+                onPressed: () {
+                  joinNewChannel(entityQr!, secQr!, tagid, tagname, newSecQr!);
+                  Navigator.of(context).pop();
+                  _hasValidatedSection = true; // Mark as validated after joining
+                },
+                child: const Text(
+                  'Yes',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ).whenComplete(() {
+          // Reset guard when dialog closes
+          _isValidatingSection = false;
+        });
+      } else {
+        // Channel exists
+        addTagIfNotExist(
+            oldEntityId: entityQr!,
+            tagId: tagid!,
+            oldChannelName: secQr!,
+            newChannelName: newSecQr!,
+            tagName: tagname!);
+        setState(() {
+          selectedChannelIndex = index;
+          selectedDocIndex = null;
+          docs = [];
+          currentChatMessages = [];
+        });
+        fetchDocs(channels[index]["channelname"]);
+        fetchJoinedTags(channels[index]["channelname"]);
+        _hasValidatedSection = true; // Mark as validated
+      }
+    } finally {
+      // Always reset the validating flag
+      _isValidatingSection = false;
     }
   }
 
@@ -426,11 +445,29 @@ class _DashboardViewState extends State<DashboardView> {
         .joinChannel(entityName, sectionName, tagid, tagname, newSecQr)
         .then((joined) {
       if (joined) {
-        fetchChannels();
-        fetchDocs(sectionName);
+        // Don't call fetchChannels() here - it will trigger validateSection again
+        // Instead, just refresh the channels list without triggering validation
         setState(() {
           secQr = null; // set to null after joining
+          _hasValidatedSection = true; // Ensure validation doesn't run again
         });
+        
+        // Manually fetch channels without triggering stream listener
+        dashboardController.fetchChannelsStream().first.then((data) {
+          if (mounted) {
+            setState(() {
+              channels = data;
+              // Select the newly joined channel
+              final index = channels.indexWhere((c) => c['channelname'] == newSecQr);
+              if (index != -1) {
+                selectedChannelIndex = index;
+                fetchDocs(channels[index]["channelname"]);
+                fetchJoinedTags(channels[index]["channelname"]);
+              }
+            });
+          }
+        });
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Section "$sectionName" added to channels.')),
         );
