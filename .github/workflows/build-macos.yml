@@ -51,30 +51,14 @@ jobs:
         run: flutter test
         continue-on-error: true
 
-      - name: Install CocoaPods dependencies
+      - name: Build macOS app (without code signing)
         run: |
-          cd macos
-          rm -f Podfile.lock
-          pod install --repo-update
-
-      - name: Disable code signing (temporary - until Apple Developer cert added)
-        run: |
-          cd macos
-          # Disable signing in Runner target
-          sed -i '' 's/CODE_SIGN_IDENTITY = .*/CODE_SIGN_IDENTITY = "-";/g' Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/CODE_SIGN_STYLE = .*/CODE_SIGN_STYLE = Manual;/g' Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/DEVELOPMENT_TEAM = .*/DEVELOPMENT_TEAM = "";/g' Runner.xcodeproj/project.pbxproj
-
-          # Disable signing in all Pods
-          sed -i '' 's/CODE_SIGNING_ALLOWED = YES/CODE_SIGNING_ALLOWED = NO/g' Pods/Pods.xcodeproj/project.pbxproj || true
-          sed -i '' 's/CODE_SIGNING_REQUIRED = YES/CODE_SIGNING_REQUIRED = NO/g' Pods/Pods.xcodeproj/project.pbxproj || true
+          # Build without code signing
+          flutter build macos --release --no-codesign
 
           echo "⚠️  Code signing disabled - app will not be notarized"
           echo "⚠️  Users will see 'unidentified developer' warning"
           echo "📝 TODO: Add Apple Developer certificate and enable proper code signing"
-
-      - name: Build macOS app
-        run: flutter build macos --release
 
       - name: Install create-dmg
         run: brew install create-dmg
