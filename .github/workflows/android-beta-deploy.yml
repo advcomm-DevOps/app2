@@ -86,7 +86,9 @@ jobs:
       - name: Create Play Store service account JSON
         if: github.event_name != 'pull_request'
         run: |
-          echo '${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}' > android/service_account.json
+          cat > android/service_account.json <<'EOF'
+          ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          EOF
 
       - name: Install Fastlane dependencies
         if: github.event_name != 'pull_request'
