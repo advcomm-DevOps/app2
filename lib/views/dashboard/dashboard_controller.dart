@@ -1639,4 +1639,45 @@ class DashboardController {
     }
     return null;
   }
+
+  Future<dynamic> getReciprocalChannelDetails({
+    required String otherUserTid,
+    required String otherChannelName,
+  }) async {
+    String token = await getJwt();
+    try {
+      dio.options.headers["Authorization"] = "Bearer $token";
+      dio.options.headers["Accept"] = "application/json";
+
+      final response = await dio.get(
+        '$apiUrl/reciprocal-channel-details',
+        queryParameters: {
+          'otherUserTid': otherUserTid,
+          'otherChannelName': otherChannelName,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print("Reciprocal channel details fetched successfully: ${response.data}");
+        logSuccess("Reciprocal channel details fetched successfully for otherUserTid '$otherUserTid', channel '$otherChannelName'");
+        return response.data; // Assuming API returns JSON object with details
+      } else if (response.statusCode == 404) {
+        print("No reciprocal channel details found. Status code: ${response.statusCode}");
+        logFailure("No reciprocal channel details found for otherUserTid '$otherUserTid', channel '$otherChannelName' - Status: ${response.statusCode}");
+        return response.data;
+      } else {
+        print("Failed to fetch reciprocal channel details. Status code: ${response.statusCode}");
+        logFailure("Failed to fetch reciprocal channel details for otherUserTid '$otherUserTid', channel '$otherChannelName' - Status: ${response.statusCode}");
+      }
+    } on DioException catch (e) {
+      print("Dio error fetching reciprocal channel details: ${e.message}");
+      print("Response: ${e.response?.data}");
+      logFailure("Dio error fetching reciprocal channel details for otherUserTid '$otherUserTid', channel '$otherChannelName': ${e.message} - Response: ${e.response?.data}");
+      return e.response?.data;
+    } catch (e) {
+      print("Error fetching reciprocal channel details: $e");
+      logFailure("Error fetching reciprocal channel details for otherUserTid '$otherUserTid', channel '$otherChannelName': $e");
+    }
+    return null;
+  }
 }
