@@ -700,14 +700,35 @@ class DashboardController {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         print("Joined channel successfully: ${response.data}");
-        addTagIfNotExists(
-          oldEntityId: entityId,
-          tagId: tagid!,
-          oldChannelName: channelName,
-          newChannelName: newSecQr!,
-          tagName: tagname!,
-        );
-        logSuccess("Joined channel '$channelName' successfully");
+        
+        // Extract newChannelName from the response
+        final responseData = response.data as Map<String, dynamic>?;
+        final String? returnedNewChannelName = responseData?['newChannelName'];
+        
+        if (returnedNewChannelName != null) {
+          print("✅ New Channel Name from API: $returnedNewChannelName");
+          
+          // Use the returned newChannelName instead of the passed parameter
+          addTagIfNotExists(
+            oldEntityId: entityId,
+            tagId: tagid!,
+            oldChannelName: channelName,
+            newChannelName: returnedNewChannelName,
+            tagName: tagname!,
+          );
+        } else {
+          print("⚠️ newChannelName not found in response, using fallback: $newSecQr");
+          // Fallback to the passed parameter if API doesn't return it
+          addTagIfNotExists(
+            oldEntityId: entityId,
+            tagId: tagid!,
+            oldChannelName: channelName,
+            newChannelName: newSecQr!,
+            tagName: tagname!,
+          );
+        }
+        
+        logSuccess("Joined channel '$channelName' successfully - New channel name: ${returnedNewChannelName ?? newSecQr}");
         return true;
       } else {
         print("Failed to join channel: ${response.statusCode}");
