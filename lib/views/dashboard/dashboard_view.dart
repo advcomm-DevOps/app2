@@ -46,8 +46,6 @@ class _DashboardViewState extends State<DashboardView> {
   String? entityQr = '';
   String? newSecQr = '';
   bool showRightSidebar = false;
-  bool _isValidatingSection = false; // Guard to prevent duplicate dialogs
-  bool _hasValidatedSection = false; // Track if validation already completed
 
   final dio = Dio();
   final String apiUrl = 'https://$audDomain';
@@ -316,13 +314,6 @@ class _DashboardViewState extends State<DashboardView> {
     final tagid = widget.tagid;
     String? tagname = '';
 
-    
-    // Guard: prevent running if already validating or already validated
-    if (secQr == null || _isValidatingSection || _hasValidatedSection) return;
-    
-    // Set guard flags
-    _isValidatingSection = true;
-
     try {
       final details = await dashboardController.getReciprocalChannelDetails(
         otherUserTid: entityQr!,
@@ -334,7 +325,7 @@ class _DashboardViewState extends State<DashboardView> {
         tagId: widget.tagid!,
       );
       if (channelDetails != null && channelDetails["channelDetails"] != null) {
-        // newSecQr = channelDetails["channelDetails"]["newChannelName"];
+        newSecQr = channelDetails["channelDetails"]["newChannelName"];
         tagname = channelDetails["channelDetails"]["tagName"];
       }
 
@@ -445,9 +436,10 @@ class _DashboardViewState extends State<DashboardView> {
                             }),
                           ),
                         ] else ...[
-                          Text('Join New Channel', style: TextStyle(color: subtitleColor, fontSize: 15)),
+                          Text('New Channel', style: TextStyle(color: subtitleColor, fontSize: 15)),
                           const SizedBox(height: 16),
                           TextField(
+                            controller: TextEditingController(text: newSecQr ?? ''),
                             decoration: InputDecoration(
                               labelText: 'Channel Name',
                               labelStyle: TextStyle(color: subtitleColor),
@@ -471,7 +463,6 @@ class _DashboardViewState extends State<DashboardView> {
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).pop();
-                      _hasValidatedSection = true;
                     },
                     child: Text(
                       'Cancel',
@@ -507,7 +498,6 @@ class _DashboardViewState extends State<DashboardView> {
                                   });
                                   await fetchDocs(channels[indexlocal]["channelname"]);
                                   await fetchJoinedTags(channels[indexlocal]["channelname"]);
-                                  _hasValidatedSection = true;
                                   Navigator.of(context).pop();
                                 }
                               }
@@ -526,8 +516,8 @@ class _DashboardViewState extends State<DashboardView> {
                       onPressed: newChannelName.trim().isNotEmpty
                           ? () {
                               // TODO: Add your join new channel logic here
+                              joinNewChannel(entityQr!, secQr!, tagid, tagname, newSecQr);
                               Navigator.of(context).pop();
-                              _hasValidatedSection = true;
                             }
                           : null,
                       child: Text('Join', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
@@ -537,11 +527,11 @@ class _DashboardViewState extends State<DashboardView> {
             );
           },
         ).whenComplete(() {
-          _isValidatingSection = false;
         });
       } else {
         // No details found (no similar channels) - show join new channel UI directly
-        String newChannelName = '';
+        String newChannelName = newSecQr ?? '';
+        bool isJoinNew = true;
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -552,67 +542,87 @@ class _DashboardViewState extends State<DashboardView> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                title: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Join New Channel',
-                      style: TextStyle(
-                        color: textColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
+                title: Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    'Channel Options',
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
                     ),
-                    IconButton(
-                      icon: Icon(Icons.close, color: subtitleColor),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        _hasValidatedSection = true;
-                      },
-                    ),
-                  ],
+                  ),
                 ),
                 content: SingleChildScrollView(
                   child: Container(
-                    constraints: BoxConstraints(maxWidth: 500),
+                    constraints: BoxConstraints(maxWidth: 600),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        TextField(
-                          decoration: InputDecoration(
-                            labelText: 'Channel Name',
-                            labelStyle: TextStyle(color: subtitleColor),
-                            border: OutlineInputBorder(),
-                          ),
-                          style: TextStyle(color: textColor),
-                          onChanged: (val) {
-                            setState(() {
-                              newChannelName = val;
-                            });
-                          },
+                        // Toggle buttons styled as in create new channel
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: !isJoinNew ? Colors.blueAccent : Colors.grey[700],
+                                  foregroundColor: !isJoinNew ? Colors.white : Colors.white70,
+                                  side: BorderSide(color: !isJoinNew ? Colors.blueAccent : Colors.grey[500]!, width: 1.2),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    isJoinNew = false;
+                                  });
+                                },
+                                child: Text('Select Existing Channel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: isJoinNew ? Colors.blueAccent : Colors.grey[700],
+                                  foregroundColor: isJoinNew ? Colors.white : Colors.white70,
+                                  side: BorderSide(color: isJoinNew ? Colors.blueAccent : Colors.grey[500]!, width: 1.2),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    isJoinNew = true;
+                                  });
+                                },
+                                child: Text('Join New Channel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 24),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: newChannelName.trim().isNotEmpty ? Colors.blue : Colors.grey,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        if (isJoinNew) ...[
+                          Text('New Channel', style: TextStyle(color: subtitleColor, fontSize: 15)),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: TextEditingController(text: newChannelName),
+                            decoration: InputDecoration(
+                              labelText: 'Channel Name',
+                              labelStyle: TextStyle(color: subtitleColor),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                             ),
-                            onPressed: newChannelName.trim().isNotEmpty
-                                ? () {
-                                    // TODO: Add your join new channel logic here
-                                    Navigator.of(context).pop();
-                                    _hasValidatedSection = true;
-                                  }
-                                : null,
-                            child: Text('Join', style: TextStyle(color: Colors.white)),
+                            style: TextStyle(color: textColor),
+                            onChanged: (val) {
+                              setState(() {
+                                newChannelName = val;
+                              });
+                            },
                           ),
-                        ),
+                        ] else ...[
+                          Text('No similar channels found.', style: TextStyle(color: subtitleColor, fontSize: 15)),
+                          const SizedBox(height: 16),
+                          Text('You can only join a new channel at this time.', style: TextStyle(color: subtitleColor)),
+                        ],
                       ],
                     ),
                   ),
@@ -623,20 +633,34 @@ class _DashboardViewState extends State<DashboardView> {
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).pop();
-                      _hasValidatedSection = true;
                     },
                     child: Text(
                       'Cancel',
                       style: TextStyle(color: subtitleColor),
                     ),
                   ),
+                  if (isJoinNew)
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: newChannelName.trim().isNotEmpty ? Colors.blue : Colors.grey,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                      ),
+                      onPressed: newChannelName.trim().isNotEmpty
+                          ? () {
+                              joinNewChannel(entityQr!, secQr!, tagid, tagname, newChannelName);
+                              Navigator.of(context).pop();
+                            }
+                          : null,
+                      child: Text('Join', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    ),
                 ],
               ),
             );
           },
-        ).whenComplete(() {
-          _isValidatingSection = false;
-        });
+        ).whenComplete(() {});
       }
     } catch (e) {
       print("Error in validateSection: $e");
@@ -644,8 +668,6 @@ class _DashboardViewState extends State<DashboardView> {
         SnackBar(content: Text('Error fetching channel details: $e')),
       );
     } finally {
-      // Always reset the validating flag
-      _isValidatingSection = false;
     }
   }
   
@@ -785,8 +807,7 @@ class _DashboardViewState extends State<DashboardView> {
         // Don't call fetchChannels() here - it will trigger validateSection again
         // Instead, just refresh the channels list without triggering validation
         setState(() {
-          secQr = null; // set to null after joining
-          _hasValidatedSection = true; // Ensure validation doesn't run again
+          secQr = null;
         });
         
         // Manually fetch channels without triggering stream listener
