@@ -311,11 +311,9 @@ class _DashboardViewState extends State<DashboardView> {
       print("Error setting up channels stream: $e");
     }
   }
-
   void validateSection() async {
     secQr = widget.section;
-    final tagid = widget.tagid;
-    String? tagname = '';
+
     
     // Guard: prevent running if already validating or already validated
     if (secQr == null || _isValidatingSection || _hasValidatedSection) return;
@@ -324,105 +322,415 @@ class _DashboardViewState extends State<DashboardView> {
     _isValidatingSection = true;
 
     try {
-      final details = await dashboardController.getChannelDetailsForJoin(
-        entityId: entityQr!,
-        channelName: widget.section!,
-        tagId: widget.tagid!,
+      final details = await dashboardController.getReciprocalChannelDetails(
+        otherUserTid: entityQr!,
+        otherChannelName: widget.section!
       );
-      if (details != null && details["channelDetails"] != null) {
-        newSecQr = details["channelDetails"]["newChannelName"];
-        tagname = details["channelDetails"]["tagName"];
-      }
 
-      final exists =
-          channels.any((channel) => channel['channelname'] == newSecQr);
-      final index =
-          channels.indexWhere((channel) => channel['channelname'] == newSecQr);
-      
-      if (!exists) {
+      if (details != null && details['channels'] != null && details['channels'] is List && (details['channels'] as List).isNotEmpty) {
+        final List channelsList = details['channels'];
+        int? selectedExistingChannelIdx;
+        bool isJoinNew = false;
+        String newChannelName = '';
         showDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: Colors.grey[900],
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Text(
-              'Channel Not Found',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            content: Text(
-              'Channel "$newSecQr" does not exist in the available channels. Do you want to add it?',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
-            ),
-            actionsPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            actionsAlignment: MainAxisAlignment.spaceBetween,
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  _hasValidatedSection = true; // Mark as validated (user declined)
-                },
-                child: const Text(
-                  'No',
-                  style: TextStyle(color: Colors.white70),
+          barrierDismissible: false,
+          builder: (context) {
+            return StatefulBuilder(
+              builder: (context, setState) => AlertDialog(
+                backgroundColor: surfaceColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                title: Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    'Channel Options',
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
+                    ),
                   ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
-                onPressed: () {
-                  joinNewChannel(entityQr!, secQr!, tagid, tagname, newSecQr!);
-                  Navigator.of(context).pop();
-                  _hasValidatedSection = true; // Mark as validated after joining
-                },
-                child: const Text(
-                  'Yes',
-                  style: TextStyle(color: Colors.white),
+                content: SingleChildScrollView(
+                  child: Container(
+                    constraints: BoxConstraints(maxWidth: 600),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Toggle buttons styled as in create new channel
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: !isJoinNew ? Colors.blueAccent : Colors.grey[700],
+                                  foregroundColor: !isJoinNew ? Colors.white : Colors.white70,
+                                  side: BorderSide(color: !isJoinNew ? Colors.blueAccent : Colors.grey[500]!, width: 1.2),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    isJoinNew = false;
+                                  });
+                                },
+                                child: Text('Select Existing Channel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: isJoinNew ? Colors.blueAccent : Colors.grey[700],
+                                  foregroundColor: isJoinNew ? Colors.white : Colors.white70,
+                                  side: BorderSide(color: isJoinNew ? Colors.blueAccent : Colors.grey[500]!, width: 1.2),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    isJoinNew = true;
+                                  });
+                                },
+                                child: Text('Join New Channel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        if (!isJoinNew) ...[
+                          Text('You already have similar channels:', style: TextStyle(color: subtitleColor, fontSize: 15)),
+                          const SizedBox(height: 16),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: List.generate(channelsList.length, (index) {
+                              final channel = channelsList[index];
+                              final isSelected = selectedExistingChannelIdx == index;
+                              return ChoiceChip(
+                                label: Text(
+                                  channel['channelName']?.toString() ?? 'Unnamed Channel',
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                                labelStyle: TextStyle(
+                                  color: isSelected ? Colors.white : Colors.white70,
+                                ),
+                                selected: isSelected,
+                                selectedColor: Colors.green,
+                                backgroundColor: Colors.grey[700],
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                onSelected: (_) {
+                                  setState(() {
+                                    selectedExistingChannelIdx = index;
+                                  });
+                                },
+                              );
+                            }),
+                          ),
+                        ] else ...[
+                          Text('Join New Channel', style: TextStyle(color: subtitleColor, fontSize: 15)),
+                          const SizedBox(height: 16),
+                          TextField(
+                            decoration: InputDecoration(
+                              labelText: 'Channel Name',
+                              labelStyle: TextStyle(color: subtitleColor),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            style: TextStyle(color: textColor),
+                            onChanged: (val) {
+                              setState(() {
+                                newChannelName = val;
+                              });
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
+                actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                actionsAlignment: MainAxisAlignment.spaceBetween,
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _hasValidatedSection = true;
+                    },
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: subtitleColor),
+                    ),
+                  ),
+                  if (!isJoinNew)
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: selectedExistingChannelIdx != null ? Colors.blue : Colors.grey,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                      ),
+                      onPressed: selectedExistingChannelIdx != null
+                          ? () {
+                              // Handle selecting an existing channel
+                              // TODO: Add your logic to select/navigate to the channel
+                              Navigator.of(context).pop();
+                              _hasValidatedSection = true;
+                            }
+                          : null,
+                      child: Text('Submit', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    ),
+                  if (isJoinNew)
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: newChannelName.trim().isNotEmpty ? Colors.blue : Colors.grey,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                      ),
+                      onPressed: newChannelName.trim().isNotEmpty
+                          ? () {
+                              // TODO: Add your join new channel logic here
+                              Navigator.of(context).pop();
+                              _hasValidatedSection = true;
+                            }
+                          : null,
+                      child: Text('Join', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ).whenComplete(() {
-          // Reset guard when dialog closes
           _isValidatingSection = false;
         });
       } else {
-        // Channel exists
-        addTagIfNotExist(
-            oldEntityId: entityQr!,
-            tagId: tagid!,
-            oldChannelName: secQr!,
-            newChannelName: newSecQr!,
-            tagName: tagname!);
-        setState(() {
-          selectedChannelIndex = index;
-          selectedDocIndex = null;
-          docs = [];
-          currentChatMessages = [];
+        // No details found (no similar channels) - show join new channel UI directly
+        String newChannelName = '';
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            return StatefulBuilder(
+              builder: (context, setState) => AlertDialog(
+                backgroundColor: surfaceColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Join New Channel',
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, color: subtitleColor),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _hasValidatedSection = true;
+                      },
+                    ),
+                  ],
+                ),
+                content: SingleChildScrollView(
+                  child: Container(
+                    constraints: BoxConstraints(maxWidth: 500),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          decoration: InputDecoration(
+                            labelText: 'Channel Name',
+                            labelStyle: TextStyle(color: subtitleColor),
+                            border: OutlineInputBorder(),
+                          ),
+                          style: TextStyle(color: textColor),
+                          onChanged: (val) {
+                            setState(() {
+                              newChannelName = val;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: newChannelName.trim().isNotEmpty ? Colors.blue : Colors.grey,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            ),
+                            onPressed: newChannelName.trim().isNotEmpty
+                                ? () {
+                                    // TODO: Add your join new channel logic here
+                                    Navigator.of(context).pop();
+                                    _hasValidatedSection = true;
+                                  }
+                                : null,
+                            child: Text('Join', style: TextStyle(color: Colors.white)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                actionsAlignment: MainAxisAlignment.spaceBetween,
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _hasValidatedSection = true;
+                    },
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: subtitleColor),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ).whenComplete(() {
+          _isValidatingSection = false;
         });
-        fetchDocs(channels[index]["channelname"]);
-        fetchJoinedTags(channels[index]["channelname"]);
-        _hasValidatedSection = true; // Mark as validated
       }
+    } catch (e) {
+      print("Error in validateSection: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching channel details: $e')),
+      );
     } finally {
       // Always reset the validating flag
       _isValidatingSection = false;
     }
   }
+  
+  // void validateSection() async {
+  //   secQr = widget.section;
+  //   final tagid = widget.tagid;
+  //   String? tagname = '';
+    
+  //   // Guard: prevent running if already validating or already validated
+  //   if (secQr == null || _isValidatingSection || _hasValidatedSection) return;
+    
+  //   // Set guard flags
+  //   _isValidatingSection = true;
+
+  //   try {
+  //     final details = await dashboardController.getChannelDetailsForJoin(
+  //       entityId: entityQr!,
+  //       channelName: widget.section!,
+  //       tagId: widget.tagid!,
+  //     );
+  //     if (details != null && details["channelDetails"] != null) {
+  //       newSecQr = details["channelDetails"]["newChannelName"];
+  //       tagname = details["channelDetails"]["tagName"];
+  //     }
+
+  //     final exists =
+  //         channels.any((channel) => channel['channelname'] == newSecQr);
+  //     final index =
+  //         channels.indexWhere((channel) => channel['channelname'] == newSecQr);
+      
+  //     if (!exists) {
+  //       showDialog(
+  //         context: context,
+  //         builder: (context) => AlertDialog(
+  //           backgroundColor: Colors.grey[900],
+  //           shape: RoundedRectangleBorder(
+  //             borderRadius: BorderRadius.circular(16),
+  //           ),
+  //           title: const Text(
+  //             'Channel Not Found',
+  //             style: TextStyle(
+  //               color: Colors.white,
+  //               fontWeight: FontWeight.bold,
+  //             ),
+  //           ),
+  //           content: Text(
+  //             'Channel "$newSecQr" does not exist in the available channels. Do you want to add it?',
+  //             style: const TextStyle(
+  //               color: Colors.white70,
+  //               fontSize: 14,
+  //             ),
+  //           ),
+  //           actionsPadding:
+  //               const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+  //           actionsAlignment: MainAxisAlignment.spaceBetween,
+  //           actions: [
+  //             TextButton(
+  //               onPressed: () {
+  //                 Navigator.of(context).pop();
+  //                 _hasValidatedSection = true; // Mark as validated (user declined)
+  //               },
+  //               child: const Text(
+  //                 'No',
+  //                 style: TextStyle(color: Colors.white70),
+  //               ),
+  //             ),
+  //             ElevatedButton(
+  //               style: ElevatedButton.styleFrom(
+  //                 backgroundColor: Colors.blue,
+  //                 shape: RoundedRectangleBorder(
+  //                   borderRadius: BorderRadius.circular(10),
+  //                 ),
+  //                 padding:
+  //                     const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+  //               ),
+  //               onPressed: () {
+  //                 joinNewChannel(entityQr!, secQr!, tagid, tagname, newSecQr!);
+  //                 Navigator.of(context).pop();
+  //                 _hasValidatedSection = true; // Mark as validated after joining
+  //               },
+  //               child: const Text(
+  //                 'Yes',
+  //                 style: TextStyle(color: Colors.white),
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       ).whenComplete(() {
+  //         // Reset guard when dialog closes
+  //         _isValidatingSection = false;
+  //       });
+  //     } else {
+  //       // Channel exists
+  //       addTagIfNotExist(
+  //           oldEntityId: entityQr!,
+  //           tagId: tagid!,
+  //           oldChannelName: secQr!,
+  //           newChannelName: newSecQr!,
+  //           tagName: tagname!);
+  //       setState(() {
+  //         selectedChannelIndex = index;
+  //         selectedDocIndex = null;
+  //         docs = [];
+  //         currentChatMessages = [];
+  //       });
+  //       fetchDocs(channels[index]["channelname"]);
+  //       fetchJoinedTags(channels[index]["channelname"]);
+  //       _hasValidatedSection = true; // Mark as validated
+  //     }
+  //   } finally {
+  //     // Always reset the validating flag
+  //     _isValidatingSection = false;
+  //   }
+  // }
 
   void addTagIfNotExist(
       {required String oldEntityId,

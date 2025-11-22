@@ -1660,7 +1660,9 @@ class DashboardController {
       if (response.statusCode == 200) {
         print("Reciprocal channel details fetched successfully: ${response.data}");
         logSuccess("Reciprocal channel details fetched successfully for otherUserTid '$otherUserTid', channel '$otherChannelName'");
-        return response.data; // Assuming API returns JSON object with details
+        logSuccess('Reciprocal channel details fetched successfully: ${response.data}');
+        // API returns { message, channels: [...] }
+        return response.data;
       } else if (response.statusCode == 404) {
         print("No reciprocal channel details found. Status code: ${response.statusCode}");
         logFailure("No reciprocal channel details found for otherUserTid '$otherUserTid', channel '$otherChannelName' - Status: ${response.statusCode}");
