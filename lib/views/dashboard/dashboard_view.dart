@@ -37,6 +37,8 @@ class DashboardView extends StatefulWidget {
 }
 
 class _DashboardViewState extends State<DashboardView> {
+  // Guard to ensure validateSection popup is only shown once per DashboardView instance
+  bool _hasShownValidateSectionPopup = false;
   int? selectedChannelIndex;
   int? selectedDocIndex;
   int? selectedjoinedTagIndex;
@@ -295,7 +297,8 @@ class _DashboardViewState extends State<DashboardView> {
           } else if (mounted) {
             print("No channels found.");
           }
-          if (mounted) {
+          // Only show validateSection popup once per DashboardView instance
+          if (mounted && !_hasShownValidateSectionPopup) {
             validateSection();
           }
         },
@@ -310,6 +313,8 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
   void validateSection() async {
+    // Only show the popup if it hasn't been shown yet
+    if (_hasShownValidateSectionPopup) return;
     secQr = widget.section;
     final tagid = widget.tagid;
     String? tagname = '';
@@ -334,7 +339,7 @@ class _DashboardViewState extends State<DashboardView> {
         int? selectedExistingChannelIdx;
         bool isJoinNew = false;
         String newChannelName = '';
-        showDialog(
+        await showDialog(
           context: context,
           barrierDismissible: false,
           builder: (context) {
@@ -527,12 +532,14 @@ class _DashboardViewState extends State<DashboardView> {
             );
           },
         ).whenComplete(() {
+          // Mark as shown after dialog closes, regardless of how it was closed
+          _hasShownValidateSectionPopup = true;
         });
       } else {
         // No details found (no similar channels) - show join new channel UI directly
         String newChannelName = newSecQr ?? '';
         bool isJoinNew = true;
-        showDialog(
+        await showDialog(
           context: context,
           barrierDismissible: false,
           builder: (context) {
@@ -660,14 +667,18 @@ class _DashboardViewState extends State<DashboardView> {
               ),
             );
           },
-        ).whenComplete(() {});
+        ).whenComplete(() {
+          // Mark as shown after dialog closes, regardless of how it was closed
+          _hasShownValidateSectionPopup = true;
+        });
       }
     } catch (e) {
       print("Error in validateSection: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error fetching channel details: $e')),
       );
-    } finally {
+      // Mark as shown even if error occurs, to prevent repeated popups
+      _hasShownValidateSectionPopup = true;
     }
   }
   
