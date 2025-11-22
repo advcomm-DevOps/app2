@@ -313,6 +313,8 @@ class _DashboardViewState extends State<DashboardView> {
   }
   void validateSection() async {
     secQr = widget.section;
+    final tagid = widget.tagid;
+    String? tagname = '';
 
     
     // Guard: prevent running if already validating or already validated
@@ -326,6 +328,15 @@ class _DashboardViewState extends State<DashboardView> {
         otherUserTid: entityQr!,
         otherChannelName: widget.section!
       );
+      final channelDetails = await dashboardController.getChannelDetailsForJoin(
+        entityId: entityQr!,
+        channelName: widget.section!,
+        tagId: widget.tagid!,
+      );
+      if (channelDetails != null && channelDetails["channelDetails"] != null) {
+        // newSecQr = channelDetails["channelDetails"]["newChannelName"];
+        tagname = channelDetails["channelDetails"]["tagName"];
+      }
 
       if (details != null && details['channels'] != null && details['channels'] is List && (details['channels'] as List).isNotEmpty) {
         final List channelsList = details['channels'];
@@ -427,6 +438,7 @@ class _DashboardViewState extends State<DashboardView> {
                                 onSelected: (_) {
                                   setState(() {
                                     selectedExistingChannelIdx = index;
+                                    newSecQr = channel['channelName']?.toString() ?? 'Unnamed Channel';
                                   });
                                 },
                               );
@@ -476,12 +488,29 @@ class _DashboardViewState extends State<DashboardView> {
                         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                       ),
                       onPressed: selectedExistingChannelIdx != null
-                          ? () {
-                              // Handle selecting an existing channel
-                              // TODO: Add your logic to select/navigate to the channel
-                              Navigator.of(context).pop();
-                              _hasValidatedSection = true;
-                            }
+                          ? () async {
+                              // Channel exists
+                              addTagIfNotExist(
+                                  oldEntityId: entityQr!,
+                                  tagId: tagid!,
+                                  oldChannelName: secQr!,
+                                  newChannelName: newSecQr!,
+                                  tagName: tagname!);
+                                final existsinlocal = channels.any((channel) => channel['channelname'] == newSecQr);
+                                if(existsinlocal){
+                                  final indexlocal = channels.indexWhere((channel) => channel['channelname'] == newSecQr);
+                                  setState(() {
+                                    selectedChannelIndex = indexlocal;
+                                    selectedDocIndex = null;
+                                    docs = [];
+                                    currentChatMessages = [];
+                                  });
+                                  await fetchDocs(channels[indexlocal]["channelname"]);
+                                  await fetchJoinedTags(channels[indexlocal]["channelname"]);
+                                  _hasValidatedSection = true;
+                                  Navigator.of(context).pop();
+                                }
+                              }
                           : null,
                       child: Text('Submit', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                     ),
