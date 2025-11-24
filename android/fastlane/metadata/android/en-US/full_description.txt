@@ -1,0 +1,11 @@
+XDoc is a comprehensive document management system that helps you organize, share, and collaborate on documents securely.
+
+Features:
+• Secure document storage
+• Easy sharing and collaboration
+• Cross-platform support
+• Real-time synchronization
+• Advanced search capabilities
+• User-friendly interface
+
+Perfect for individuals and teams who need efficient document management.
