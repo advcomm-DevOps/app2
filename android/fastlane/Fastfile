@@ -12,35 +12,46 @@ platform :android do
     end
   end
 
-  # Helper method to increment version code in pubspec.yaml
+  # Helper method to increment version code from Play Store
   private_lane :increment_version_code do |options|
-    min_version_code = options[:min_version_code] || 1050  # Set minimum to 1050 to avoid conflicts with existing versions
+    track = options[:track] || 'internal'  # Default to internal track
+
+    # Get the latest version code from Play Store
+    json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
+
+    begin
+      # Fetch latest version code from Play Store for the specified track
+      latest_version_code = google_play_track_version_codes(
+        package_name: "com.xdoc.app",
+        track: track,
+        json_key: json_key_file
+      ).max || 0
+
+      new_version_code = latest_version_code + 1
+      UI.success("Latest version code in Play Store (#{track}): #{latest_version_code}")
+      UI.success("New version code will be: #{new_version_code}")
+    rescue => e
+      # If we can't fetch from Play Store, use minimum version
+      UI.important("Could not fetch from Play Store: #{e.message}")
+      new_version_code = 1051
+      UI.important("Using fallback version code: #{new_version_code}")
+    end
 
     Dir.chdir("../..") do
       # Read pubspec.yaml
       pubspec_path = "pubspec.yaml"
       pubspec_content = File.read(pubspec_path)
 
-      # Extract current version (e.g., "1.0.0+8")
-      if pubspec_content =~ /^version:\s*(.+\+)(\d+)/
-        version_name = $1  # "1.0.0+"
-        version_code = $2.to_i  # 8
-
-        # Ensure version code is at least min_version_code
-        if version_code < min_version_code
-          new_version_code = min_version_code
-          UI.important("Version code #{version_code} is too low. Setting to minimum: #{min_version_code}")
-        else
-          new_version_code = version_code + 1
-        end
-
-        new_version = "#{version_name}#{new_version_code}"
+      # Extract current version name (e.g., "1.0.0+8")
+      if pubspec_content =~ /^version:\s*(.+)\+(\d+)/
+        version_name = $1  # "1.0.0"
+        new_version = "#{version_name}+#{new_version_code}"
 
         # Update pubspec.yaml
         pubspec_content.gsub!(/^version:\s*.+/, "version: #{new_version}")
         File.write(pubspec_path, pubspec_content)
 
-        UI.success("Version updated: #{new_version}")
+        UI.success("Version updated in pubspec.yaml: #{new_version}")
       else
         UI.error("Could not find version in pubspec.yaml")
       end
