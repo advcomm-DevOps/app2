@@ -6,7 +6,7 @@ platform :android do
   # Before all lanes
   before_all do
     # Ensure we're in the android directory
-    Dir.chdir("..") do
+    Dir.chdir("../..") do
       # Get Flutter dependencies
       sh("flutter pub get")
     end
@@ -14,7 +14,7 @@ platform :android do
 
   # Helper method to increment version code in pubspec.yaml
   private_lane :increment_version_code do
-    Dir.chdir("..") do
+    Dir.chdir("../..") do
       # Read pubspec.yaml
       pubspec_path = "pubspec.yaml"
       pubspec_content = File.read(pubspec_path)
@@ -44,7 +44,7 @@ platform :android do
     increment_version_code
 
     # Build the app bundle
-    Dir.chdir("..") do
+    Dir.chdir("../..") do
       sh("flutter build appbundle --release")
     end
 
@@ -71,7 +71,7 @@ platform :android do
     increment_version_code
 
     # Build the app bundle
-    Dir.chdir("..") do
+    Dir.chdir("../..") do
       sh("flutter build appbundle --release")
     end
 
@@ -95,7 +95,7 @@ platform :android do
   desc "Deploy a new version to Google Play Production"
   lane :production do
     # Build the app bundle
-    Dir.chdir("..") do
+    Dir.chdir("../..") do
       sh("flutter build appbundle --release")
     end
 
@@ -137,7 +137,7 @@ platform :android do
   # Build APK for testing
   desc "Build APK for direct installation"
   lane :build_apk do
-    Dir.chdir("..") do
+    Dir.chdir("../..") do
       sh("flutter build apk --release")
     end
 
