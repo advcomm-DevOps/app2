@@ -700,14 +700,35 @@ class DashboardController {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         print("Joined channel successfully: ${response.data}");
-        addTagIfNotExists(
-          oldEntityId: entityId,
-          tagId: tagid!,
-          oldChannelName: channelName,
-          newChannelName: newSecQr!,
-          tagName: tagname!,
-        );
-        logSuccess("Joined channel '$channelName' successfully");
+        
+        // Extract newChannelName from the response
+        final responseData = response.data as Map<String, dynamic>?;
+        final String? returnedNewChannelName = responseData?['newChannelName'];
+        
+        if (returnedNewChannelName != null) {
+          print("✅ New Channel Name from API: $returnedNewChannelName");
+          
+          // Use the returned newChannelName instead of the passed parameter
+          addTagIfNotExists(
+            oldEntityId: entityId,
+            tagId: tagid!,
+            oldChannelName: channelName,
+            newChannelName: returnedNewChannelName,
+            tagName: tagname!,
+          );
+        } else {
+          print("⚠️ newChannelName not found in response, using fallback: $newSecQr");
+          // Fallback to the passed parameter if API doesn't return it
+          addTagIfNotExists(
+            oldEntityId: entityId,
+            tagId: tagid!,
+            oldChannelName: channelName,
+            newChannelName: newSecQr!,
+            tagName: tagname!,
+          );
+        }
+        
+        logSuccess("Joined channel '$channelName' successfully - New channel name: ${returnedNewChannelName ?? newSecQr}");
         return true;
       } else {
         print("Failed to join channel: ${response.statusCode}");
@@ -1615,6 +1636,49 @@ class DashboardController {
     } catch (e) {
       print("Error fetching channel details: $e");
       logFailure("Error fetching channel details for entity '$entityId', channel '$channelName': $e");
+    }
+    return null;
+  }
+
+  Future<dynamic> getReciprocalChannelDetails({
+    required String otherUserTid,
+    required String otherChannelName,
+  }) async {
+    String token = await getJwt();
+    try {
+      dio.options.headers["Authorization"] = "Bearer $token";
+      dio.options.headers["Accept"] = "application/json";
+
+      final response = await dio.get(
+        '$apiUrl/reciprocal-channel-details',
+        queryParameters: {
+          'otherUserTid': otherUserTid,
+          'otherChannelName': otherChannelName,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print("Reciprocal channel details fetched successfully: ${response.data}");
+        logSuccess("Reciprocal channel details fetched successfully for otherUserTid '$otherUserTid', channel '$otherChannelName'");
+        logSuccess('Reciprocal channel details fetched successfully: ${response.data}');
+        // API returns { message, channels: [...] }
+        return response.data;
+      } else if (response.statusCode == 404) {
+        print("No reciprocal channel details found. Status code: ${response.statusCode}");
+        logFailure("No reciprocal channel details found for otherUserTid '$otherUserTid', channel '$otherChannelName' - Status: ${response.statusCode}");
+        return response.data;
+      } else {
+        print("Failed to fetch reciprocal channel details. Status code: ${response.statusCode}");
+        logFailure("Failed to fetch reciprocal channel details for otherUserTid '$otherUserTid', channel '$otherChannelName' - Status: ${response.statusCode}");
+      }
+    } on DioException catch (e) {
+      print("Dio error fetching reciprocal channel details: ${e.message}");
+      print("Response: ${e.response?.data}");
+      logFailure("Dio error fetching reciprocal channel details for otherUserTid '$otherUserTid', channel '$otherChannelName': ${e.message} - Response: ${e.response?.data}");
+      return e.response?.data;
+    } catch (e) {
+      print("Error fetching reciprocal channel details: $e");
+      logFailure("Error fetching reciprocal channel details for otherUserTid '$otherUserTid', channel '$otherChannelName': $e");
     }
     return null;
   }

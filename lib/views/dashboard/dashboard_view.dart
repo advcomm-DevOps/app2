@@ -37,6 +37,8 @@ class DashboardView extends StatefulWidget {
 }
 
 class _DashboardViewState extends State<DashboardView> {
+  // Guard to ensure validateSection popup is only shown once per DashboardView instance
+  bool _hasShownValidateSectionPopup = false;
   int? selectedChannelIndex;
   int? selectedDocIndex;
   int? selectedjoinedTagIndex;
@@ -46,8 +48,6 @@ class _DashboardViewState extends State<DashboardView> {
   String? entityQr = '';
   String? newSecQr = '';
   bool showRightSidebar = false;
-  bool _isValidatingSection = false; // Guard to prevent duplicate dialogs
-  bool _hasValidatedSection = false; // Track if validation already completed
 
   final dio = Dio();
   final String apiUrl = 'https://$audDomain';
@@ -297,7 +297,8 @@ class _DashboardViewState extends State<DashboardView> {
           } else if (mounted) {
             print("No channels found.");
           }
-          if (mounted) {
+          // Only show validateSection popup once per DashboardView instance
+          if (mounted && !_hasShownValidateSectionPopup) {
             validateSection();
           }
         },
@@ -313,116 +314,584 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   void validateSection() async {
+    // Only show the popup if it hasn't been shown yet
+    if (_hasShownValidateSectionPopup) return;
     secQr = widget.section;
     final tagid = widget.tagid;
     String? tagname = '';
-    
-    // Guard: prevent running if already validating or already validated
-    if (secQr == null || _isValidatingSection || _hasValidatedSection) return;
-    
-    // Set guard flags
-    _isValidatingSection = true;
 
     try {
-      final details = await dashboardController.getChannelDetailsForJoin(
+      final details = await dashboardController.getReciprocalChannelDetails(
+          otherUserTid: entityQr!, otherChannelName: widget.section!);
+      final channelDetails = await dashboardController.getChannelDetailsForJoin(
         entityId: entityQr!,
         channelName: widget.section!,
         tagId: widget.tagid!,
       );
-      if (details != null && details["channelDetails"] != null) {
-        newSecQr = details["channelDetails"]["newChannelName"];
-        tagname = details["channelDetails"]["tagName"];
+      if (channelDetails != null && channelDetails["channelDetails"] != null) {
+        newSecQr = channelDetails["channelDetails"]["newChannelName"];
+        tagname = channelDetails["channelDetails"]["tagName"];
       }
 
-      final exists =
-          channels.any((channel) => channel['channelname'] == newSecQr);
-      final index =
-          channels.indexWhere((channel) => channel['channelname'] == newSecQr);
-      
-      if (!exists) {
-        showDialog(
+      if (details != null &&
+          details['channels'] != null &&
+          details['channels'] is List &&
+          (details['channels'] as List).isNotEmpty) {
+        final List channelsList = details['channels'];
+        int? selectedExistingChannelIdx;
+        bool isJoinNew = false;
+        String newChannelName = '';
+        await showDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: Colors.grey[900],
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Text(
-              'Channel Not Found',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            content: Text(
-              'Channel "$newSecQr" does not exist in the available channels. Do you want to add it?',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
-            ),
-            actionsPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            actionsAlignment: MainAxisAlignment.spaceBetween,
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  _hasValidatedSection = true; // Mark as validated (user declined)
-                },
-                child: const Text(
-                  'No',
-                  style: TextStyle(color: Colors.white70),
+          barrierDismissible: false,
+          builder: (context) {
+            return StatefulBuilder(
+              builder: (context, setState) => AlertDialog(
+                backgroundColor: surfaceColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                title: Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    'Channel Options',
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
+                    ),
                   ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
-                onPressed: () {
-                  joinNewChannel(entityQr!, secQr!, tagid, tagname, newSecQr!);
-                  Navigator.of(context).pop();
-                  _hasValidatedSection = true; // Mark as validated after joining
-                },
-                child: const Text(
-                  'Yes',
-                  style: TextStyle(color: Colors.white),
+                content: SingleChildScrollView(
+                  child: Container(
+                    constraints: BoxConstraints(maxWidth: 600),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Toggle buttons styled as in create new channel
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: !isJoinNew
+                                      ? Colors.blueAccent
+                                      : Colors.grey[700],
+                                  foregroundColor: !isJoinNew
+                                      ? Colors.white
+                                      : Colors.white70,
+                                  side: BorderSide(
+                                      color: !isJoinNew
+                                          ? Colors.blueAccent
+                                          : Colors.grey[500]!,
+                                      width: 1.2),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20)),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    isJoinNew = false;
+                                  });
+                                },
+                                child: Text('Select Existing Channel',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13)),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: isJoinNew
+                                      ? Colors.blueAccent
+                                      : Colors.grey[700],
+                                  foregroundColor:
+                                      isJoinNew ? Colors.white : Colors.white70,
+                                  side: BorderSide(
+                                      color: isJoinNew
+                                          ? Colors.blueAccent
+                                          : Colors.grey[500]!,
+                                      width: 1.2),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20)),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    isJoinNew = true;
+                                  });
+                                },
+                                child: Text('Join New Channel',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        if (!isJoinNew) ...[
+                          Text('You already have similar channels:',
+                              style: TextStyle(
+                                  color: subtitleColor, fontSize: 15)),
+                          const SizedBox(height: 16),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children:
+                                List.generate(channelsList.length, (index) {
+                              final channel = channelsList[index];
+                              final isSelected =
+                                  selectedExistingChannelIdx == index;
+                              return ChoiceChip(
+                                label: Text(
+                                  channel['channelName']?.toString() ??
+                                      'Unnamed Channel',
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                                labelStyle: TextStyle(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.white70,
+                                ),
+                                selected: isSelected,
+                                selectedColor: Colors.green,
+                                backgroundColor: Colors.grey[700],
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                onSelected: (_) {
+                                  setState(() {
+                                    selectedExistingChannelIdx = index;
+                                    newSecQr =
+                                        channel['channelName']?.toString() ??
+                                            'Unnamed Channel';
+                                  });
+                                },
+                              );
+                            }),
+                          ),
+                        ] else ...[
+                          Text('New Channel',
+                              style: TextStyle(
+                                  color: subtitleColor, fontSize: 15)),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller:
+                                TextEditingController(text: newSecQr ?? ''),
+                            decoration: InputDecoration(
+                              labelText: 'Channel Name',
+                              labelStyle: TextStyle(color: subtitleColor),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                            ),
+                            style: TextStyle(color: textColor),
+                            onChanged: (val) {
+                              setState(() {
+                                newChannelName = val;
+                              });
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
+                actionsPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                actionsAlignment: MainAxisAlignment.spaceBetween,
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: subtitleColor),
+                    ),
+                  ),
+                  if (!isJoinNew)
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: selectedExistingChannelIdx != null
+                            ? Colors.blue
+                            : Colors.grey,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 28, vertical: 14),
+                      ),
+                      onPressed: selectedExistingChannelIdx != null
+                          ? () async {
+                              // Channel exists
+                              addTagIfNotExist(
+                                  oldEntityId: entityQr!,
+                                  tagId: tagid!,
+                                  oldChannelName: secQr!,
+                                  newChannelName: newSecQr!,
+                                  tagName: tagname!);
+                              final existsinlocal = channels.any((channel) =>
+                                  channel['channelname'] == newSecQr);
+                              if (existsinlocal) {
+                                final indexlocal = channels.indexWhere(
+                                    (channel) =>
+                                        channel['channelname'] == newSecQr);
+                                setState(() {
+                                  selectedChannelIndex = indexlocal;
+                                  selectedDocIndex = null;
+                                  docs = [];
+                                  currentChatMessages = [];
+                                });
+                                await fetchDocs(
+                                    channels[indexlocal]["channelname"]);
+                                await fetchJoinedTags(
+                                    channels[indexlocal]["channelname"]);
+                                Navigator.of(context).pop();
+                              }
+                            }
+                          : null,
+                      child: Text('Submit',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                  if (isJoinNew)
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: newChannelName.trim().isNotEmpty
+                            ? Colors.blue
+                            : Colors.grey,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 28, vertical: 14),
+                      ),
+                      onPressed: newChannelName.trim().isNotEmpty
+                          ? () {
+                              // TODO: Add your join new channel logic here
+                              joinNewChannel(
+                                  entityQr!, secQr!, tagid, tagname, newSecQr);
+                              Navigator.of(context).pop();
+                            }
+                          : null,
+                      child: Text('Join',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ).whenComplete(() {
-          // Reset guard when dialog closes
-          _isValidatingSection = false;
+          // Mark as shown after dialog closes, regardless of how it was closed
+          _hasShownValidateSectionPopup = true;
         });
       } else {
-        // Channel exists
-        addTagIfNotExist(
-            oldEntityId: entityQr!,
-            tagId: tagid!,
-            oldChannelName: secQr!,
-            newChannelName: newSecQr!,
-            tagName: tagname!);
-        setState(() {
-          selectedChannelIndex = index;
-          selectedDocIndex = null;
-          docs = [];
-          currentChatMessages = [];
+        // No details found (no similar channels) - show join new channel UI directly
+        String newChannelName = newSecQr ?? '';
+        bool isJoinNew = true;
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            return StatefulBuilder(
+              builder: (context, setState) => AlertDialog(
+                backgroundColor: surfaceColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                title: Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    'Channel Options',
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
+                    ),
+                  ),
+                ),
+                content: SingleChildScrollView(
+                  child: Container(
+                    constraints: BoxConstraints(maxWidth: 600),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Toggle buttons styled as in create new channel
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: !isJoinNew
+                                      ? Colors.blueAccent
+                                      : Colors.grey[700],
+                                  foregroundColor: !isJoinNew
+                                      ? Colors.white
+                                      : Colors.white70,
+                                  side: BorderSide(
+                                      color: !isJoinNew
+                                          ? Colors.blueAccent
+                                          : Colors.grey[500]!,
+                                      width: 1.2),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20)),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    isJoinNew = false;
+                                  });
+                                },
+                                child: Text('Select Existing Channel',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13)),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: isJoinNew
+                                      ? Colors.blueAccent
+                                      : Colors.grey[700],
+                                  foregroundColor:
+                                      isJoinNew ? Colors.white : Colors.white70,
+                                  side: BorderSide(
+                                      color: isJoinNew
+                                          ? Colors.blueAccent
+                                          : Colors.grey[500]!,
+                                      width: 1.2),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20)),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    isJoinNew = true;
+                                  });
+                                },
+                                child: Text('Join New Channel',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        if (isJoinNew) ...[
+                          Text('New Channel',
+                              style: TextStyle(
+                                  color: subtitleColor, fontSize: 15)),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller:
+                                TextEditingController(text: newChannelName),
+                            decoration: InputDecoration(
+                              labelText: 'Channel Name',
+                              labelStyle: TextStyle(color: subtitleColor),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                            ),
+                            style: TextStyle(color: textColor),
+                            onChanged: (val) {
+                              setState(() {
+                                newChannelName = val;
+                              });
+                            },
+                          ),
+                        ] else ...[
+                          Text('No similar channels found.',
+                              style: TextStyle(
+                                  color: subtitleColor, fontSize: 15)),
+                          const SizedBox(height: 16),
+                          Text('You can only join a new channel at this time.',
+                              style: TextStyle(color: subtitleColor)),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                actionsPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                actionsAlignment: MainAxisAlignment.spaceBetween,
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: subtitleColor),
+                    ),
+                  ),
+                  if (isJoinNew)
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: newChannelName.trim().isNotEmpty
+                            ? Colors.blue
+                            : Colors.grey,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 28, vertical: 14),
+                      ),
+                      onPressed: newChannelName.trim().isNotEmpty
+                          ? () {
+                              joinNewChannel(entityQr!, secQr!, tagid, tagname,
+                                  newChannelName);
+                              Navigator.of(context).pop();
+                            }
+                          : null,
+                      child: Text('Join',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                ],
+              ),
+            );
+          },
+        ).whenComplete(() {
+          // Mark as shown after dialog closes, regardless of how it was closed
+          _hasShownValidateSectionPopup = true;
         });
-        fetchDocs(channels[index]["channelname"]);
-        fetchJoinedTags(channels[index]["channelname"]);
-        _hasValidatedSection = true; // Mark as validated
       }
-    } finally {
-      // Always reset the validating flag
-      _isValidatingSection = false;
+    } catch (e) {
+      print("Error in validateSection: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching channel details: $e')),
+      );
+      // Mark as shown even if error occurs, to prevent repeated popups
+      _hasShownValidateSectionPopup = true;
     }
   }
+
+  // void validateSection() async {
+  //   secQr = widget.section;
+  //   final tagid = widget.tagid;
+  //   String? tagname = '';
+
+  //   // Guard: prevent running if already validating or already validated
+  //   if (secQr == null || _isValidatingSection || _hasValidatedSection) return;
+
+  //   // Set guard flags
+  //   _isValidatingSection = true;
+
+  //   try {
+  //     final details = await dashboardController.getChannelDetailsForJoin(
+  //       entityId: entityQr!,
+  //       channelName: widget.section!,
+  //       tagId: widget.tagid!,
+  //     );
+  //     if (details != null && details["channelDetails"] != null) {
+  //       newSecQr = details["channelDetails"]["newChannelName"];
+  //       tagname = details["channelDetails"]["tagName"];
+  //     }
+
+  //     final exists =
+  //         channels.any((channel) => channel['channelname'] == newSecQr);
+  //     final index =
+  //         channels.indexWhere((channel) => channel['channelname'] == newSecQr);
+
+  //     if (!exists) {
+  //       showDialog(
+  //         context: context,
+  //         builder: (context) => AlertDialog(
+  //           backgroundColor: Colors.grey[900],
+  //           shape: RoundedRectangleBorder(
+  //             borderRadius: BorderRadius.circular(16),
+  //           ),
+  //           title: const Text(
+  //             'Channel Not Found',
+  //             style: TextStyle(
+  //               color: Colors.white,
+  //               fontWeight: FontWeight.bold,
+  //             ),
+  //           ),
+  //           content: Text(
+  //             'Channel "$newSecQr" does not exist in the available channels. Do you want to add it?',
+  //             style: const TextStyle(
+  //               color: Colors.white70,
+  //               fontSize: 14,
+  //             ),
+  //           ),
+  //           actionsPadding:
+  //               const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+  //           actionsAlignment: MainAxisAlignment.spaceBetween,
+  //           actions: [
+  //             TextButton(
+  //               onPressed: () {
+  //                 Navigator.of(context).pop();
+  //                 _hasValidatedSection = true; // Mark as validated (user declined)
+  //               },
+  //               child: const Text(
+  //                 'No',
+  //                 style: TextStyle(color: Colors.white70),
+  //               ),
+  //             ),
+  //             ElevatedButton(
+  //               style: ElevatedButton.styleFrom(
+  //                 backgroundColor: Colors.blue,
+  //                 shape: RoundedRectangleBorder(
+  //                   borderRadius: BorderRadius.circular(10),
+  //                 ),
+  //                 padding:
+  //                     const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+  //               ),
+  //               onPressed: () {
+  //                 joinNewChannel(entityQr!, secQr!, tagid, tagname, newSecQr!);
+  //                 Navigator.of(context).pop();
+  //                 _hasValidatedSection = true; // Mark as validated after joining
+  //               },
+  //               child: const Text(
+  //                 'Yes',
+  //                 style: TextStyle(color: Colors.white),
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       ).whenComplete(() {
+  //         // Reset guard when dialog closes
+  //         _isValidatingSection = false;
+  //       });
+  //     } else {
+  //       // Channel exists
+  //       addTagIfNotExist(
+  //           oldEntityId: entityQr!,
+  //           tagId: tagid!,
+  //           oldChannelName: secQr!,
+  //           newChannelName: newSecQr!,
+  //           tagName: tagname!);
+  //       setState(() {
+  //         selectedChannelIndex = index;
+  //         selectedDocIndex = null;
+  //         docs = [];
+  //         currentChatMessages = [];
+  //       });
+  //       fetchDocs(channels[index]["channelname"]);
+  //       fetchJoinedTags(channels[index]["channelname"]);
+  //       _hasValidatedSection = true; // Mark as validated
+  //     }
+  //   } finally {
+  //     // Always reset the validating flag
+  //     _isValidatingSection = false;
+  //   }
+  // }
 
   void addTagIfNotExist(
       {required String oldEntityId,
@@ -448,17 +917,17 @@ class _DashboardViewState extends State<DashboardView> {
         // Don't call fetchChannels() here - it will trigger validateSection again
         // Instead, just refresh the channels list without triggering validation
         setState(() {
-          secQr = null; // set to null after joining
-          _hasValidatedSection = true; // Ensure validation doesn't run again
+          secQr = null;
         });
-        
+
         // Manually fetch channels without triggering stream listener
         dashboardController.fetchChannelsStream().first.then((data) {
           if (mounted) {
             setState(() {
               channels = data;
               // Select the newly joined channel
-              final index = channels.indexWhere((c) => c['channelname'] == newSecQr);
+              final index =
+                  channels.indexWhere((c) => c['channelname'] == newSecQr);
               if (index != -1) {
                 selectedChannelIndex = index;
                 fetchDocs(channels[index]["channelname"]);
@@ -467,7 +936,7 @@ class _DashboardViewState extends State<DashboardView> {
             });
           }
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Section "$sectionName" added to channels.')),
         );
@@ -3353,7 +3822,7 @@ class _DashboardViewState extends State<DashboardView> {
                 });
                 getDocumentDetails(item["docid"], docRelativeIndex);
               }
-              
+
               // Navigate to chat view on mobile
               if (isMobileDevice(context)) {
                 _navigateToMobileView(MobileView.chat);
@@ -3553,6 +4022,7 @@ class _DashboardViewState extends State<DashboardView> {
                     children: [
                       InkWell(
                         onTap: () {
+                          InAppWebViewController? webViewController;
                           showDialog(
                             context: context,
                             builder: (context) => AlertDialog(
@@ -3563,9 +4033,12 @@ class _DashboardViewState extends State<DashboardView> {
                                     MediaQuery.of(context).size.height * 0.6,
                                 child: InAppWebView(
                                   initialData: InAppWebViewInitialData(
-                                    data: appendScriptWithHtml(htmlForm),
+                                    data: appendScriptWithHtml(htmlForm,
+                                        isSubmitButtonNeeded: true),
                                   ),
                                   onWebViewCreated: (controller) {
+                                    webViewController =
+                                        controller; // Store controller reference
                                     if (!kIsWeb) {
                                       controller.addJavaScriptHandler(
                                         handlerName: 'setupMessageChannel',
@@ -3621,6 +4094,74 @@ class _DashboardViewState extends State<DashboardView> {
                                 TextButton(
                                   onPressed: () => Navigator.pop(context),
                                   child: Text(tr('Close')),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    // Trigger form submission using the global function
+                                    if (webViewController != null) {
+                                      try {
+                                        await webViewController!
+                                            .evaluateJavascript(source: '''
+                                              console.log('🎯 Submit button clicked from Flutter');
+                                              if (typeof window.triggerFormSubmit === 'function') {
+                                                window.triggerFormSubmit();
+                                              } else {
+                                                console.log('⚠️ triggerFormSubmit function not ready, using fallback...');
+                                                // Fallback to direct form submission
+                                                var form = document.querySelector('form');
+                                                if (form) {
+                                                  console.log('📋 Found form, dispatching submit event...');
+                                                  var submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                                                  form.dispatchEvent(submitEvent);
+                                                } else {
+                                                  console.log('❌ No form found');
+                                                  alert('No form found to submit');
+                                                }
+                                              }
+                                            ''');
+
+                                        // Show user feedback
+                                        // ScaffoldMessenger.of(context).showSnackBar(
+                                        //   const SnackBar(
+                                        //     content: Text('Form submission triggered'),
+                                        //     backgroundColor: Colors.blue,
+                                        //   ),
+                                        // );
+                                      } catch (e) {
+                                        print(
+                                            'Error triggering form submission: $e');
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                                'Error triggering form submission: $e'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    } else {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              'WebView not ready. Please wait and try again.'),
+                                          backgroundColor: Colors.orange,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20, vertical: 12),
+                                  ),
+                                  child: const Text(
+                                    'Submit',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                                 ),
                               ],
                             ),
@@ -4092,7 +4633,7 @@ class _DashboardViewState extends State<DashboardView> {
   Widget _buildChannelItem(int index) {
     bool isSelected = selectedChannelIndex == index;
     final isMobile = isMobileDevice(context);
-    
+
     return Padding(
       padding: EdgeInsets.symmetric(vertical: isMobile ? 8.0 : 6.0),
       child: Stack(
@@ -4107,7 +4648,7 @@ class _DashboardViewState extends State<DashboardView> {
               });
               fetchDocs(channels[index]["channelname"]);
               fetchJoinedTags(channels[index]["channelname"]);
-              
+
               // Navigate to documents view on mobile
               if (isMobileDevice(context)) {
                 _navigateToMobileView(MobileView.documents);
@@ -4133,13 +4674,14 @@ class _DashboardViewState extends State<DashboardView> {
                       : null,
                 ),
                 margin: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 10),
-                width: isMobile 
+                width: isMobile
                     ? MediaQuery.of(context).size.width - 24
                     : (isSidebarCollapsed
-                        ? 75.0
-                        : (MediaQuery.of(context).size.width > 1200
-                            ? 160.0
-                            : 140.0)) - 20,
+                            ? 75.0
+                            : (MediaQuery.of(context).size.width > 1200
+                                ? 160.0
+                                : 140.0)) -
+                        20,
                 height: isMobile ? 64 : 50,
                 alignment: Alignment.center,
                 padding: EdgeInsets.symmetric(
@@ -6149,7 +6691,7 @@ class _DashboardViewState extends State<DashboardView> {
   Widget _buildMainLayout(bool hasChannels, BoxConstraints constraints) {
     // Check if mobile
     final isMobile = isMobileDevice(context);
-    
+
     // Dynamic sidebar width based on screen size and collapse state
     final normalSidebarWidth = constraints.maxWidth > 1200 ? 160.0 : 140.0;
     final collapsedSidebarWidth = 75.0; // Width when collapsed
@@ -6160,7 +6702,7 @@ class _DashboardViewState extends State<DashboardView> {
     if (_docsWidth == 250.0) {
       _docsWidth = constraints.maxWidth > 1200 ? 280.0 : 220.0;
     }
-    
+
     // On mobile, make panels full width
     final mobileSidebarWidth = isMobile ? constraints.maxWidth : sidebarWidth;
 
@@ -6174,153 +6716,154 @@ class _DashboardViewState extends State<DashboardView> {
                 width: mobileSidebarWidth,
                 color: backgroundColor,
                 child: Column(
-                children: [
-                  // Logo Section (always visible)
-                  Padding(
-                    padding:
-                        const EdgeInsets.only(left: 8.0, right: 8.0, top: 8.0),
-                    child: CircleAvatar(
-                      radius: isSidebarCollapsed
-                          ? 18
-                          : (constraints.maxWidth > 1200 ? 24 : 20),
-                      backgroundColor: Colors.transparent,
-                      child: SvgPicture.asset(
-                        'assets/images/xdoc_logo.svg',
-                        width: isSidebarCollapsed
-                            ? 28
-                            : (constraints.maxWidth > 1200 ? 40 : 32),
-                        height: isSidebarCollapsed
-                            ? 28
-                            : (constraints.maxWidth > 1200 ? 40 : 32),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  // Channels List
-                  Expanded(
-                    child: hasChannels
-                        ? Builder(
-                            builder: (context) {
-                              // Separate channels by actorsequence
-                              final channelsSeq0 = <int>[];
-                              final channelsSeq1 = <int>[];
-
-                              for (int i = 0; i < channels.length; i++) {
-                                final actorSequence =
-                                    channels[i]["actorsequence"];
-                                if (actorSequence == 0) {
-                                  channelsSeq0.add(i);
-                                } else if (actorSequence == 1) {
-                                  channelsSeq1.add(i);
-                                }
-                              }
-
-                              return ListView(
-                                children: [
-                                  // Heading for actorsequence 0 (Sent Items)
-                                  if (channelsSeq0.isNotEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 8),
-                                      child: Text(
-                                        "Sent Items",
-                                        style: TextStyle(
-                                          color: subtitleColor,
-                                          fontSize:
-                                              isSidebarCollapsed ? 10 : 12,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 0.5,
-                                        ),
-                                        textAlign: TextAlign.left,
-                                      ),
-                                    ),
-
-                                  // Channels with actorsequence 0
-                                  ...channelsSeq0
-                                      .map((index) => _buildChannelItem(index)),
-
-                                  // Separator (only show if both groups have channels)
-                                  // if (channelsSeq0.isNotEmpty && channelsSeq1.isNotEmpty)
-                                  //   Padding(
-                                  //     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                  //     child: Container(
-                                  //       height: 1,
-                                  //       color: borderColor,
-                                  //     ),
-                                  //   ),
-
-                                  // Heading for actorsequence 1 (Inboxes)
-                                  if (channelsSeq1.isNotEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 8),
-                                      child: Text(
-                                        "Inboxes",
-                                        style: TextStyle(
-                                          color: subtitleColor,
-                                          fontSize:
-                                              isSidebarCollapsed ? 10 : 12,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 0.5,
-                                        ),
-                                        textAlign: TextAlign.left,
-                                      ),
-                                    ),
-
-                                  // Channels with actorsequence 1
-                                  ...channelsSeq1
-                                      .map((index) => _buildChannelItem(index)),
-                                ],
-                              );
-                            },
-                          )
-                        : Center(
-                            child: Text(
-                              "No Channels",
-                              style:
-                                  TextStyle(color: subtitleColor, fontSize: 12),
-                            ),
-                          ),
-                  ),
-                  // Add Channel Button (bottom)
-                  Padding(
-                    padding: EdgeInsets.all(isMobile ? 12.0 : 8.0),
-                    child: GestureDetector(
-                      onTap: () => _showCreateChannelDialog(context),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          borderRadius: BorderRadius.circular(12),
+                  children: [
+                    // Logo Section (always visible)
+                    Padding(
+                      padding: const EdgeInsets.only(
+                          left: 8.0, right: 8.0, top: 8.0),
+                      child: CircleAvatar(
+                        radius: isSidebarCollapsed
+                            ? 18
+                            : (constraints.maxWidth > 1200 ? 24 : 20),
+                        backgroundColor: Colors.transparent,
+                        child: SvgPicture.asset(
+                          'assets/images/xdoc_logo.svg',
+                          width: isSidebarCollapsed
+                              ? 28
+                              : (constraints.maxWidth > 1200 ? 40 : 32),
+                          height: isSidebarCollapsed
+                              ? 28
+                              : (constraints.maxWidth > 1200 ? 40 : 32),
                         ),
-                        width: mobileSidebarWidth - (isMobile ? 24 : 20),
-                        height: isMobile ? 60 : 50,
-                        child: isSidebarCollapsed && !isMobile
-                            ? const Icon(Icons.add,
-                                color: Colors.white, size: 20)
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.add,
-                                      color: Colors.white, size: isMobile ? 24 : 20),
-                                  SizedBox(width: isMobile ? 12 : 8),
-                                  Text(
-                                    'Add Channel',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: isMobile ? 16 : 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
                       ),
                     ),
-                  ),
-                  // Discord-like settings area for left sidebar
-                  _buildLeftSidebarSettingsArea(mobileSidebarWidth),
-                ],
+                    const SizedBox(height: 10),
+                    // Channels List
+                    Expanded(
+                      child: hasChannels
+                          ? Builder(
+                              builder: (context) {
+                                // Separate channels by actorsequence
+                                final channelsSeq0 = <int>[];
+                                final channelsSeq1 = <int>[];
+
+                                for (int i = 0; i < channels.length; i++) {
+                                  final actorSequence =
+                                      channels[i]["actorsequence"];
+                                  if (actorSequence == 0) {
+                                    channelsSeq0.add(i);
+                                  } else if (actorSequence == 1) {
+                                    channelsSeq1.add(i);
+                                  }
+                                }
+
+                                return ListView(
+                                  children: [
+                                    // Heading for actorsequence 0 (Sent Items)
+                                    if (channelsSeq0.isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 8),
+                                        child: Text(
+                                          "Sent Items",
+                                          style: TextStyle(
+                                            color: subtitleColor,
+                                            fontSize:
+                                                isSidebarCollapsed ? 10 : 12,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 0.5,
+                                          ),
+                                          textAlign: TextAlign.left,
+                                        ),
+                                      ),
+
+                                    // Channels with actorsequence 0
+                                    ...channelsSeq0.map(
+                                        (index) => _buildChannelItem(index)),
+
+                                    // Separator (only show if both groups have channels)
+                                    // if (channelsSeq0.isNotEmpty && channelsSeq1.isNotEmpty)
+                                    //   Padding(
+                                    //     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                    //     child: Container(
+                                    //       height: 1,
+                                    //       color: borderColor,
+                                    //     ),
+                                    //   ),
+
+                                    // Heading for actorsequence 1 (Inboxes)
+                                    if (channelsSeq1.isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 8),
+                                        child: Text(
+                                          "Inboxes",
+                                          style: TextStyle(
+                                            color: subtitleColor,
+                                            fontSize:
+                                                isSidebarCollapsed ? 10 : 12,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 0.5,
+                                          ),
+                                          textAlign: TextAlign.left,
+                                        ),
+                                      ),
+
+                                    // Channels with actorsequence 1
+                                    ...channelsSeq1.map(
+                                        (index) => _buildChannelItem(index)),
+                                  ],
+                                );
+                              },
+                            )
+                          : Center(
+                              child: Text(
+                                "No Channels",
+                                style: TextStyle(
+                                    color: subtitleColor, fontSize: 12),
+                              ),
+                            ),
+                    ),
+                    // Add Channel Button (bottom)
+                    Padding(
+                      padding: EdgeInsets.all(isMobile ? 12.0 : 8.0),
+                      child: GestureDetector(
+                        onTap: () => _showCreateChannelDialog(context),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          width: mobileSidebarWidth - (isMobile ? 24 : 20),
+                          height: isMobile ? 60 : 50,
+                          child: isSidebarCollapsed && !isMobile
+                              ? const Icon(Icons.add,
+                                  color: Colors.white, size: 20)
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add,
+                                        color: Colors.white,
+                                        size: isMobile ? 24 : 20),
+                                    SizedBox(width: isMobile ? 12 : 8),
+                                    Text(
+                                      'Add Channel',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: isMobile ? 16 : 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ),
+                    // Discord-like settings area for left sidebar
+                    _buildLeftSidebarSettingsArea(mobileSidebarWidth),
+                  ],
+                ),
               ),
-            ),
             // Vertical divider between Left Sidebar and Middle Panel
             if (!isMobile)
               Container(
@@ -6336,118 +6879,119 @@ class _DashboardViewState extends State<DashboardView> {
                   children: [
                     // Mobile back button for documents view
                     if (isMobile && _currentMobileView == MobileView.documents)
-                      _buildMobileBackButton('Back to Channels', MobileView.channels),
-                  // Show compose button if "Sent" channel is selected
-                  // if (selectedChannelIndex != null &&
-                  //     channels[selectedChannelIndex!]["channelname"] == "Sent")
-                  if (selectedChannelIndex != null &&
-                      channels[selectedChannelIndex!]["actorsequence"] == 0)
-                    Container(
-                      padding: const EdgeInsets.all(16.0),
-                      child: _docsWidth > 150
-                          ? ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue[600],
-                                minimumSize: const Size(double.infinity, 45),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                      _buildMobileBackButton(
+                          'Back to Channels', MobileView.channels),
+                    // Show compose button if "Sent" channel is selected
+                    // if (selectedChannelIndex != null &&
+                    //     channels[selectedChannelIndex!]["channelname"] == "Sent")
+                    if (selectedChannelIndex != null &&
+                        channels[selectedChannelIndex!]["actorsequence"] == 0)
+                      Container(
+                        padding: const EdgeInsets.all(16.0),
+                        child: _docsWidth > 150
+                            ? ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue[600],
+                                  minimumSize: const Size(double.infinity, 45),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
-                              ),
-                              icon: const Icon(Icons.add, color: Colors.white),
-                              label: const Text(
-                                'Document',
-                                style: TextStyle(
-                                    fontSize: 16, color: Colors.white),
-                              ),
-                              onPressed: () {
-                                // Show compose dialog instead of toggling mode
-                                _showComposeDialog(context);
-                              },
-                            )
-                          : ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue[600],
-                                minimumSize: const Size(double.infinity, 45),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                icon:
+                                    const Icon(Icons.add, color: Colors.white),
+                                label: const Text(
+                                  'Document',
+                                  style: TextStyle(
+                                      fontSize: 16, color: Colors.white),
                                 ),
-                                padding: EdgeInsets.zero,
-                              ),
-                              onPressed: () {
-                                // Show compose dialog instead of toggling mode
-                                _showComposeDialog(context);
-                              },
-                              child: const Center(
-                                child: Icon(Icons.add,
-                                    color: Colors.white, size: 24),
-                              ),
-                            ),
-                    ),
-                  buildDocsListOrTagsList(),
-                  // Search input at bottom of middle panel
-                  Container(
-                    padding: const EdgeInsets.all(12.0),
-                    decoration: BoxDecoration(
-                      color: surfaceColor,
-                      border: Border(
-                        top: BorderSide(color: borderColor, width: 1),
-                      ),
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      style: TextStyle(color: textColor, fontSize: 14),
-                      decoration: InputDecoration(
-                        hintText: 'Search documents and tags...',
-                        hintStyle:
-                            TextStyle(color: subtitleColor, fontSize: 14),
-                        prefixIcon:
-                            Icon(Icons.search, color: subtitleColor, size: 20),
-                        suffixIcon: searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: Icon(Icons.clear,
-                                    color: subtitleColor, size: 18),
                                 onPressed: () {
-                                  setState(() {
-                                    searchQuery = '';
-                                    _searchController.clear();
-                                  });
+                                  // Show compose dialog instead of toggling mode
+                                  _showComposeDialog(context);
                                 },
                               )
-                            : null,
-                        filled: true,
-                        fillColor: cardColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: borderColor),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: borderColor),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              BorderSide(color: primaryAccent, width: 2),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        isDense: true,
+                            : ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue[600],
+                                  minimumSize: const Size(double.infinity, 45),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                ),
+                                onPressed: () {
+                                  // Show compose dialog instead of toggling mode
+                                  _showComposeDialog(context);
+                                },
+                                child: const Center(
+                                  child: Icon(Icons.add,
+                                      color: Colors.white, size: 24),
+                                ),
+                              ),
                       ),
-                      onChanged: (value) {
-                        setState(() {
-                          searchQuery = value;
-                        });
-                      },
+                    buildDocsListOrTagsList(),
+                    // Search input at bottom of middle panel
+                    Container(
+                      padding: const EdgeInsets.all(12.0),
+                      decoration: BoxDecoration(
+                        color: surfaceColor,
+                        border: Border(
+                          top: BorderSide(color: borderColor, width: 1),
+                        ),
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        style: TextStyle(color: textColor, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: 'Search documents and tags...',
+                          hintStyle:
+                              TextStyle(color: subtitleColor, fontSize: 14),
+                          prefixIcon: Icon(Icons.search,
+                              color: subtitleColor, size: 20),
+                          suffixIcon: searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: Icon(Icons.clear,
+                                      color: subtitleColor, size: 18),
+                                  onPressed: () {
+                                    setState(() {
+                                      searchQuery = '';
+                                      _searchController.clear();
+                                    });
+                                  },
+                                )
+                              : null,
+                          filled: true,
+                          fillColor: cardColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: borderColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: borderColor),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide:
+                                BorderSide(color: primaryAccent, width: 2),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          isDense: true,
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            searchQuery = value;
+                          });
+                        },
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
             // Resizable divider between Middle Panel and Right Panel
-            if (!isMobile)
-              _buildResizableDivider(),
+            if (!isMobile) _buildResizableDivider(),
             // Right Panel (Chat Panel) - Show on desktop OR mobile chat view
             if (!isMobile || _currentMobileView == MobileView.chat)
               Expanded(
@@ -6459,98 +7003,100 @@ class _DashboardViewState extends State<DashboardView> {
                         top: 0,
                         left: 0,
                         right: 0,
-                        child: _buildMobileBackButton('Back to Documents', MobileView.documents),
+                        child: _buildMobileBackButton(
+                            'Back to Documents', MobileView.documents),
                       ),
                     // Chat content
                     Container(
-                      margin: isMobile && _currentMobileView == MobileView.chat 
-                        ? EdgeInsets.only(top: 56) // Add margin for back button
-                        : EdgeInsets.zero,
+                      margin: isMobile && _currentMobileView == MobileView.chat
+                          ? EdgeInsets.only(
+                              top: 56) // Add margin for back button
+                          : EdgeInsets.zero,
                       color: cardColor,
-                    child: (selectedChannelIndex == null)
-                        ? Center(
-                            child: Text(
-                              "Please select a channel",
-                              style: TextStyle(color: textColor),
-                            ),
-                          )
-                        : ((selectedChannelIndex != null &&
-                                    channels[selectedChannelIndex!]
-                                            ["actorsequence"] ==
-                                        1
-                                ? isDocsLoading
-                                : isjoinedTagsLoading))
-                            ? const Center(child: CircularProgressIndicator())
-                            : ((selectedChannelIndex != null &&
-                                        channels[selectedChannelIndex!]
-                                                ["actorsequence"] ==
-                                            1
-                                    ? (selectedDocIndex == null)
-                                    : (selectedjoinedTagIndex == null)))
-                                ? Center(
-                                    child: Text(
-                                      "Please select a doc",
-                                      style: TextStyle(color: textColor),
-                                    ),
-                                  )
-                                : buildChatColumn(),
-                  ),
-                  // Top-Right Button (Menu button for right sidebar)
-                  if (selectedChannelIndex != null &&
-                      (channels[selectedChannelIndex!]["actorsequence"] == 1
-                          ? selectedDocIndex != null
-                          : selectedjoinedTagIndex != null))
-                    Positioned(
-                      top: 10,
-                      right: 10,
-                      child: IconButton(
-                        icon: Icon(Icons.menu_open, color: textColor),
-                        onPressed: () {
-                          setState(() {
-                            showRightSidebar = true;
-                          });
-                        },
-                        tooltip: 'Document Status',
-                      ),
+                      child: (selectedChannelIndex == null)
+                          ? Center(
+                              child: Text(
+                                "Please select a channel",
+                                style: TextStyle(color: textColor),
+                              ),
+                            )
+                          : ((selectedChannelIndex != null &&
+                                      channels[selectedChannelIndex!]
+                                              ["actorsequence"] ==
+                                          1
+                                  ? isDocsLoading
+                                  : isjoinedTagsLoading))
+                              ? const Center(child: CircularProgressIndicator())
+                              : ((selectedChannelIndex != null &&
+                                          channels[selectedChannelIndex!]
+                                                  ["actorsequence"] ==
+                                              1
+                                      ? (selectedDocIndex == null)
+                                      : (selectedjoinedTagIndex == null)))
+                                  ? Center(
+                                      child: Text(
+                                        "Please select a doc",
+                                        style: TextStyle(color: textColor),
+                                      ),
+                                    )
+                                  : buildChatColumn(),
                     ),
-                  // Right Sidebar Overlay
-                  if (showRightSidebar)
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      bottom: 0,
-                      width: constraints.maxWidth > 1200 ? 350 : 300,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: surfaceColor,
+                    // Top-Right Button (Menu button for right sidebar)
+                    if (selectedChannelIndex != null &&
+                        (channels[selectedChannelIndex!]["actorsequence"] == 1
+                            ? selectedDocIndex != null
+                            : selectedjoinedTagIndex != null))
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: IconButton(
+                          icon: Icon(Icons.menu_open, color: textColor),
+                          onPressed: () {
+                            setState(() {
+                              showRightSidebar = true;
+                            });
+                          },
+                          tooltip: 'Document Status',
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.close, color: textColor),
-                              onPressed: () {
-                                setState(() {
-                                  showRightSidebar = false;
-                                });
-                              },
-                            ),
-                            Expanded(
-                              child: SingleChildScrollView(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: buildDocStatusTree(
-                                      currentDocStatus: "underprocess"),
+                      ),
+                    // Right Sidebar Overlay
+                    if (showRightSidebar)
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        bottom: 0,
+                        width: constraints.maxWidth > 1200 ? 350 : 300,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: surfaceColor,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.close, color: textColor),
+                                onPressed: () {
+                                  setState(() {
+                                    showRightSidebar = false;
+                                  });
+                                },
+                              ),
+                              Expanded(
+                                child: SingleChildScrollView(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: buildDocStatusTree(
+                                        currentDocStatus: "underprocess"),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
           ],
         ),
         // Small button positioned at the divider line in front of logo (hide on mobile)
@@ -6586,7 +7132,9 @@ class _DashboardViewState extends State<DashboardView> {
                     });
                   },
                   child: Icon(
-                    isSidebarCollapsed ? Icons.chevron_right : Icons.chevron_left,
+                    isSidebarCollapsed
+                        ? Icons.chevron_right
+                        : Icons.chevron_left,
                     color: Colors.white,
                     size: 16,
                   ),
