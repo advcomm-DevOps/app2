@@ -319,6 +319,11 @@ class _DashboardViewState extends State<DashboardView> {
   void validateSection() async {
     // Only show the popup if it hasn't been shown yet
     if (_hasShownValidateSectionPopup) return;
+    // Defensive null checks for required widget fields
+    if (widget.section == null || widget.entity == null || widget.tagid == null) {
+      _hasShownValidateSectionPopup = true;
+      return;
+    }
     secQr = widget.section;
     final tagid = widget.tagid;
     String? tagname = '';
