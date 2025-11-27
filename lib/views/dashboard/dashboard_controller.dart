@@ -1298,9 +1298,10 @@ class DashboardController {
 
   Future<bool> createEncryptedDocument({
     required String entityName,
+    required String fromChannelName,
     required String channelName,
     String? tagId,
-    required String submittedData,
+    required String submittedData
   }) async {
     print('Creating encrypted document with entityName: $entityName, channelName: $channelName, tagId: $tagId');
     
@@ -1454,7 +1455,7 @@ class DashboardController {
       }
       
       final response = await dio.post(
-        '$apiUrl/create-encrypted-document',
+        '$apiUrl/create-encrypted-document/$fromChannelName',
         data: jsonBody,
       );
 

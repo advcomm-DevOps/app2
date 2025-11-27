@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:go_router/go_router.dart';
 import 'package:xdoc/custom/constants.dart';
 import 'package:xdoc/core/services/theme_service.dart';
 import 'package:xdoc/custom/services/rsa.dart';
@@ -67,6 +68,9 @@ class _DashboardViewState extends State<DashboardView> {
   bool isTagsLoading = false;
   bool isUploading = false;
   bool isComposeMode = false;
+  // Guard to prevent multiple compose dialogs opening at once
+  bool _isComposeDialogOpen = false;
+  DateTime? _lastComposeDialogOpenAttempt;
   Locale? _currentLocale;
   bool isSidebarCollapsed = false; // Track sidebar collapse state
   bool _isProfileHovered = false; // Track profile hover state
@@ -537,13 +541,7 @@ class _DashboardViewState extends State<DashboardView> {
                       ),
                       onPressed: selectedExistingChannelIdx != null
                           ? () async {
-                              // Channel exists
-                              addTagIfNotExist(
-                                  oldEntityId: entityQr!,
-                                  tagId: tagid!,
-                                  oldChannelName: secQr!,
-                                  newChannelName: newSecQr!,
-                                  tagName: tagname!);
+                              // Just select the channel, open document popup, and prefill entityQr and search
                               final existsinlocal = channels.any((channel) =>
                                   channel['channelname'] == newSecQr);
                               if (existsinlocal) {
@@ -561,6 +559,26 @@ class _DashboardViewState extends State<DashboardView> {
                                 await fetchJoinedTags(
                                     channels[indexlocal]["channelname"]);
                                 Navigator.of(context).pop();
+                                // Open document creation popup and prefill entityQr and search
+                                Future.microtask(() {
+                                  if (!mounted) return;
+
+                                  // Prevent rapid auto-open loops: allow attempts only if enough time
+                                  // has passed since the last attempt.
+                                  final now = DateTime.now();
+                                  const cooldown = Duration(milliseconds: 800);
+                                  if (_lastComposeDialogOpenAttempt != null &&
+                                      now.difference(_lastComposeDialogOpenAttempt!) < cooldown) {
+                                    return;
+                                  }
+                                  _lastComposeDialogOpenAttempt = now;
+
+                                  _entityController.text = entityQr ?? '';
+                                  _searchController.text = entityQr ?? '';
+                                  if (!_isComposeDialogOpen) {
+                                    _showComposeDialog(context, autoSearch: true);
+                                  }
+                                });
                               }
                             }
                           : null,
@@ -991,6 +1009,7 @@ class _DashboardViewState extends State<DashboardView> {
   ) async {
     bool joined = await dashboardController.createEncryptedDocument(
       entityName: entityName,
+      fromChannelName: channels[selectedChannelIndex!]["channelname"],
       channelName: channelName,
       tagId: tagid,
       submittedData: submittedData,
@@ -1044,7 +1063,7 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   void _showCreateChannelDialog(BuildContext context) {
-    showDialog(
+  showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
@@ -2114,7 +2133,7 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  void _showComposeDialog(BuildContext context) {
+  Future<void> _showComposeDialog(BuildContext context, {bool autoSearch = false}) async {
     // Persistent dialog state
     List<dynamic> pubChannels = [];
     bool isSearching = false;
@@ -2134,14 +2153,23 @@ class _DashboardViewState extends State<DashboardView> {
         previewWebViewController; // Add WebView controller for preview
     String lastRenderedJson =
         ""; // Track last rendered JSON to avoid unnecessary reloads
+  // Guard to ensure autoSearch runs only once while this compose dialog is open
+  bool hasTriggeredAutoSearch = false;
 
-    showDialog(
+    // mark dialog as open
+    if (mounted) {
+      setState(() {
+        _isComposeDialogOpen = true;
+      });
+    }
+
+    await showDialog(
       context: context,
       barrierDismissible: false, // Prevent closing on outside click
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
-            Future<void> fetchChannelTags(int channelIdx) async {
+            Future<void> fetchChannelTags(int channelIdx, {String? autoSelectTagId}) async {
               setState(() {
                 pubTags = [];
                 selectedTagIndexLocal = null;
@@ -2157,6 +2185,38 @@ class _DashboardViewState extends State<DashboardView> {
                   pubTags = tags;
                   isLoadingTags = false;
                 });
+
+                // If an auto-select tag id was provided, try to select it
+                if (autoSelectTagId != null && autoSelectTagId.isNotEmpty) {
+                  try {
+                    final matchedIdx = pubTags.indexWhere((t) {
+                      final tid = (t['tagid'] ?? t['tagId'] ?? t['id'] ?? '').toString();
+                      return tid == autoSelectTagId.toString();
+                    });
+                    if (matchedIdx != -1) {
+                      final tag = pubTags[matchedIdx];
+                      final tagId = tag['tagid'] ?? tag['tagId'] ?? 'Unknown TagID';
+                      final channelNameLocal = channelName;
+                      final entityName = _entityController.text.trim();
+                      // Fetch context data asynchronously
+                      final contextData = await dashboardController.getContextAndPublicKey(
+                          entityName, channelNameLocal, tagId);
+                      if (contextData != null && contextData["contextform"] != null) {
+                        htmlForm = contextData["contextform"];
+                        htmlTheme = contextData['contexttemplate'] ?? '';
+                      }
+                      if (mounted) {
+                        setState(() {
+                          selectedTagIndexLocal = matchedIdx;
+                          showWebView = true;
+                          selectedTagData = tag;
+                        });
+                      }
+                    }
+                  } catch (_) {
+                    // ignore auto-select tag errors
+                  }
+                }
               } catch (e) {
                 setState(() {
                   isLoadingTags = false;
@@ -2167,7 +2227,7 @@ class _DashboardViewState extends State<DashboardView> {
               }
             }
 
-            Future<void> searchPubChannels() async {
+            Future<void> searchPubChannels({bool triggeredByAuto = false}) async {
               final entity = _entityController.text.trim();
               if (entity.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -2187,25 +2247,75 @@ class _DashboardViewState extends State<DashboardView> {
               try {
                 final result =
                     await dashboardController.getPubChannels(entity, actorId);
-                bool shouldAutoFetch = false;
+
+                // Prepare local copies and derived values so we can update state
+                final List<dynamic> foundChannels = result;
+                // Update UI state synchronously
                 setState(() {
-                  pubChannels = result;
+                  pubChannels = foundChannels;
                   isSearching = false;
                   hasSearched = true;
-
-                  // Auto-select channel if only one channel is found
-                  if (pubChannels.length == 1) {
-                    selectedChannelIndexLocal = 0;
-                    final channelName = pubChannels[0]['channelname'] ??
-                        pubChannels[0].toString();
-                    _composeChannelController.text = channelName;
-                    shouldAutoFetch = true;
-                  }
+                  selectedTagIndexLocal = null;
+                  selectedChannelIndexLocal = (foundChannels.length == 1) ? 0 : null;
                 });
 
-                // Auto-fetch tags if only one channel is found
-                if (shouldAutoFetch) {
-                  await fetchChannelTags(0);
+                // If this search was triggered by auto-open, try to auto-select the channel
+                // only when the outer `secQr` value exists in the returned public channels.
+                if (triggeredByAuto && secQr != null && secQr!.isNotEmpty) {
+                  try {
+                    final String target = secQr!.toString();
+                    final pubIdx = foundChannels.indexWhere((c) => ((c['channelname'] ?? c.toString()) .toString()) == target);
+                      if (pubIdx != -1) {
+                      // Select in compose dialog
+                      if (mounted) {
+                        setState(() {
+                          selectedChannelIndexLocal = pubIdx;
+                          _composeChannelController.text = target;
+                        });
+                      }
+
+                      // If that public channel maps to a local channel, select it and fetch docs/tags
+                      final localIdx = channels.indexWhere((c) => ((c['channelname'] ?? '').toString()) == target);
+                      if (localIdx != -1) {
+                        if (mounted) {
+                          setState(() {
+                            selectedChannelIndex = localIdx;
+                            selectedDocIndex = null;
+                            docs = [];
+                            currentChatMessages = [];
+                          });
+                        }
+                        try {
+                          await fetchDocs(channels[localIdx]["channelname"]);
+                          await fetchJoinedTags(channels[localIdx]["channelname"]);
+                        } catch (_) {
+                          // ignore fetch errors
+                        }
+                      }
+
+                      // Fetch tags for the selected pub channel, and if widget.tagid is present try to auto-select that tag
+                      try {
+                        await fetchChannelTags(pubIdx, autoSelectTagId: widget.tagid);
+                      } catch (_) {}
+                    }
+                  } catch (_) {
+                    // ignore auto-select errors
+                  }
+                } else {
+                  // Not an auto-invocation or secQr not present: if exactly one channel found,
+                  // prefill compose controller but don't auto-change parent selection.
+                  if (foundChannels.length == 1) {
+                    final autoChannelName = foundChannels[0]['channelname'] ?? foundChannels[0].toString();
+                    if (mounted) {
+                      setState(() {
+                        _composeChannelController.text = autoChannelName;
+                        selectedChannelIndexLocal = 0;
+                      });
+                    }
+                    try {
+                      await fetchChannelTags(0);
+                    } catch (_) {}
+                  }
                 }
               } catch (e) {
                 setState(() {
@@ -2216,6 +2326,24 @@ class _DashboardViewState extends State<DashboardView> {
                   SnackBar(content: Text('Error fetching channels: $e')),
                 );
               }
+            }
+
+            // If dialog was opened with autoSearch request, trigger search after build
+            if (autoSearch && !hasTriggeredAutoSearch) {
+              hasTriggeredAutoSearch = true; // ensure it runs only once
+              // Defer to next microtask so controllers are ready in the dialog
+              Future.microtask(() {
+                // Only trigger if there's an entity present
+                if (_entityController.text.trim().isNotEmpty) {
+                  searchPubChannels(triggeredByAuto: true);
+                } else {
+                  // If entity is empty but _searchController has value, copy it
+                  if (_searchController.text.trim().isNotEmpty) {
+                    _entityController.text = _searchController.text.trim();
+                    searchPubChannels(triggeredByAuto: true);
+                  }
+                }
+              });
             }
 
             // Responsive layout calculations
@@ -3107,7 +3235,14 @@ class _DashboardViewState extends State<DashboardView> {
           },
         );
       },
-    );
+    ).whenComplete(() {
+      // reset open flag when dialog closes
+      if (mounted) {
+        setState(() {
+          _isComposeDialogOpen = false;
+        });
+      }
+    });
   }
 
   // Fallback renderer that creates a simple HTML table from JSON
@@ -5186,7 +5321,7 @@ class _DashboardViewState extends State<DashboardView> {
   void _handleSimpleProfileMenuAction(String action) {
     switch (action) {
       case 'Switch Account':
-        _showSwitchAccountDialog();
+        _showSwitchAccountPage();
         break;
       case 'Select Language':
         _showLanguageDialog();
@@ -5201,270 +5336,9 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   // Show switch account dialog
-  void _showSwitchAccountDialog() {
-    print(
-        "Opening switch account dialog - entities: $entities, length: ${entities.length}");
-
-    // Fallback test data if entities are empty
-    List<dynamic> displayEntities = entities.isNotEmpty
-        ? entities
-        : [
-            {'tenant': 'basit.munir19@gmail.com'},
-            {'tenant': 'info@advcomm.net'},
-          ];
-
-    print("Display entities: $displayEntities");
-
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.3),
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: Container(
-            width: 320,
-            decoration: BoxDecoration(
-              color: surfaceColor,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header with gradient and icon
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [primaryAccent, primaryAccent.withOpacity(0.8)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      topRight: Radius.circular(16),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.swap_horiz,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Switch Account',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Entities list
-                // Container(
-                //   padding: const EdgeInsets.all(16),
-                //   child: Text(
-                //     'Debug: Entities length: ${entities.length}, Display entities length: ${displayEntities.length}',
-                //     style: TextStyle(color: subtitleColor, fontSize: 12),
-                //   ),
-                // ),
-                if (displayEntities.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Column(
-                      children: displayEntities.map<Widget>((entity) {
-                        final isSelected =
-                            entity['tenant'] == selectedEntityForSwitching;
-                        final entityName = entity['tenant'] ?? 'Unknown Tenant';
-
-                        return Container(
-                          margin: const EdgeInsets.symmetric(vertical: 2),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? primaryAccent.withOpacity(0.1)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
-                            border: isSelected
-                                ? Border.all(
-                                    color: primaryAccent.withOpacity(0.3))
-                                : null,
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(8),
-                              onTap: isSelected
-                                  ? null
-                                  : () {
-                                      setState(() {
-                                        selectedEntityForSwitching =
-                                            entity['tenant'];
-                                      });
-                                      Navigator.of(context).pop();
-
-                                      // Show success notification
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Row(
-                                            children: [
-                                              Icon(Icons.check_circle,
-                                                  color: Colors.white,
-                                                  size: 20),
-                                              const SizedBox(width: 12),
-                                              Text('Switched to $entityName'),
-                                            ],
-                                          ),
-                                          backgroundColor: Colors.green,
-                                          behavior: SnackBarBehavior.floating,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                          ),
-                                          margin: const EdgeInsets.all(16),
-                                          duration: const Duration(seconds: 2),
-                                        ),
-                                      );
-                                    },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 12),
-                                child: Row(
-                                  children: [
-                                    // Entity icon
-                                    Container(
-                                      width: 32,
-                                      height: 32,
-                                      decoration: BoxDecoration(
-                                        color: isSelected
-                                            ? primaryAccent
-                                            : subtitleColor.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Icon(
-                                        Icons.business,
-                                        color: isSelected
-                                            ? Colors.white
-                                            : primaryAccent,
-                                        size: 18,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-
-                                    // Entity name
-                                    Expanded(
-                                      child: Text(
-                                        entityName,
-                                        style: TextStyle(
-                                          color: isSelected
-                                              ? primaryAccent
-                                              : textColor,
-                                          fontWeight: isSelected
-                                              ? FontWeight.w600
-                                              : FontWeight.normal,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                    ),
-
-                                    // Check icon for selected entity
-                                    if (isSelected)
-                                      Container(
-                                        padding: const EdgeInsets.all(2),
-                                        decoration: BoxDecoration(
-                                          color: primaryAccent,
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                        ),
-                                        child: const Icon(
-                                          Icons.check,
-                                          color: Colors.white,
-                                          size: 14,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  )
-                else
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.business_center,
-                          color: subtitleColor,
-                          size: 48,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'No entities available',
-                          style: TextStyle(
-                            color: subtitleColor,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                // Cancel button
-                Padding(
-                  padding:
-                      const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          side: BorderSide(color: borderColor.withOpacity(0.3)),
-                        ),
-                      ),
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(
-                          color: subtitleColor,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+  void _showSwitchAccountPage() async {
+    await secureStorage.delete(key: "JWT_Token");
+    context.goNamed('/');
   }
 
   // Show language selection dialog
