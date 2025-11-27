@@ -43,6 +43,7 @@ class _DashboardViewState extends State<DashboardView> {
   int? selectedDocIndex;
   int? selectedjoinedTagIndex;
   int? selectedTagIndex;
+  String subSelectedEntity = '';
   String selectedEntity = '';
   String? secQr = '';
   String? entityQr = '';
@@ -179,8 +180,10 @@ class _DashboardViewState extends State<DashboardView> {
   Future<void> loadSelectedEntity() async {
     final ssoService = SSOService();
     final entity = await ssoService.getSelectedEntity();
+    final subEntity = await ssoService.getSubSelectedEntity();
     setState(() {
       selectedEntity = entity ?? '';
+      subSelectedEntity = subEntity ?? '';
     });
   }
 
@@ -5048,12 +5051,24 @@ class _DashboardViewState extends State<DashboardView> {
                                             (selectedEntity.isNotEmpty
                                                 ? selectedEntity
                                                 : 'No Entity'),
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 14,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
+                                      if (subSelectedEntity.isNotEmpty) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          subSelectedEntity,
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w400,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
                                       const SizedBox(height: 2),
                                       Container(
                                         padding: const EdgeInsets.symmetric(
