@@ -1950,189 +1950,6 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  void _showUploadMethodDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Upload Form', style: TextStyle(color: textColor)),
-          backgroundColor: surfaceColor,
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Select how you want to upload the form:',
-                  style: TextStyle(color: subtitleColor)),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 15),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _showUrlInputDialog(context);
-                    },
-                    child: const Text('By URL',
-                        style: TextStyle(color: Colors.white)),
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 15),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _showHtmlInputDialog(context);
-                    },
-                    child: const Text('By HTML',
-                        style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showUrlInputDialog(BuildContext context) {
-    _urlController.clear();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Enter Form URL', style: TextStyle(color: textColor)),
-          backgroundColor: surfaceColor,
-          content: TextField(
-            controller: _urlController,
-            style: TextStyle(color: textColor),
-            decoration: InputDecoration(
-              hintText: 'https://example.com/form',
-              hintStyle: TextStyle(color: subtitleColor),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: subtitleColor)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-              onPressed: () {
-                if (_urlController.text.isNotEmpty) {
-                  Navigator.pop(context);
-                  _showPreviewDialog(context, _urlController.text, isUrl: true);
-                }
-              },
-              child:
-                  const Text('Submit', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showHtmlInputDialog(BuildContext context) {
-    _htmlController.clear();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Enter HTML Form', style: TextStyle(color: textColor)),
-          backgroundColor: surfaceColor,
-          content: SizedBox(
-            width: double.maxFinite,
-            child: TextField(
-              controller: _htmlController,
-              maxLines: 10,
-              style: TextStyle(color: textColor),
-              decoration: InputDecoration(
-                hintText: '<form>...</form>',
-                hintStyle: TextStyle(color: subtitleColor),
-                border: const OutlineInputBorder(),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: subtitleColor)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              onPressed: () {
-                if (_htmlController.text.isNotEmpty) {
-                  Navigator.pop(context);
-                  _showPreviewDialog(context, _htmlController.text,
-                      isUrl: false);
-                }
-              },
-              child:
-                  const Text('Submit', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showPreviewDialog(BuildContext context, String content,
-      {required bool isUrl}) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            isUrl ? 'URL Form Preview' : 'HTML Form Preview',
-            style: TextStyle(color: textColor),
-          ),
-          backgroundColor: surfaceColor,
-          content: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.8,
-            height: MediaQuery.of(context).size.height * 0.6,
-            child: InAppWebView(
-              initialUrlRequest:
-                  isUrl ? URLRequest(url: WebUri(content)) : null,
-              initialData:
-                  !isUrl ? InAppWebViewInitialData(data: content) : null,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Close', style: TextStyle(color: subtitleColor)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      isUrl ? 'URL form submitted' : 'HTML form submitted',
-                    ),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              },
-              child: const Text('Confirm Upload',
-                  style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<void> _showComposeDialog(BuildContext context, {bool autoSearch = false}) async {
     // Persistent dialog state
     List<dynamic> pubChannels = [];
@@ -4493,55 +4310,55 @@ class _DashboardViewState extends State<DashboardView> {
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: messageController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    hintText: 'Type a message...',
-                    hintStyle: TextStyle(color: Colors.white54),
-                    filled: true,
-                    fillColor: Colors.black26,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(8)),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  enabled: !(currentChatMessages.isNotEmpty &&
-                      currentChatMessages.last["isFile"] == true),
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.upload_file, color: Colors.white),
-                tooltip: 'Upload form',
-                onPressed: (currentChatMessages.isNotEmpty &&
-                        currentChatMessages.last["isFile"] == true)
-                    ? null
-                    : () => _showUploadMethodDialog(context),
-              ),
-              IconButton(
-                icon: const Icon(Icons.attach_file, color: Colors.white),
-                tooltip: 'Attach a file',
-                onPressed: (currentChatMessages.isNotEmpty &&
-                        currentChatMessages.last["isFile"] == true)
-                    ? null
-                    : uploadFile,
-              ),
-              IconButton(
-                icon: const Icon(Icons.send, color: Colors.white),
-                onPressed: (currentChatMessages.isNotEmpty &&
-                        currentChatMessages.last["isFile"] == true)
-                    ? null
-                    : sendMessage,
-              ),
-            ],
-          ),
-        ),
+        // Padding(
+        //   padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6),
+        //   child: Row(
+        //     children: [
+        //       Expanded(
+        //         child: TextField(
+        //           controller: messageController,
+        //           style: const TextStyle(color: Colors.white),
+        //           decoration: const InputDecoration(
+        //             hintText: 'Type a message...',
+        //             hintStyle: TextStyle(color: Colors.white54),
+        //             filled: true,
+        //             fillColor: Colors.black26,
+        //             border: OutlineInputBorder(
+        //               borderRadius: BorderRadius.all(Radius.circular(8)),
+        //               borderSide: BorderSide.none,
+        //             ),
+        //           ),
+        //           enabled: !(currentChatMessages.isNotEmpty &&
+        //               currentChatMessages.last["isFile"] == true),
+        //         ),
+        //       ),
+        //       const SizedBox(width: 8),
+        //       IconButton(
+        //         icon: const Icon(Icons.upload_file, color: Colors.white),
+        //         tooltip: 'Upload form',
+        //         onPressed: (currentChatMessages.isNotEmpty &&
+        //                 currentChatMessages.last["isFile"] == true)
+        //             ? null
+        //             : () => _showUploadMethodDialog(context),
+        //       ),
+        //       IconButton(
+        //         icon: const Icon(Icons.attach_file, color: Colors.white),
+        //         tooltip: 'Attach a file',
+        //         onPressed: (currentChatMessages.isNotEmpty &&
+        //                 currentChatMessages.last["isFile"] == true)
+        //             ? null
+        //             : uploadFile,
+        //       ),
+        //       IconButton(
+        //         icon: const Icon(Icons.send, color: Colors.white),
+        //         onPressed: (currentChatMessages.isNotEmpty &&
+        //                 currentChatMessages.last["isFile"] == true)
+        //             ? null
+        //             : sendMessage,
+        //       ),
+        //     ],
+        //   ),
+        // ),
       ],
     );
   }
