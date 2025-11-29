@@ -11,6 +11,12 @@ import 'package:flutter/material.dart';
 import 'package:uids_io_sdk_flutter/auth_logout.dart';
 import 'package:tenant_replication/tenant_replication.dart';
 
+class JoinChannelResult {
+  final bool success;
+  final String? newChannelName;
+
+  JoinChannelResult({required this.success, this.newChannelName});
+}
 class DashboardController {
   final Dio dio = Dio();
   final String apiUrl = 'https://$audDomain';
@@ -691,7 +697,7 @@ class DashboardController {
     return entity ?? '';
   }
 
-  Future<bool> joinChannel(String entityId, String channelName, String? tagid,
+  Future<JoinChannelResult> joinChannel(String entityId, String channelName, String? tagid,
       String? tagname,String? newSecQr) async {
     String token = await getJwt();
     print(
@@ -720,46 +726,27 @@ class DashboardController {
         // Extract newChannelName from the response
         final responseData = response.data as Map<String, dynamic>?;
         final String? returnedNewChannelName = responseData?['newChannelName'];
-        
-        if (returnedNewChannelName != null) {
-          print("✅ New Channel Name from API: $returnedNewChannelName");
-          
-          // Use the returned newChannelName instead of the passed parameter
-          // addTagIfNotExists(
-          //   oldEntityId: entityId,
-          //   tagId: tagid!,
-          //   oldChannelName: channelName,
-          //   newChannelName: returnedNewChannelName,
-          //   tagName: tagname!,
-          // );
-        } else {
-          print("⚠️ newChannelName not found in response, using fallback: $newSecQr");
-          // Fallback to the passed parameter if API doesn't return it
-          // addTagIfNotExists(
-          //   oldEntityId: entityId,
-          //   tagId: tagid!,
-          //   oldChannelName: channelName,
-          //   newChannelName: newSecQr!,
-          //   tagName: tagname!,
-          // );
-        }
-        
+
         logSuccess("Joined channel '$channelName' successfully - New channel name: ${returnedNewChannelName ?? newSecQr}");
-        return true;
+        return JoinChannelResult(
+          success: true,
+          newChannelName: returnedNewChannelName ?? newSecQr,
+        );
+        
       } else {
         print("Failed to join channel: ${response.statusCode}");
         logFailure("Failed to join channel '$channelName' - Status: ${response.statusCode}");
-        return false;
+        return JoinChannelResult(success: false);
       }
     } on DioException catch (e) {
       print("Dio error joining channel: ${e.message}");
       print("Response: ${e.response?.data}");
       logFailure("Dio error joining channel '$channelName': ${e.message} - Response: ${e.response?.data}");
-      return false;
+      return JoinChannelResult(success: false);
     } catch (e) {
       print("Error joining channel: $e");
       logFailure("Error joining channel '$channelName': $e");
-      return false;
+      return JoinChannelResult(success: false);
     }
   }
 

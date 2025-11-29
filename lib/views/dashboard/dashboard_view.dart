@@ -597,11 +597,32 @@ class _DashboardViewState extends State<DashboardView> {
                             horizontal: 28, vertical: 14),
                       ),
                       onPressed: newChannelName.trim().isNotEmpty
-                          ? () {
+                          ? () async {
                               // TODO: Add your join new channel logic here
-                              joinNewChannel(
+                              bool success = await joinNewChannel(
                                   entityQr!, secQr!, tagid, tagname, newSecQr);
-                              Navigator.of(context).pop();
+                              if (success) {
+                                Navigator.of(context).pop();
+                                Future.microtask(() {
+                                  if (!mounted) return;
+
+                                  // Prevent rapid auto-open loops: allow attempts only if enough time
+                                  // has passed since the last attempt.
+                                  final now = DateTime.now();
+                                  const cooldown = Duration(milliseconds: 800);
+                                  if (_lastComposeDialogOpenAttempt != null &&
+                                      now.difference(_lastComposeDialogOpenAttempt!) < cooldown) {
+                                    return;
+                                  }
+                                  _lastComposeDialogOpenAttempt = now;
+
+                                  _entityController.text = entityQr ?? '';
+                                  _searchController.text = entityQr ?? '';
+                                  if (!_isComposeDialogOpen) {
+                                    _showComposeDialog(context, autoSearch: true);
+                                  }
+                                });
+                              }
                             }
                           : null,
                       child: Text('Join',
@@ -778,6 +799,25 @@ class _DashboardViewState extends State<DashboardView> {
                               joinNewChannel(entityQr!, secQr!, tagid, tagname,
                                   newChannelName);
                               Navigator.of(context).pop();
+                              Future.microtask(() {
+                                  if (!mounted) return;
+
+                                  // Prevent rapid auto-open loops: allow attempts only if enough time
+                                  // has passed since the last attempt.
+                                  final now = DateTime.now();
+                                  const cooldown = Duration(milliseconds: 800);
+                                  if (_lastComposeDialogOpenAttempt != null &&
+                                      now.difference(_lastComposeDialogOpenAttempt!) < cooldown) {
+                                    return;
+                                  }
+                                  _lastComposeDialogOpenAttempt = now;
+
+                                  _entityController.text = entityQr ?? '';
+                                  _searchController.text = entityQr ?? '';
+                                  if (!_isComposeDialogOpen) {
+                                    _showComposeDialog(context, autoSearch: true);
+                                  }
+                                });
                             }
                           : null,
                       child: Text('Join',
@@ -804,171 +844,71 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
-  // void validateSection() async {
-  //   secQr = widget.section;
-  //   final tagid = widget.tagid;
-  //   String? tagname = '';
+  Future<bool> joinNewChannel(
+    String entityName,
+    String sectionName,
+    String? tagid,
+    String? tagname,
+    String? newSecQr,
+  ) async {
+    try {
+      // Use async/await instead of .then()
+      final result = await dashboardController.joinChannel(
+        entityName,
+        sectionName,
+        tagid,
+        tagname,
+        newSecQr,
+      );
 
-  //   // Guard: prevent running if already validating or already validated
-  //   if (secQr == null || _isValidatingSection || _hasValidatedSection) return;
-
-  //   // Set guard flags
-  //   _isValidatingSection = true;
-
-  //   try {
-  //     final details = await dashboardController.getChannelDetailsForJoin(
-  //       entityId: entityQr!,
-  //       channelName: widget.section!,
-  //       tagId: widget.tagid!,
-  //     );
-  //     if (details != null && details["channelDetails"] != null) {
-  //       newSecQr = details["channelDetails"]["newChannelName"];
-  //       tagname = details["channelDetails"]["tagName"];
-  //     }
-
-  //     final exists =
-  //         channels.any((channel) => channel['channelname'] == newSecQr);
-  //     final index =
-  //         channels.indexWhere((channel) => channel['channelname'] == newSecQr);
-
-  //     if (!exists) {
-  //       showDialog(
-  //         context: context,
-  //         builder: (context) => AlertDialog(
-  //           backgroundColor: Colors.grey[900],
-  //           shape: RoundedRectangleBorder(
-  //             borderRadius: BorderRadius.circular(16),
-  //           ),
-  //           title: const Text(
-  //             'Channel Not Found',
-  //             style: TextStyle(
-  //               color: Colors.white,
-  //               fontWeight: FontWeight.bold,
-  //             ),
-  //           ),
-  //           content: Text(
-  //             'Channel "$newSecQr" does not exist in the available channels. Do you want to add it?',
-  //             style: const TextStyle(
-  //               color: Colors.white70,
-  //               fontSize: 14,
-  //             ),
-  //           ),
-  //           actionsPadding:
-  //               const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-  //           actionsAlignment: MainAxisAlignment.spaceBetween,
-  //           actions: [
-  //             TextButton(
-  //               onPressed: () {
-  //                 Navigator.of(context).pop();
-  //                 _hasValidatedSection = true; // Mark as validated (user declined)
-  //               },
-  //               child: const Text(
-  //                 'No',
-  //                 style: TextStyle(color: Colors.white70),
-  //               ),
-  //             ),
-  //             ElevatedButton(
-  //               style: ElevatedButton.styleFrom(
-  //                 backgroundColor: Colors.blue,
-  //                 shape: RoundedRectangleBorder(
-  //                   borderRadius: BorderRadius.circular(10),
-  //                 ),
-  //                 padding:
-  //                     const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-  //               ),
-  //               onPressed: () {
-  //                 joinNewChannel(entityQr!, secQr!, tagid, tagname, newSecQr!);
-  //                 Navigator.of(context).pop();
-  //                 _hasValidatedSection = true; // Mark as validated after joining
-  //               },
-  //               child: const Text(
-  //                 'Yes',
-  //                 style: TextStyle(color: Colors.white),
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //       ).whenComplete(() {
-  //         // Reset guard when dialog closes
-  //         _isValidatingSection = false;
-  //       });
-  //     } else {
-  //       // Channel exists
-  //       addTagIfNotExist(
-  //           oldEntityId: entityQr!,
-  //           tagId: tagid!,
-  //           oldChannelName: secQr!,
-  //           newChannelName: newSecQr!,
-  //           tagName: tagname!);
-  //       setState(() {
-  //         selectedChannelIndex = index;
-  //         selectedDocIndex = null;
-  //         docs = [];
-  //         currentChatMessages = [];
-  //       });
-  //       fetchDocs(channels[index]["channelname"]);
-  //       fetchJoinedTags(channels[index]["channelname"]);
-  //       _hasValidatedSection = true; // Mark as validated
-  //     }
-  //   } finally {
-  //     // Always reset the validating flag
-  //     _isValidatingSection = false;
-  //   }
-  // }
-
-  // void addTagIfNotExist(
-  //     {required String oldEntityId,
-  //     required String tagId,
-  //     required String oldChannelName,
-  //     required String newChannelName,
-  //     required String tagName}) {
-  //   dashboardController.addTagIfNotExists(
-  //     oldEntityId: oldEntityId,
-  //     tagId: tagId,
-  //     oldChannelName: oldChannelName,
-  //     newChannelName: newChannelName,
-  //     tagName: tagName,
-  //   );
-  // }
-
-  void joinNewChannel(String entityName, String sectionName, String? tagid,
-      String? tagname, String? newSecQr) {
-    dashboardController
-        .joinChannel(entityName, sectionName, tagid, tagname, newSecQr)
-        .then((joined) {
-      if (joined) {
-        // Don't call fetchChannels() here - it will trigger validateSection again
-        // Instead, just refresh the channels list without triggering validation
-        setState(() {
-          secQr = null;
-        });
-
-        // Manually fetch channels without triggering stream listener
-        dashboardController.fetchChannelsStream(context).first.then((data) {
-          if (mounted) {
-            setState(() {
-              channels = data;
-              // Select the newly joined channel
-              final index =
-                  channels.indexWhere((c) => c['channelname'] == newSecQr);
-                if (index != -1) {
-                selectedChannelIndex = index;
-                fetchDocs(channels[index]["channelname"]);
-              }
-            });
-          }
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Section "$sectionName" added to channels.')),
-        );
-      } else {
+      if (!result.success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Channel joining failed')),
         );
+        return false;
       }
-    });
+
+      final newChannelName = result.newChannelName ?? newSecQr;
+
+      // Update UI state
+      if (mounted) {
+        setState(() {
+          secQr = null;
+        });
+      }
+
+      // Fetch updated channel list
+      final data = await dashboardController.fetchChannelsStream(context).first;
+
+      if (mounted) {
+        setState(() {
+          channels = data;
+
+          // Select the newly joined channel
+          final index =
+              channels.indexWhere((c) => c['channelname'] == newChannelName);
+
+          if (index != -1) {
+            selectedChannelIndex = index;
+            fetchDocs(channels[index]["channelname"]);
+          }
+        });
+      }
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Section "$sectionName" added to channels.')),
+      );
+
+      return true;
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+      return false;
+    }
   }
+
 
   // void createTemporaryDocument(Map<String, String> formData) async {
   //   print('Creating temporary document with data: $formData');
