@@ -63,6 +63,7 @@ class _DashboardViewState extends State<DashboardView> {
       DashboardController(); // Initialize the controller
 
   bool isDocsLoading = false;
+  bool isDocumentLoading = false;
   // isjoinedTagsLoading removed
   bool isTagsLoading = false;
   bool isUploading = false;
@@ -286,18 +287,18 @@ class _DashboardViewState extends State<DashboardView> {
             setState(() {
               channels = data;
               // Auto-select "Inbox" channel if present and no channel is currently selected
-              if (selectedChannelIndex == null) {
-                final inboxIndex = channels.indexWhere(
-                  (channel) => channel['channelname']?.toLowerCase() == 'inbox',
-                );
-                if (inboxIndex != -1) {
-                  selectedChannelIndex = inboxIndex;
-                  selectedDocIndex = null;
-                  docs = [];
-                  currentChatMessages = [];
-                  fetchDocs(channels[inboxIndex]["channelname"]);
-                }
-              }
+              // if (selectedChannelIndex == null) {
+              //   final inboxIndex = channels.indexWhere(
+              //     (channel) => channel['channelname']?.toLowerCase() == 'inbox',
+              //   );
+              //   if (inboxIndex != -1) {
+              //     selectedChannelIndex = inboxIndex;
+              //     selectedDocIndex = null;
+              //     docs = [];
+              //     currentChatMessages = [];
+              //     fetchDocs(channels[inboxIndex]["channelname"]);
+              //   }
+              // }
             });
           } else if (mounted) {
             print("No channels found.");
@@ -3561,17 +3562,31 @@ class _DashboardViewState extends State<DashboardView> {
     setState(() {
       currentChatMessages = [];
       selectedDocIndex = index;
+      isDocumentLoading = true;
     });
     print('Fetching document details for docId: $docId');
-    final docDetails = await dashboardController.getDocumentDetails(docId);
+    Map<String, dynamic>? docDetails;
+    try {
+      docDetails = await dashboardController.getDocumentDetails(docId);
+    } catch (e) {
+      print('Error fetching document details: $e');
+      docDetails = null;
+    } finally {
+      // ensure we clear loading flag after data is processed (below may also set state)
+      if (mounted) {
+        setState(() {
+          isDocumentLoading = false;
+        });
+      }
+    }
     if (docDetails != null) {
+      final dd = docDetails;
       // print("......................................${docDetails['jsonData']}");
       // print("......................................${docDetails['htmlTheme']}");
-      final availableEvents = docDetails['data']['documentDetails']
+    final availableEvents = dd['data']['documentDetails']
           ['available_events'] as List<dynamic>;
       // ...existing code...
-      final activeStates =
-          docDetails['current_user_active_states']; // Changed to correct path
+    final activeStates = dd['current_user_active_states']; // Changed to correct path
       List<Map<String, dynamic>> currentActiveStates = [];
       if (activeStates != null &&
           activeStates is List &&
@@ -3589,7 +3604,7 @@ class _DashboardViewState extends State<DashboardView> {
       }
 
       // Extract expected state transitions
-      final stateTransitions = docDetails['expected_state_transitions'];
+  final stateTransitions = dd['expected_state_transitions'];
       List<Map<String, dynamic>> currentExpectedTransitions = [];
       if (stateTransitions != null &&
           stateTransitions is List &&
@@ -3608,12 +3623,12 @@ class _DashboardViewState extends State<DashboardView> {
         print("No expected state transitions found");
       }
       // ...existing code...
-      if (docDetails["jsonData"] != null) {
+      if (dd["jsonData"] != null) {
         setState(() {
           // currentChatMessages = [];
           selectedDocIndex = index;
-          htmlTheme = docDetails['htmlTheme'];
-          jsonHtmlTheme = docDetails['jsonData'];
+          htmlTheme = dd['htmlTheme'];
+          jsonHtmlTheme = dd['jsonData'];
           allChannelStateNames = currentActiveStates; // Store in state variable
           expectedStateTransitions =
               currentExpectedTransitions; // Store expected transitions
@@ -3655,6 +3670,7 @@ class _DashboardViewState extends State<DashboardView> {
                 "Error while loading data", // Or whatever text you want to show
             "isFile": false,
           });
+          isDocumentLoading = false;
         });
       }
     }
@@ -6641,9 +6657,11 @@ class _DashboardViewState extends State<DashboardView> {
                                 style: TextStyle(color: textColor),
                               ),
                             )
-                          : (isDocsLoading)
+                          : (isDocumentLoading)
                               ? const Center(child: CircularProgressIndicator())
-                              : (selectedDocIndex == null)
+                              : (isDocsLoading)
+                                  ? const Center(child: CircularProgressIndicator())
+                                  : (selectedDocIndex == null)
                                   ? Center(
                                       child: Text(
                                         "Please select a doc",
