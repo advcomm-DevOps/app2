@@ -709,23 +709,23 @@ class DashboardController {
           print("✅ New Channel Name from API: $returnedNewChannelName");
           
           // Use the returned newChannelName instead of the passed parameter
-          addTagIfNotExists(
-            oldEntityId: entityId,
-            tagId: tagid!,
-            oldChannelName: channelName,
-            newChannelName: returnedNewChannelName,
-            tagName: tagname!,
-          );
+          // addTagIfNotExists(
+          //   oldEntityId: entityId,
+          //   tagId: tagid!,
+          //   oldChannelName: channelName,
+          //   newChannelName: returnedNewChannelName,
+          //   tagName: tagname!,
+          // );
         } else {
           print("⚠️ newChannelName not found in response, using fallback: $newSecQr");
           // Fallback to the passed parameter if API doesn't return it
-          addTagIfNotExists(
-            oldEntityId: entityId,
-            tagId: tagid!,
-            oldChannelName: channelName,
-            newChannelName: newSecQr!,
-            tagName: tagname!,
-          );
+          // addTagIfNotExists(
+          //   oldEntityId: entityId,
+          //   tagId: tagid!,
+          //   oldChannelName: channelName,
+          //   newChannelName: newSecQr!,
+          //   tagName: tagname!,
+          // );
         }
         
         logSuccess("Joined channel '$channelName' successfully - New channel name: ${returnedNewChannelName ?? newSecQr}");
@@ -747,74 +747,74 @@ class DashboardController {
     }
   }
 
-  Future<void> addTagIfNotExists({
-    required String oldEntityId,
-    required String tagId,
-    required String oldChannelName,
-    required String newChannelName,
-    required String tagName,
-  }) async {
-    String parentEntity = await getSelectedEntity();
+  // Future<void> addTagIfNotExists({
+  //   required String oldEntityId,
+  //   required String tagId,
+  //   required String oldChannelName,
+  //   required String newChannelName,
+  //   required String tagName,
+  // }) async {
+  //   String parentEntity = await getSelectedEntity();
 
-    try {
-      String? existingData = await secureStorage.read(key: "xdoc_tagsList");
-      List<dynamic> tagsList =
-          existingData != null ? jsonDecode(existingData) : [];
+  //   try {
+  //     String? existingData = await secureStorage.read(key: "xdoc_tagsList");
+  //     List<dynamic> tagsList =
+  //         existingData != null ? jsonDecode(existingData) : [];
 
-      Map<String, dynamic> tagData = {
-        "tagName": tagName,
-        "old": {
-          "entityId": oldEntityId,
-          "channelName": oldChannelName,
-        },
-      };
+  //     Map<String, dynamic> tagData = {
+  //       "tagName": tagName,
+  //       "old": {
+  //         "entityId": oldEntityId,
+  //         "channelName": oldChannelName,
+  //       },
+  //     };
 
-      int parentIndex = tagsList.indexWhere((item) =>
-          item is Map<String, dynamic> && item.containsKey(parentEntity));
+  //     int parentIndex = tagsList.indexWhere((item) =>
+  //         item is Map<String, dynamic> && item.containsKey(parentEntity));
 
-      if (parentIndex >= 0) {
-        Map<String, dynamic> parentData = tagsList[parentIndex][parentEntity];
+  //     if (parentIndex >= 0) {
+  //       Map<String, dynamic> parentData = tagsList[parentIndex][parentEntity];
 
-        if (parentData.containsKey(newChannelName)) {
-          var channelEntry = parentData[newChannelName];
-          if (channelEntry is Map<String, dynamic>) {
-            if (!channelEntry.containsKey(tagId)) {
-              channelEntry[tagId] = tagData;
-              parentData[newChannelName] = channelEntry;
-            }
-          } else {
-            parentData[newChannelName] = {
-              tagId: tagData,
-            };
-          }
-        } else {
-          parentData[newChannelName] = {
-            tagId: tagData,
-          };
-        }
+  //       if (parentData.containsKey(newChannelName)) {
+  //         var channelEntry = parentData[newChannelName];
+  //         if (channelEntry is Map<String, dynamic>) {
+  //           if (!channelEntry.containsKey(tagId)) {
+  //             channelEntry[tagId] = tagData;
+  //             parentData[newChannelName] = channelEntry;
+  //           }
+  //         } else {
+  //           parentData[newChannelName] = {
+  //             tagId: tagData,
+  //           };
+  //         }
+  //       } else {
+  //         parentData[newChannelName] = {
+  //           tagId: tagData,
+  //         };
+  //       }
 
-        tagsList[parentIndex] = {parentEntity: parentData};
-      } else {
-        tagsList.add({
-          parentEntity: {
-            newChannelName: {
-              tagId: tagData,
-            },
-          },
-        });
-      }
+  //       tagsList[parentIndex] = {parentEntity: parentData};
+  //     } else {
+  //       tagsList.add({
+  //         parentEntity: {
+  //           newChannelName: {
+  //             tagId: tagData,
+  //           },
+  //         },
+  //       });
+  //     }
 
-      await secureStorage.write(
-        key: "xdoc_tagsList",
-        value: jsonEncode(tagsList),
-      );
+  //     await secureStorage.write(
+  //       key: "xdoc_tagsList",
+  //       value: jsonEncode(tagsList),
+  //     );
 
-      print(
-          "Saved/updated tag data for $parentEntity ➔ $newChannelName ➔ $tagId");
-    } catch (e) {
-      print("Error saving tag data: $e");
-    }
-  }
+  //     print(
+  //         "Saved/updated tag data for $parentEntity ➔ $newChannelName ➔ $tagId");
+  //   } catch (e) {
+  //     print("Error saving tag data: $e");
+  //   }
+  // }
 
   Future<void> removeTagById({
     required String channelName,
@@ -871,56 +871,6 @@ class DashboardController {
     } catch (e) {
       print("❌ Error deleting key xdoc_tagsList: $e");
     }
-  }
-  Future<List<Map<String, String>>> getTagList(
-      {required String channelName}) async {
-    // await secureStorage.delete( key: "xdoc_tagsList");
-    String parentEntity = await getSelectedEntity();
-    String? existingData = await secureStorage.read(key: "xdoc_tagsList");
-    print('Fetching existing xdoc_tagsList from secure storage: $existingData');
-
-    final List<Map<String, String>> results = [];
-
-    if (existingData == null) return results;
-
-    final List<dynamic> tagsList = jsonDecode(existingData);
-
-    // Find the parent entity entry safely
-    Map<String, dynamic>? parentEntry;
-    for (final item in tagsList) {
-      if (item is Map<String, dynamic> && item.containsKey(parentEntity)) {
-        parentEntry = item;
-        break;
-      }
-    }
-
-    if (parentEntry == null) return results;
-
-    final parentData = parentEntry[parentEntity];
-    if (parentData is! Map<String, dynamic>) return results;
-
-    // Check if channel exists
-    if (!parentData.containsKey(channelName)) return results;
-
-    final channelData = parentData[channelName];
-    if (channelData is! Map<String, dynamic>) return results;
-
-    channelData.forEach((tagId, tagInfo) {
-      if (tagInfo is Map<String, dynamic>) {
-        final old = (tagInfo["old"] is Map<String, dynamic>)
-            ? tagInfo["old"] as Map<String, dynamic>
-            : const {};
-        results.add({
-          "tagId": tagId.toString(),
-          "tagName": tagInfo["tagName"]?.toString() ?? "", // ← added
-          "channelName": channelName,
-          "oldChannelName": old["channelName"]?.toString() ?? "",
-          "oldEntityId": old["entityId"]?.toString() ?? "",
-        });
-      }
-    });
-
-    return results;
   }
 
   Future<bool> createTag(String tag, String tagDescription, String expireAt,

@@ -42,7 +42,6 @@ class _DashboardViewState extends State<DashboardView> {
   bool _hasShownValidateSectionPopup = false;
   int? selectedChannelIndex;
   int? selectedDocIndex;
-  int? selectedjoinedTagIndex;
   int? selectedTagIndex;
   String subSelectedEntity = '';
   String selectedEntity = '';
@@ -57,14 +56,14 @@ class _DashboardViewState extends State<DashboardView> {
   final String qrurl = "https://d.xdoc.app?path=c";
   List<Map<String, dynamic>> channels = [];
   List<Map<String, dynamic>> docs = [];
-  List<Map<String, dynamic>> joinedTags = [];
+  // joinedTags removed - middle panel will display documents only
   List<Map<String, dynamic>> tags = [];
   List<Map<String, String>> actionButtons = [];
   DashboardController dashboardController =
       DashboardController(); // Initialize the controller
 
   bool isDocsLoading = false;
-  bool isjoinedTagsLoading = false;
+  // isjoinedTagsLoading removed
   bool isTagsLoading = false;
   bool isUploading = false;
   bool isComposeMode = false;
@@ -297,7 +296,6 @@ class _DashboardViewState extends State<DashboardView> {
                   docs = [];
                   currentChatMessages = [];
                   fetchDocs(channels[inboxIndex]["channelname"]);
-                  fetchJoinedTags(channels[inboxIndex]["channelname"]);
                 }
               }
             });
@@ -554,10 +552,8 @@ class _DashboardViewState extends State<DashboardView> {
                                   docs = [];
                                   currentChatMessages = [];
                                 });
-                                await fetchDocs(
-                                    channels[indexlocal]["channelname"]);
-                                await fetchJoinedTags(
-                                    channels[indexlocal]["channelname"]);
+                await fetchDocs(
+                  channels[indexlocal]["channelname"]);
                                 Navigator.of(context).pop();
                                 // Open document creation popup and prefill entityQr and search
                                 Future.microtask(() {
@@ -919,20 +915,20 @@ class _DashboardViewState extends State<DashboardView> {
   //   }
   // }
 
-  void addTagIfNotExist(
-      {required String oldEntityId,
-      required String tagId,
-      required String oldChannelName,
-      required String newChannelName,
-      required String tagName}) {
-    dashboardController.addTagIfNotExists(
-      oldEntityId: oldEntityId,
-      tagId: tagId,
-      oldChannelName: oldChannelName,
-      newChannelName: newChannelName,
-      tagName: tagName,
-    );
-  }
+  // void addTagIfNotExist(
+  //     {required String oldEntityId,
+  //     required String tagId,
+  //     required String oldChannelName,
+  //     required String newChannelName,
+  //     required String tagName}) {
+  //   dashboardController.addTagIfNotExists(
+  //     oldEntityId: oldEntityId,
+  //     tagId: tagId,
+  //     oldChannelName: oldChannelName,
+  //     newChannelName: newChannelName,
+  //     tagName: tagName,
+  //   );
+  // }
 
   void joinNewChannel(String entityName, String sectionName, String? tagid,
       String? tagname, String? newSecQr) {
@@ -954,10 +950,9 @@ class _DashboardViewState extends State<DashboardView> {
               // Select the newly joined channel
               final index =
                   channels.indexWhere((c) => c['channelname'] == newSecQr);
-              if (index != -1) {
+                if (index != -1) {
                 selectedChannelIndex = index;
                 fetchDocs(channels[index]["channelname"]);
-                fetchJoinedTags(channels[index]["channelname"]);
               }
             });
           }
@@ -974,32 +969,32 @@ class _DashboardViewState extends State<DashboardView> {
     });
   }
 
-  void createTemporaryDocument(Map<String, String> formData) async {
-    print('Creating temporary document with data: $formData');
-    String? tagname = '';
-    final details = await dashboardController.getChannelDetailsForJoin(
-      entityId: formData['entity']!,
-      channelName: formData['channel']!,
-      tagId: formData['tagId']!,
-    );
-    if (details != null && details["channelDetails"] != null) {
-      newSecQr = details["channelDetails"]["newChannelName"];
-      tagname = details["channelDetails"]["tagName"];
-      addTagIfNotExist(
-          oldEntityId: formData['entity']!,
-          tagId: formData['tagId']!,
-          oldChannelName: formData['channel']!,
-          newChannelName: channels[selectedChannelIndex!]["channelname"],
-          tagName: tagname!);
-      fetchJoinedTags(channels[selectedChannelIndex!]["channelname"]);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Document created successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-  }
+  // void createTemporaryDocument(Map<String, String> formData) async {
+  //   print('Creating temporary document with data: $formData');
+  //   String? tagname = '';
+  //   final details = await dashboardController.getChannelDetailsForJoin(
+  //     entityId: formData['entity']!,
+  //     channelName: formData['channel']!,
+  //     tagId: formData['tagId']!,
+  //   );
+  //   if (details != null && details["channelDetails"] != null) {
+  //     newSecQr = details["channelDetails"]["newChannelName"];
+  //     tagname = details["channelDetails"]["tagName"];
+  //   addTagIfNotExist(
+  //         oldEntityId: formData['entity']!,
+  //         tagId: formData['tagId']!,
+  //         oldChannelName: formData['channel']!,
+  //         newChannelName: channels[selectedChannelIndex!]["channelname"],
+  //         tagName: tagname!);
+  //   fetchDocs(channels[selectedChannelIndex!]["channelname"]);
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(
+  //         content: Text('Document created successfully!'),
+  //         backgroundColor: Colors.green,
+  //       ),
+  //     );
+  //   }
+  // }
 
   void createEncryptedDocument(
     String entityName,
@@ -1022,8 +1017,7 @@ class _DashboardViewState extends State<DashboardView> {
           tagId: tagid,
         );
       }
-      fetchDocs(channels[selectedChannelIndex!]["channelname"]);
-      fetchJoinedTags(channels[selectedChannelIndex!]["channelname"]);
+  fetchDocs(channels[selectedChannelIndex!]["channelname"]);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Submitted.')),
       );
@@ -1497,27 +1491,7 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
-  Future<void> fetchJoinedTags(String channelName) async {
-    try {
-      setState(() {
-        isjoinedTagsLoading = true;
-        joinedTags = [];
-        selectedjoinedTagIndex = null;
-        currentChatMessages = [];
-      });
-      final joinTagsList =
-          await dashboardController.getTagList(channelName: channelName);
-      setState(() {
-        joinedTags = List<Map<String, dynamic>>.from(joinTagsList);
-        isjoinedTagsLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        isjoinedTagsLoading = false;
-      });
-      print("Error fetching joined tags: $e");
-    }
-  }
+  // fetchJoinedTags removed - joined tags listing removed from UI
 
   Future<void> fetchTags(int channelId) async {
     try {
@@ -2102,9 +2076,8 @@ class _DashboardViewState extends State<DashboardView> {
                             currentChatMessages = [];
                           });
                         }
-                        try {
+                          try {
                           await fetchDocs(channels[localIdx]["channelname"]);
-                          await fetchJoinedTags(channels[localIdx]["channelname"]);
                         } catch (_) {
                           // ignore fetch errors
                         }
@@ -3495,10 +3468,8 @@ class _DashboardViewState extends State<DashboardView> {
           setState(() {
             selectedChannelIndex = null;
             selectedDocIndex = null;
-            selectedjoinedTagIndex = null;
             selectedTagIndex = null;
             docs = [];
-            joinedTags = [];
             currentChatMessages = [];
           });
         } else if (selectedChannelIndex != null &&
@@ -3555,7 +3526,8 @@ class _DashboardViewState extends State<DashboardView> {
         if (contextData["contextform"] != null) {
           setState(() {
             currentChatMessages = [];
-            selectedjoinedTagIndex = index;
+            // indicate a tag-based selection by setting selectedDocIndex to -1
+            selectedDocIndex = -1;
             htmlForm = contextData["contextform"];
             currentChatMessages =
                 dashboardController.documentChats[tagId] ?? [];
@@ -3572,7 +3544,7 @@ class _DashboardViewState extends State<DashboardView> {
           print("No context template found for this tag.");
           setState(() {
             currentChatMessages = [];
-            selectedjoinedTagIndex = index;
+            selectedDocIndex = -1;
             currentChatMessages.add({
               "sender": "Unknown",
               "message":
@@ -3639,8 +3611,7 @@ class _DashboardViewState extends State<DashboardView> {
       if (docDetails["jsonData"] != null) {
         setState(() {
           // currentChatMessages = [];
-          selectedjoinedTagIndex = index;
-          // selectedDocIndex = index;
+          selectedDocIndex = index;
           htmlTheme = docDetails['htmlTheme'];
           jsonHtmlTheme = docDetails['jsonData'];
           allChannelStateNames = currentActiveStates; // Store in state variable
@@ -3675,7 +3646,7 @@ class _DashboardViewState extends State<DashboardView> {
         print("No context template found for this tag.");
         setState(() {
           currentChatMessages = [];
-          selectedjoinedTagIndex = index;
+          selectedDocIndex = -1;
           allChannelStateNames = []; // Clear active states
           expectedStateTransitions = []; // Clear expected transitions
           currentChatMessages.add({
@@ -3690,41 +3661,23 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   Widget buildDocsListOrTagsList() {
-    final isChannelOwner = selectedChannelIndex != null &&
-        channels[selectedChannelIndex!]["actorsequence"] == 1;
-
-    final bool isLoading = isChannelOwner ? isDocsLoading : isjoinedTagsLoading;
-    final List<Map<String, dynamic>> tagsList =
-        List<Map<String, dynamic>>.from(joinedTags);
+    final bool isLoading = isDocsLoading;
     final List<Map<String, dynamic>> docsList =
         List<Map<String, dynamic>>.from(docs);
 
-    // Use the same loading condition as original
     if (isLoading) {
       return const Expanded(
         child: Center(child: CircularProgressIndicator()),
       );
     }
 
-    // Merge lists for a single scroll, tags first
-    final List<Map<String, dynamic>> combinedList = [
-      ...tagsList.map((item) => {...item, "type": "tag"}),
-      ...docsList.map((item) => {...item, "type": "doc"}),
-    ];
-
-    // Filter combinedList based on search query
     final List<Map<String, dynamic>> filteredList = searchQuery.isEmpty
-        ? combinedList
-        : combinedList.where((item) {
-            final isTag = item["type"] == "tag";
-            final itemName = isTag
-                ? (item["tagName"] ?? "Tag ${item["tagId"]}")?.toLowerCase() ??
-                    ""
-                : (item["docname"] ?? "")?.toLowerCase() ?? "";
+        ? docsList
+        : docsList.where((item) {
+            final itemName = (item["docname"] ?? "")?.toLowerCase() ?? "";
             return itemName.contains(searchQuery.toLowerCase());
           }).toList();
 
-    // Show generic message if no tags nor docs
     if (filteredList.isEmpty) {
       final message = searchQuery.isEmpty
           ? "No document found"
@@ -3738,52 +3691,22 @@ class _DashboardViewState extends State<DashboardView> {
         ),
       );
     }
+
     return Expanded(
       child: ListView.builder(
         itemCount: filteredList.length,
         padding: const EdgeInsets.all(8),
         itemBuilder: (context, index) {
           final item = filteredList[index];
-          final isTag = item["type"] == "tag";
-
-          // Find original indices for selection logic
-          final originalIndex = combinedList.indexOf(item);
-          final docRelativeIndex = originalIndex - tagsList.length;
-
-          // Selection logic using original indices
-          final isSelected = isTag
-              ? selectedTagIndex == originalIndex // use original tag index
-              : selectedDocIndex == docRelativeIndex; // relative doc index
-
-          // Display name
-          final displayName = isTag
-              ? item["tagName"] ?? "Tag ${item["tagId"]}"
-              : item["docname"] ?? "Doc $docRelativeIndex";
+          final isSelected = selectedDocIndex == index;
+          final displayName = item["docname"] ?? "Doc $index";
 
           return GestureDetector(
             onTap: () {
-              if (isTag) {
-                setState(() {
-                  selectedTagIndex = originalIndex;
-                  selectedDocIndex = -1; // reset doc selection
-                });
-
-                getContextAndPublicKey(
-                  item["oldEntityId"],
-                  item["oldChannelName"],
-                  item["tagId"],
-                  false,
-                  originalIndex,
-                );
-              } else {
-                setState(() {
-                  selectedDocIndex = docRelativeIndex;
-                  selectedTagIndex = -1; // reset tag selection
-                });
-                getDocumentDetails(item["docid"], docRelativeIndex);
-              }
-
-              // Navigate to chat view on mobile
+              setState(() {
+                selectedDocIndex = index;
+              });
+              getDocumentDetails(item["docid"], index);
               if (isMobileDevice(context)) {
                 _navigateToMobileView(MobileView.chat);
               }
@@ -3836,9 +3759,7 @@ class _DashboardViewState extends State<DashboardView> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
-                              isTag
-                                  ? Icons.label_outline
-                                  : Icons.description_outlined,
+                              Icons.description_outlined,
                               color: isSelected
                                   ? (isDarkMode ? Colors.white : primaryAccent)
                                   : subtitleColor,
@@ -3862,9 +3783,7 @@ class _DashboardViewState extends State<DashboardView> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
-                            isTag
-                                ? Icons.label_outline
-                                : Icons.description_outlined,
+                            Icons.description_outlined,
                             color: isSelected
                                 ? (isDarkMode ? Colors.white : primaryAccent)
                                 : subtitleColor,
@@ -3910,14 +3829,6 @@ class _DashboardViewState extends State<DashboardView> {
           selectedDocIndex! < docs.length) {
         chatTitle =
             "Document: ${docs[selectedDocIndex!]["docname"] ?? "Unknown"}";
-      } else if (!isChannelOwner &&
-          selectedjoinedTagIndex != null &&
-          joinedTags.isNotEmpty &&
-          selectedjoinedTagIndex! >= 0 &&
-          selectedjoinedTagIndex! < joinedTags.length) {
-        // item["tagName"] ?? "Tag ${item["tagId"]}
-        chatTitle =
-            "Job: ${joinedTags[selectedjoinedTagIndex!]["tagName"] ?? "Unknown"}";
       } else if (isChannelOwner) {
         chatTitle = "Select a document to chat";
       } else {
@@ -4015,32 +3926,32 @@ class _DashboardViewState extends State<DashboardView> {
                                           // Handle the form change - update preview, validate, etc.
                                         },
                                       );
-                                      controller.addJavaScriptHandler(
+                                        controller.addJavaScriptHandler(
                                         handlerName: 'onFormSubmit',
                                         callback: (args) {
                                           String jsonString = args[0];
                                           print(
                                               'Received JSON string: $jsonString');
-                                          // Add bounds checking before accessing joinedTags array
-                                          if (selectedjoinedTagIndex != null &&
-                                              selectedjoinedTagIndex! >= 0 &&
-                                              selectedjoinedTagIndex! <
-                                                  joinedTags.length) {
+                                          // If a document is selected, submit relative to that doc
+                                          if (selectedDocIndex != null &&
+                                              selectedDocIndex! >= 0 &&
+                                              selectedDocIndex! < docs.length) {
+                                            final doc = docs[selectedDocIndex!];
                                             createEncryptedDocument(
-                                              joinedTags[
-                                                      selectedjoinedTagIndex!]
-                                                  ["oldEntityId"],
-                                              joinedTags[
-                                                      selectedjoinedTagIndex!]
-                                                  ["oldChannelName"],
-                                              joinedTags[
-                                                      selectedjoinedTagIndex!]
-                                                  ["tagId"],
+                                                doc["entity"] ?? selectedEntity,
+                                                doc["channelname"] ?? channels[selectedChannelIndex!]["channelname"],
+                                                null,
+                                                jsonString);
+                                          } else if (selectedChannelIndex != null) {
+                                            // Fallback: submit to the selected channel without tag
+                                            createEncryptedDocument(
+                                              selectedEntity,
+                                              channels[selectedChannelIndex!]["channelname"],
+                                              null,
                                               jsonString,
                                             );
                                           } else {
-                                            print(
-                                                'Error: Invalid selectedjoinedTagIndex when handling form submit');
+                                            print('Error: No valid selection for form submit');
                                           }
                                         },
                                       );
@@ -4607,7 +4518,6 @@ class _DashboardViewState extends State<DashboardView> {
                 currentChatMessages = [];
               });
               fetchDocs(channels[index]["channelname"]);
-              fetchJoinedTags(channels[index]["channelname"]);
 
               // Navigate to documents view on mobile
               if (isMobileDevice(context)) {
@@ -6731,19 +6641,9 @@ class _DashboardViewState extends State<DashboardView> {
                                 style: TextStyle(color: textColor),
                               ),
                             )
-                          : ((selectedChannelIndex != null &&
-                                      channels[selectedChannelIndex!]
-                                              ["actorsequence"] ==
-                                          1
-                                  ? isDocsLoading
-                                  : isjoinedTagsLoading))
+                          : (isDocsLoading)
                               ? const Center(child: CircularProgressIndicator())
-                              : ((selectedChannelIndex != null &&
-                                          channels[selectedChannelIndex!]
-                                                  ["actorsequence"] ==
-                                              1
-                                      ? (selectedDocIndex == null)
-                                      : (selectedjoinedTagIndex == null)))
+                              : (selectedDocIndex == null)
                                   ? Center(
                                       child: Text(
                                         "Please select a doc",
@@ -6753,10 +6653,7 @@ class _DashboardViewState extends State<DashboardView> {
                                   : buildChatColumn(),
                     ),
                     // Top-Right Button (Menu button for right sidebar)
-                    if (selectedChannelIndex != null &&
-                        (channels[selectedChannelIndex!]["actorsequence"] == 1
-                            ? selectedDocIndex != null
-                            : selectedjoinedTagIndex != null))
+          if (selectedChannelIndex != null && selectedDocIndex != null)
                       Positioned(
                         top: 10,
                         right: 10,
