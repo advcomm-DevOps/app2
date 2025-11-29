@@ -7,6 +7,8 @@ import 'package:xdoc/custom/services/sso.dart';
 import 'package:xdoc/custom/services/encryption.dart';
 import 'package:xdoc/views/dashboard/dashboard_replication.dart';
 import 'dart:typed_data';
+import 'package:flutter/material.dart';
+import 'package:uids_io_sdk_flutter/auth_logout.dart';
 import 'package:tenant_replication/tenant_replication.dart';
 
 class DashboardController {
@@ -521,6 +523,7 @@ class DashboardController {
   Future<void> loadData(
     String tableName, {
     Map<String, dynamic>? extraParams, // 👈 allow optional query params
+    BuildContext? context, // optional context to allow logout on critical errors
   }) async {
     try {
       String token = await getJwt(); 
@@ -534,6 +537,19 @@ class DashboardController {
     } catch (e) {
       print("Error fetching $tableName: $e");
       logFailure("Error fetching $tableName: $e");
+
+      // If this is an sqflite error stating a missing table, force logout
+      try {
+        final msg = e.toString().toLowerCase();
+        if ((msg.contains('no such table') || msg.contains('sqlite_error')) && context != null) {
+          // call the app's AuthLogout to ensure the user is logged out and redirected
+          AuthLogout.logout(context);
+        }
+      } catch (inner) {
+        // swallow any errors from logout attempt but log them
+        print('Error attempting logout after loadData failure: $inner');
+        logFailure('Error attempting logout after loadData failure: $inner');
+      }
     }
   }
   // Future<List<Map<String, dynamic>>> fetchChannels() async {
@@ -549,9 +565,9 @@ class DashboardController {
   // }
 
   /// Streaming version of fetchChannels that watches for database changes
-  Stream<List<Map<String, dynamic>>> fetchChannelsStream() async* {
+  Stream<List<Map<String, dynamic>>> fetchChannelsStream(BuildContext context) async* {
     // Load initial data from server (non-blocking)
-    loadData("tblchannels");
+    loadData("tblchannels",context:context);
     loadData("tblxdocs");
     loadData("tblchanneltags");
     loadData("tblxdocactors");

@@ -281,7 +281,7 @@ class _DashboardViewState extends State<DashboardView> {
       await _channelsSubscription?.cancel();
 
       // Listen to the channels stream for real-time updates
-      _channelsSubscription = dashboardController.fetchChannelsStream().listen(
+      _channelsSubscription = dashboardController.fetchChannelsStream(context).listen(
         (data) {
           if (mounted && data.isNotEmpty) {
             setState(() {
@@ -944,7 +944,7 @@ class _DashboardViewState extends State<DashboardView> {
         });
 
         // Manually fetch channels without triggering stream listener
-        dashboardController.fetchChannelsStream().first.then((data) {
+        dashboardController.fetchChannelsStream(context).first.then((data) {
           if (mounted) {
             setState(() {
               channels = data;
