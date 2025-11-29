@@ -795,8 +795,8 @@ class _DashboardViewState extends State<DashboardView> {
                             horizontal: 28, vertical: 14),
                       ),
                       onPressed: newChannelName.trim().isNotEmpty
-                          ? () {
-                              joinNewChannel(entityQr!, secQr!, tagid, tagname,
+                          ? () async {
+                              await joinNewChannel(entityQr!, secQr!, tagid, tagname,
                                   newChannelName);
                               Navigator.of(context).pop();
                               Future.microtask(() {
