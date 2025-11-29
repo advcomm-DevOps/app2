@@ -281,7 +281,8 @@ class _DashboardViewState extends State<DashboardView> {
       await _channelsSubscription?.cancel();
 
       // Listen to the channels stream for real-time updates
-      _channelsSubscription = dashboardController.fetchChannelsStream(context).listen(
+      _channelsSubscription =
+          dashboardController.fetchChannelsStream(context).listen(
         (data) {
           if (mounted && data.isNotEmpty) {
             setState(() {
@@ -323,7 +324,9 @@ class _DashboardViewState extends State<DashboardView> {
     // Only show the popup if it hasn't been shown yet
     if (_hasShownValidateSectionPopup) return;
     // Defensive null checks for required widget fields
-    if (widget.section == null || widget.entity == null || widget.tagid == null) {
+    if (widget.section == null ||
+        widget.entity == null ||
+        widget.tagid == null) {
       _hasShownValidateSectionPopup = true;
       return;
     }
@@ -553,8 +556,8 @@ class _DashboardViewState extends State<DashboardView> {
                                   docs = [];
                                   currentChatMessages = [];
                                 });
-                await fetchDocs(
-                  channels[indexlocal]["channelname"]);
+                                await fetchDocs(
+                                    channels[indexlocal]["channelname"]);
                                 Navigator.of(context).pop();
                                 // Open document creation popup and prefill entityQr and search
                                 Future.microtask(() {
@@ -565,7 +568,9 @@ class _DashboardViewState extends State<DashboardView> {
                                   final now = DateTime.now();
                                   const cooldown = Duration(milliseconds: 800);
                                   if (_lastComposeDialogOpenAttempt != null &&
-                                      now.difference(_lastComposeDialogOpenAttempt!) < cooldown) {
+                                      now.difference(
+                                              _lastComposeDialogOpenAttempt!) <
+                                          cooldown) {
                                     return;
                                   }
                                   _lastComposeDialogOpenAttempt = now;
@@ -573,7 +578,8 @@ class _DashboardViewState extends State<DashboardView> {
                                   _entityController.text = entityQr ?? '';
                                   _searchController.text = entityQr ?? '';
                                   if (!_isComposeDialogOpen) {
-                                    _showComposeDialog(context, autoSearch: true);
+                                    _showComposeDialog(context,
+                                        autoSearch: true);
                                   }
                                 });
                               }
@@ -611,7 +617,9 @@ class _DashboardViewState extends State<DashboardView> {
                                   final now = DateTime.now();
                                   const cooldown = Duration(milliseconds: 800);
                                   if (_lastComposeDialogOpenAttempt != null &&
-                                      now.difference(_lastComposeDialogOpenAttempt!) < cooldown) {
+                                      now.difference(
+                                              _lastComposeDialogOpenAttempt!) <
+                                          cooldown) {
                                     return;
                                   }
                                   _lastComposeDialogOpenAttempt = now;
@@ -619,7 +627,8 @@ class _DashboardViewState extends State<DashboardView> {
                                   _entityController.text = entityQr ?? '';
                                   _searchController.text = entityQr ?? '';
                                   if (!_isComposeDialogOpen) {
-                                    _showComposeDialog(context, autoSearch: true);
+                                    _showComposeDialog(context,
+                                        autoSearch: true);
                                   }
                                 });
                               }
@@ -796,10 +805,11 @@ class _DashboardViewState extends State<DashboardView> {
                       ),
                       onPressed: newChannelName.trim().isNotEmpty
                           ? () async {
-                              await joinNewChannel(entityQr!, secQr!, tagid, tagname,
-                                  newChannelName);
-                              Navigator.of(context).pop();
-                              Future.microtask(() {
+                              bool success = await joinNewChannel(entityQr!,
+                                  secQr!, tagid, tagname, newChannelName);
+                              if (success) {
+                                Navigator.of(context).pop();
+                                Future.microtask(() {
                                   if (!mounted) return;
 
                                   // Prevent rapid auto-open loops: allow attempts only if enough time
@@ -807,7 +817,9 @@ class _DashboardViewState extends State<DashboardView> {
                                   final now = DateTime.now();
                                   const cooldown = Duration(milliseconds: 800);
                                   if (_lastComposeDialogOpenAttempt != null &&
-                                      now.difference(_lastComposeDialogOpenAttempt!) < cooldown) {
+                                      now.difference(
+                                              _lastComposeDialogOpenAttempt!) <
+                                          cooldown) {
                                     return;
                                   }
                                   _lastComposeDialogOpenAttempt = now;
@@ -815,9 +827,11 @@ class _DashboardViewState extends State<DashboardView> {
                                   _entityController.text = entityQr ?? '';
                                   _searchController.text = entityQr ?? '';
                                   if (!_isComposeDialogOpen) {
-                                    _showComposeDialog(context, autoSearch: true);
+                                    _showComposeDialog(context,
+                                        autoSearch: true);
                                   }
                                 });
+                              }
                             }
                           : null,
                       child: Text('Join',
@@ -909,7 +923,6 @@ class _DashboardViewState extends State<DashboardView> {
     }
   }
 
-
   // void createTemporaryDocument(Map<String, String> formData) async {
   //   print('Creating temporary document with data: $formData');
   //   String? tagname = '';
@@ -958,7 +971,7 @@ class _DashboardViewState extends State<DashboardView> {
           tagId: tagid,
         );
       }
-  fetchDocs(channels[selectedChannelIndex!]["channelname"]);
+      fetchDocs(channels[selectedChannelIndex!]["channelname"]);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Submitted.')),
       );
@@ -998,7 +1011,7 @@ class _DashboardViewState extends State<DashboardView> {
   }
 
   void _showCreateChannelDialog(BuildContext context) {
-  showDialog(
+    showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
@@ -1865,7 +1878,8 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  Future<void> _showComposeDialog(BuildContext context, {bool autoSearch = false}) async {
+  Future<void> _showComposeDialog(BuildContext context,
+      {bool autoSearch = false}) async {
     // Persistent dialog state
     List<dynamic> pubChannels = [];
     bool isSearching = false;
@@ -1885,8 +1899,8 @@ class _DashboardViewState extends State<DashboardView> {
         previewWebViewController; // Add WebView controller for preview
     String lastRenderedJson =
         ""; // Track last rendered JSON to avoid unnecessary reloads
-  // Guard to ensure autoSearch runs only once while this compose dialog is open
-  bool hasTriggeredAutoSearch = false;
+    // Guard to ensure autoSearch runs only once while this compose dialog is open
+    bool hasTriggeredAutoSearch = false;
 
     // mark dialog as open
     if (mounted) {
@@ -1901,7 +1915,8 @@ class _DashboardViewState extends State<DashboardView> {
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
-            Future<void> fetchChannelTags(int channelIdx, {String? autoSelectTagId}) async {
+            Future<void> fetchChannelTags(int channelIdx,
+                {String? autoSelectTagId}) async {
               setState(() {
                 pubTags = [];
                 selectedTagIndexLocal = null;
@@ -1922,18 +1937,22 @@ class _DashboardViewState extends State<DashboardView> {
                 if (autoSelectTagId != null && autoSelectTagId.isNotEmpty) {
                   try {
                     final matchedIdx = pubTags.indexWhere((t) {
-                      final tid = (t['tagid'] ?? t['tagId'] ?? t['id'] ?? '').toString();
+                      final tid = (t['tagid'] ?? t['tagId'] ?? t['id'] ?? '')
+                          .toString();
                       return tid == autoSelectTagId.toString();
                     });
                     if (matchedIdx != -1) {
                       final tag = pubTags[matchedIdx];
-                      final tagId = tag['tagid'] ?? tag['tagId'] ?? 'Unknown TagID';
+                      final tagId =
+                          tag['tagid'] ?? tag['tagId'] ?? 'Unknown TagID';
                       final channelNameLocal = channelName;
                       final entityName = _entityController.text.trim();
                       // Fetch context data asynchronously
-                      final contextData = await dashboardController.getContextAndPublicKey(
-                          entityName, channelNameLocal, tagId);
-                      if (contextData != null && contextData["contextform"] != null) {
+                      final contextData =
+                          await dashboardController.getContextAndPublicKey(
+                              entityName, channelNameLocal, tagId);
+                      if (contextData != null &&
+                          contextData["contextform"] != null) {
                         htmlForm = contextData["contextform"];
                         htmlTheme = contextData['contexttemplate'] ?? '';
                       }
@@ -1959,7 +1978,8 @@ class _DashboardViewState extends State<DashboardView> {
               }
             }
 
-            Future<void> searchPubChannels({bool triggeredByAuto = false}) async {
+            Future<void> searchPubChannels(
+                {bool triggeredByAuto = false}) async {
               final entity = _entityController.text.trim();
               if (entity.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -1988,7 +2008,8 @@ class _DashboardViewState extends State<DashboardView> {
                   isSearching = false;
                   hasSearched = true;
                   selectedTagIndexLocal = null;
-                  selectedChannelIndexLocal = (foundChannels.length == 1) ? 0 : null;
+                  selectedChannelIndexLocal =
+                      (foundChannels.length == 1) ? 0 : null;
                 });
 
                 // If this search was triggered by auto-open, try to auto-select the channel
@@ -1996,8 +2017,10 @@ class _DashboardViewState extends State<DashboardView> {
                 if (triggeredByAuto && secQr != null && secQr!.isNotEmpty) {
                   try {
                     final String target = secQr!.toString();
-                    final pubIdx = foundChannels.indexWhere((c) => ((c['channelname'] ?? c.toString()) .toString()) == target);
-                      if (pubIdx != -1) {
+                    final pubIdx = foundChannels.indexWhere((c) =>
+                        ((c['channelname'] ?? c.toString()).toString()) ==
+                        target);
+                    if (pubIdx != -1) {
                       // Select in compose dialog
                       if (mounted) {
                         setState(() {
@@ -2007,7 +2030,8 @@ class _DashboardViewState extends State<DashboardView> {
                       }
 
                       // If that public channel maps to a local channel, select it and fetch docs/tags
-                      final localIdx = channels.indexWhere((c) => ((c['channelname'] ?? '').toString()) == target);
+                      final localIdx = channels.indexWhere((c) =>
+                          ((c['channelname'] ?? '').toString()) == target);
                       if (localIdx != -1) {
                         if (mounted) {
                           setState(() {
@@ -2017,7 +2041,7 @@ class _DashboardViewState extends State<DashboardView> {
                             currentChatMessages = [];
                           });
                         }
-                          try {
+                        try {
                           await fetchDocs(channels[localIdx]["channelname"]);
                         } catch (_) {
                           // ignore fetch errors
@@ -2026,7 +2050,8 @@ class _DashboardViewState extends State<DashboardView> {
 
                       // Fetch tags for the selected pub channel, and if widget.tagid is present try to auto-select that tag
                       try {
-                        await fetchChannelTags(pubIdx, autoSelectTagId: widget.tagid);
+                        await fetchChannelTags(pubIdx,
+                            autoSelectTagId: widget.tagid);
                       } catch (_) {}
                     }
                   } catch (_) {
@@ -2036,7 +2061,8 @@ class _DashboardViewState extends State<DashboardView> {
                   // Not an auto-invocation or secQr not present: if exactly one channel found,
                   // prefill compose controller but don't auto-change parent selection.
                   if (foundChannels.length == 1) {
-                    final autoChannelName = foundChannels[0]['channelname'] ?? foundChannels[0].toString();
+                    final autoChannelName = foundChannels[0]['channelname'] ??
+                        foundChannels[0].toString();
                     if (mounted) {
                       setState(() {
                         _composeChannelController.text = autoChannelName;
@@ -3523,10 +3549,11 @@ class _DashboardViewState extends State<DashboardView> {
       final dd = docDetails;
       // print("......................................${docDetails['jsonData']}");
       // print("......................................${docDetails['htmlTheme']}");
-    final availableEvents = dd['data']['documentDetails']
-          ['available_events'] as List<dynamic>;
+      final availableEvents =
+          dd['data']['documentDetails']['available_events'] as List<dynamic>;
       // ...existing code...
-    final activeStates = dd['current_user_active_states']; // Changed to correct path
+      final activeStates =
+          dd['current_user_active_states']; // Changed to correct path
       List<Map<String, dynamic>> currentActiveStates = [];
       if (activeStates != null &&
           activeStates is List &&
@@ -3544,7 +3571,7 @@ class _DashboardViewState extends State<DashboardView> {
       }
 
       // Extract expected state transitions
-  final stateTransitions = dd['expected_state_transitions'];
+      final stateTransitions = dd['expected_state_transitions'];
       List<Map<String, dynamic>> currentExpectedTransitions = [];
       if (stateTransitions != null &&
           stateTransitions is List &&
@@ -3882,7 +3909,7 @@ class _DashboardViewState extends State<DashboardView> {
                                           // Handle the form change - update preview, validate, etc.
                                         },
                                       );
-                                        controller.addJavaScriptHandler(
+                                      controller.addJavaScriptHandler(
                                         handlerName: 'onFormSubmit',
                                         callback: (args) {
                                           String jsonString = args[0];
@@ -3895,19 +3922,25 @@ class _DashboardViewState extends State<DashboardView> {
                                             final doc = docs[selectedDocIndex!];
                                             createEncryptedDocument(
                                                 doc["entity"] ?? selectedEntity,
-                                                doc["channelname"] ?? channels[selectedChannelIndex!]["channelname"],
+                                                doc["channelname"] ??
+                                                    channels[
+                                                            selectedChannelIndex!]
+                                                        ["channelname"],
                                                 null,
                                                 jsonString);
-                                          } else if (selectedChannelIndex != null) {
+                                          } else if (selectedChannelIndex !=
+                                              null) {
                                             // Fallback: submit to the selected channel without tag
                                             createEncryptedDocument(
                                               selectedEntity,
-                                              channels[selectedChannelIndex!]["channelname"],
+                                              channels[selectedChannelIndex!]
+                                                  ["channelname"],
                                               null,
                                               jsonString,
                                             );
                                           } else {
-                                            print('Error: No valid selection for form submit');
+                                            print(
+                                                'Error: No valid selection for form submit');
                                           }
                                         },
                                       );
@@ -6600,18 +6633,20 @@ class _DashboardViewState extends State<DashboardView> {
                           : (isDocumentLoading)
                               ? const Center(child: CircularProgressIndicator())
                               : (isDocsLoading)
-                                  ? const Center(child: CircularProgressIndicator())
+                                  ? const Center(
+                                      child: CircularProgressIndicator())
                                   : (selectedDocIndex == null)
-                                  ? Center(
-                                      child: Text(
-                                        "Please select a doc",
-                                        style: TextStyle(color: textColor),
-                                      ),
-                                    )
-                                  : buildChatColumn(),
+                                      ? Center(
+                                          child: Text(
+                                            "Please select a doc",
+                                            style: TextStyle(color: textColor),
+                                          ),
+                                        )
+                                      : buildChatColumn(),
                     ),
                     // Top-Right Button (Menu button for right sidebar)
-          if (selectedChannelIndex != null && selectedDocIndex != null)
+                    if (selectedChannelIndex != null &&
+                        selectedDocIndex != null)
                       Positioned(
                         top: 10,
                         right: 10,

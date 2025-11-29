@@ -721,6 +721,7 @@ class DashboardController {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        loadData("tblchannels");
         print("Joined channel successfully: ${response.data}");
         
         // Extract newChannelName from the response
