@@ -1,191 +1,139 @@
-# Fastfile for XDoc Android
+  # Fastfile for XDoc Android
 
-default_platform(:android)
+  default_platform(:android)
 
-platform :android do
-  # Before all lanes
-  before_all do
-    # Ensure we're in the android directory
-    Dir.chdir("../..") do
-      # Get Flutter dependencies
-      sh("flutter pub get")
-    end
-  end
-
-  # Helper method to increment version code from Play Store
-  private_lane :increment_version_code do |options|
-    track = options[:track] || 'internal'  # Default to internal track
-
-    # Get the latest version code from Play Store
-    json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
-
-    begin
-      # Fetch latest version code from Play Store for the specified track
-      latest_version_code = google_play_track_version_codes(
-        package_name: "com.xdoc.app",
-        track: track,
-        json_key: json_key_file
-      ).max || 0
-
-      new_version_code = latest_version_code + 1
-      UI.success("Latest version code in Play Store (#{track}): #{latest_version_code}")
-      UI.success("New version code will be: #{new_version_code}")
-    rescue => e
-      # If we can't fetch from Play Store, use minimum version
-      UI.important("Could not fetch from Play Store: #{e.message}")
-      new_version_code = 1051
-      UI.important("Using fallback version code: #{new_version_code}")
-    end
-
-    Dir.chdir("../..") do
-      # Read pubspec.yaml
-      pubspec_path = "pubspec.yaml"
-      pubspec_content = File.read(pubspec_path)
-
-      # Extract current version name (e.g., "1.0.0+8")
-      if pubspec_content =~ /^version:\s*(.+)\+(\d+)/
-        version_name = $1  # "1.0.0"
-        new_version = "#{version_name}+#{new_version_code}"
-
-        # Update pubspec.yaml
-        pubspec_content.gsub!(/^version:\s*.+/, "version: #{new_version}")
-        File.write(pubspec_path, pubspec_content)
-
-        UI.success("Version updated in pubspec.yaml: #{new_version}")
-      else
-        UI.error("Could not find version in pubspec.yaml")
+  platform :android do
+    # Before all lanes
+    before_all do
+      # Ensure we're in the android directory
+      Dir.chdir("../..") do
+        # Get Flutter dependencies
+        sh("flutter pub get")
       end
     end
-  end
 
-  # Internal testing lane (for 3 users)
-  desc "Deploy a new version to Google Play Internal Testing"
-  lane :internal do
-    # Increment version code
-    increment_version_code
+    # Internal testing lane (for internal testers)
+    desc "Deploy a new version to Google Play Internal Testing"
+    lane :internal do
+      # Build the app bundle (version comes from pubspec.yaml)
+      Dir.chdir("../..") do
+        sh("flutter build appbundle --release")
+      end
 
-    # Build the app bundle
-    Dir.chdir("../..") do
-      sh("flutter build appbundle --release")
+      # Upload to Play Store (Internal track)
+      json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
+      upload_to_play_store(
+        track: 'internal',
+        aab: '../build/app/outputs/bundle/release/app-release.aab',
+        json_key: json_key_file,
+        skip_upload_metadata: false,
+        release_status: 'draft',
+        skip_upload_changelogs: false,
+        skip_upload_images: true,
+        skip_upload_screenshots: true
+      )
+
+      # Success message
+      UI.success("Successfully deployed to Internal Testing! 🎉")
     end
 
-    # Upload to Play Store (Internal track)
-    json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
-    upload_to_play_store(
-      track: 'internal',
-      aab: '../build/app/outputs/bundle/release/app-release.aab',
-      json_key: json_key_file,
-      skip_upload_metadata: false,
-      release_status: 'draft',
-      skip_upload_changelogs: false,
-      skip_upload_images: true,
-      skip_upload_screenshots: true
-    )
+    # Beta testing lane (closed testing)
+    desc "Deploy a new version to Google Play Beta (Closed Testing)"
+    lane :beta do
+      # Build the app bundle (version comes from pubspec.yaml)
+      Dir.chdir("../..") do
+        sh("flutter build appbundle --release")
+      end
 
-    # Success message
-    UI.success("Successfully deployed to Internal Testing! 🎉")
-  end
+      # Upload to Play Store (Beta track)
+      json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
+      upload_to_play_store(
+        track: 'beta',
+        aab: '../build/app/outputs/bundle/release/app-release.aab',
+        json_key: json_key_file,
+        release_status: 'draft',
+        skip_upload_metadata: false,
+        skip_upload_changelogs: false,
+        skip_upload_images: true,
+        skip_upload_screenshots: true
+      )
 
-  # Beta testing lane (closed testing)
-  desc "Deploy a new version to Google Play Beta (Closed Testing)"
-  lane :beta do
-    # Increment version code
-    increment_version_code
-
-    # Build the app bundle
-    Dir.chdir("../..") do
-      sh("flutter build appbundle --release")
+      # Success message
+      UI.success("Successfully deployed to Beta Testing! 🎉")
     end
 
-    # Upload to Play Store (Beta track)
-    json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
-    upload_to_play_store(
-      track: 'beta',
-      aab: '../build/app/outputs/bundle/release/app-release.aab',
-      json_key: json_key_file,
-      release_status: 'draft',
-      skip_upload_metadata: false,
-      skip_upload_changelogs: false,
-      skip_upload_images: true,
-      skip_upload_screenshots: true
-    )
+    # Production release lane
+    desc "Deploy a new version to Google Play Production"
+    lane :production do
+      # Build the app bundle (version comes from pubspec.yaml)
+      Dir.chdir("../..") do
+        sh("flutter build appbundle --release")
+      end
 
-    # Success message
-    UI.success("Successfully deployed to Beta Testing! 🎉")
-  end
+      # Upload to Play Store (Production track)
+      json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
+      upload_to_play_store(
+        track: 'production',
+        aab: '../build/app/outputs/bundle/release/app-release.aab',
+        json_key: json_key_file,
+        release_status: 'draft',
+        skip_upload_metadata: false,
+        skip_upload_changelogs: false,
+        skip_upload_images: true,
+        skip_upload_screenshots: true,
+        rollout: '0.1'  # Start with 10% rollout
+      )
 
-  # Production release lane
-  desc "Deploy a new version to Google Play Production"
-  lane :production do
-    # Build the app bundle
-    Dir.chdir("../..") do
-      sh("flutter build appbundle --release")
+      # Success message
+      UI.success("Successfully deployed to Production (10% rollout)! 🎉")
     end
 
-    # Upload to Play Store (Production track)
-    json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
-    upload_to_play_store(
-      track: 'production',
-      aab: '../build/app/outputs/bundle/release/app-release.aab',
-      json_key: json_key_file,
-      release_status: 'draft',
-      skip_upload_metadata: false,
-      skip_upload_changelogs: false,
-      skip_upload_images: true,
-      skip_upload_screenshots: true,
-      rollout: '0.1'  # Start with 10% rollout
-    )
+    # Promote beta to production
+    desc "Promote Beta to Production"
+    lane :promote_to_production do
+      json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
+      upload_to_play_store(
+        track: 'beta',
+        track_promote_to: 'production',
+        json_key: json_key_file,
+        release_status: 'draft',
+        skip_upload_metadata: true,
+        skip_upload_changelogs: true,
+        skip_upload_images: true,
+        skip_upload_screenshots: true,
+        rollout: '0.1'  # Start with 10% rollout
+      )
 
-    # Success message
-    UI.success("Successfully deployed to Production (10% rollout)! 🎉")
-  end
-
-  # Promote beta to production
-  desc "Promote Beta to Production"
-  lane :promote_to_production do
-    json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
-    upload_to_play_store(
-      track: 'beta',
-      track_promote_to: 'production',
-      json_key: json_key_file,
-      release_status: 'draft',
-      skip_upload_metadata: true,
-      skip_upload_changelogs: true,
-      skip_upload_images: true,
-      skip_upload_screenshots: true,
-      rollout: '0.1'  # Start with 10% rollout
-    )
-
-    UI.success("Successfully promoted Beta to Production! 🎉")
-  end
-
-  # Build APK for testing
-  desc "Build APK for direct installation"
-  lane :build_apk do
-    Dir.chdir("../..") do
-      sh("flutter build apk --release")
+      UI.success("Successfully promoted Beta to Production! 🎉")
     end
 
-    UI.success("APK built successfully! 📦")
-    UI.message("APK location: build/app/outputs/flutter-apk/app-release.apk")
-  end
+    # Build APK for testing
+    desc "Build APK for direct installation"
+    lane :build_apk do
+      Dir.chdir("../..") do
+        sh("flutter build apk --release")
+      end
 
-  # Generate screenshots (future enhancement)
-  desc "Generate screenshots for Play Store"
-  lane :screenshots do
-    # TODO: Set up screengrab for automated screenshots
-    UI.message("Screenshots generation not yet configured")
-    UI.message("Add screengrab configuration to enable this feature")
-  end
+      UI.success("APK built successfully! 📦")
+      UI.message("APK location: build/app/outputs/flutter-apk/app-release.apk")
+    end
 
-  # After all lanes
-  after_all do |lane|
-    # Clean up
-    UI.success("Lane #{lane} completed successfully! ✅")
-  end
+    # Generate screenshots (future enhancement)
+    desc "Generate screenshots for Play Store"
+    lane :screenshots do
+      # TODO: Set up screengrab for automated screenshots
+      UI.message("Screenshots generation not yet configured")
+      UI.message("Add screengrab configuration to enable this feature")
+    end
 
-  # Error handler
-  error do |lane, exception|
-    UI.error("Error in lane #{lane}: #{exception.message}")
+    # After all lanes
+    after_all do |lane|
+      # Clean up
+      UI.success("Lane #{lane} completed successfully! ✅")
+    end
+
+    # Error handler
+    error do |lane, exception|
+      UI.error("Error in lane #{lane}: #{exception.message}")
+    end
   end
-end

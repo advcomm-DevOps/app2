@@ -2,11 +2,9 @@ name: Android - Fastlane Deploy
 
 on:
   push:
-    branches: [main, master, 'feature/android-fastlane']
-    tags: ['v*']
-  pull_request:
-    branches: [main, master]
-  workflow_dispatch:
+    tags:
+      - 'v*'  # Only trigger on version tags like v1.0.1, v1.0.2, etc.
+  workflow_dispatch:  # Allow manual triggering from GitHub Actions UI
 
 env:
   JAVA_VERSION: '17'
@@ -24,17 +22,15 @@ jobs:
         with:
           fetch-depth: 0  # Fetch all history for tag detection
 
-      - name: Check if commit has version tag
-        id: check_tag
+      - name: Get version tag
+        id: version_tag
         run: |
-          tag=$(git tag --points-at HEAD | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
+          tag=$(git describe --tags --exact-match 2>/dev/null || echo "")
           if [ -n "$tag" ]; then
-            echo "HAS_VERSION_TAG=true" >> $GITHUB_OUTPUT
             echo "VERSION_TAG=$tag" >> $GITHUB_OUTPUT
             echo "Found version tag: $tag"
           else
-            echo "HAS_VERSION_TAG=false" >> $GITHUB_OUTPUT
-            echo "No version tag found on this commit"
+            echo "No version tag found"
           fi
 
       - name: Set up Java
@@ -69,12 +65,10 @@ jobs:
         continue-on-error: true
 
       - name: Decode Android keystore
-        if: github.event_name != 'pull_request'
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
 
       - name: Create key.properties
-        if: github.event_name != 'pull_request'
         run: |
           cat > android/key.properties <<EOF
           storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -84,13 +78,11 @@ jobs:
           EOF
 
       - name: Create Play Store service account JSON
-        if: github.event_name != 'pull_request'
         run: |
           mkdir -p android
           echo '${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON_BASE64 }}' | tr -d '\n\r ' | base64 --decode > android/service_account.json
 
       - name: Validate Play Store JSON
-        if: github.event_name != 'pull_request'
         run: |
           python -m json.tool android/service_account.json >/dev/null || {
             echo "Error: Invalid JSON in service account file"
@@ -99,39 +91,28 @@ jobs:
           echo "JSON validation successful"
 
       - name: Install Fastlane dependencies
-        if: github.event_name != 'pull_request'
         working-directory: android
         run: |
           bundle install
           bundle exec fastlane --version
 
-      - name: Deploy to Internal Testing (no tag)
-        if: github.event_name != 'pull_request' && steps.check_tag.outputs.HAS_VERSION_TAG == 'false' && (github.ref_name == 'main' || github.ref_name == 'master' || startsWith(github.ref_name, 'feature/android'))
+      - name: Deploy to Internal Testing
         working-directory: android
         env:
           PLAY_STORE_JSON_KEY_PATH: service_account.json
         run: |
           echo "🚀 Deploying to Internal Testing track..."
-          echo "📝 Fastlane will auto-increment version code"
+          echo "📝 Using version from pubspec.yaml (no auto-increment)"
+          if [ -n "${{ steps.version_tag.outputs.VERSION_TAG }}" ]; then
+            echo "Version tag: ${{ steps.version_tag.outputs.VERSION_TAG }}"
+          fi
           bundle exec fastlane internal
 
-      - name: Deploy to Beta Testing (with tag)
-        if: github.event_name != 'pull_request' && steps.check_tag.outputs.HAS_VERSION_TAG == 'true'
-        working-directory: android
-        env:
-          PLAY_STORE_JSON_KEY_PATH: service_account.json
-        run: |
-          echo "🚀 Deploying to Beta Testing track (version: ${{ steps.check_tag.outputs.VERSION_TAG }})..."
-          echo "📝 Fastlane will auto-increment version code"
-          bundle exec fastlane beta
-
       - name: Build APK for artifacts
-        if: github.event_name != 'pull_request'
         working-directory: android
         run: bundle exec fastlane build_apk
 
       - name: Upload APK artifact
-        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk-${{ github.run_number }}
@@ -139,7 +120,6 @@ jobs:
           retention-days: 30
 
       - name: Upload AAB artifact
-        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: app-release-aab-${{ github.run_number }}
@@ -147,32 +127,21 @@ jobs:
           retention-days: 30
 
       - name: Build Summary
-        if: github.event_name != 'pull_request'
         run: |
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
           CURRENT_VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
 
           echo "## 🎉 Android Build & Deploy Successful!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** \`${{ steps.version_tag.outputs.VERSION_TAG }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${SHORT_SHA}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** \`${CURRENT_VERSION}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-
-          if [ "${{ steps.check_tag.outputs.HAS_VERSION_TAG }}" == "true" ]; then
-            echo "### 🚀 Deployment" >> $GITHUB_STEP_SUMMARY
-            echo "Deployed to **Google Play Beta Track** (Closed Testing)" >> $GITHUB_STEP_SUMMARY
-            echo "Tag: \`${{ steps.check_tag.outputs.VERSION_TAG }}\`" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Note:** Version code auto-incremented by Fastlane" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "### 🔧 Deployment" >> $GITHUB_STEP_SUMMARY
-            echo "Deployed to **Google Play Internal Track**" >> $GITHUB_STEP_SUMMARY
-            echo "✅ Available to 3 internal testers instantly!" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Note:** Version code auto-incremented by Fastlane" >> $GITHUB_STEP_SUMMARY
-          fi
-
+          echo "### 🚀 Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "Deployed to **Google Play Internal Track**" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Available to internal testers!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** Version from pubspec.yaml (manual versioning)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📦 Artifacts" >> $GITHUB_STEP_SUMMARY
           echo "- AAB (Play Store): \`app-release.aab\`" >> $GITHUB_STEP_SUMMARY
