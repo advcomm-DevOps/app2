@@ -1,7 +1,7 @@
 name: xdoc
 description: 'XDoc - Document Management System'
 publish_to: 'none'
-version: 1.0.0+1059
+version: 1.0.0+1060
 resolution: workspace
 
 environment:
