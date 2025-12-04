@@ -1,0 +1,71 @@
+name: xdoc_workspace
+repository: https://github.com/canonicalapp/mtds_dart.git
+
+packages:
+  - apps/xdoc
+  - packages/mtds
+
+command:
+  bootstrap:
+    usePubspecOverrides: true
+  version:
+    updateGitTagRefs: true
+    linkToCommits: true
+    workspaceChangelog: false
+    # Only version apps, not packages
+    includeScopes: true
+    message: |
+      chore(release): bump app version
+
+scripts:
+  get:
+    description: Run `flutter pub get` in all packages
+    run: melos exec -- "flutter pub get"
+
+  test:
+    description: Run tests in all packages
+    run: melos exec -- "flutter test"
+
+  clean:
+    description: Clean all build artifacts
+    run: melos exec -- "flutter clean"
+
+  build_runner:
+    description: Run build_runner in mtds package
+    run: melos exec --dir=packages/mtds -- "dart run build_runner build --delete-conflicting-outputs"
+
+  build_runner_watch:
+    description: Run build_runner in watch mode for mtds package
+    run: melos exec --dir=packages/mtds -- "dart run build_runner watch --delete-conflicting-outputs"
+
+  analyze:
+    description: Run dart analyze in all packages
+    run: melos exec -- "dart analyze"
+
+  format:
+    description: Format code in all packages
+    run: melos exec -- "dart format ."
+
+  version:check:
+    description: Check what versions would be updated (apps only)
+    run: melos version --all --scope="xdoc"
+
+  version:patch:
+    description: Bump patch version (0.0.x) - for bug fixes (apps only)
+    run: melos version --all --yes --scope="xdoc"
+
+  version:minor:
+    description: Bump minor version (0.x.0) - for new features (apps only)
+    run: melos version --all --yes --preid=minor --scope="xdoc"
+
+  version:major:
+    description: Bump major version (x.0.0) - for breaking changes (apps only)
+    run: melos version --all --yes --preid=major --scope="xdoc"
+
+  version:prerelease:
+    description: Bump to next prerelease version (beta) (apps only)
+    run: melos version --all --prerelease --yes --preid=beta --scope="xdoc"
+
+  version:graduate:
+    description: Graduate prerelease versions to stable (apps only)
+    run: melos version --all --graduate --yes --scope="xdoc"

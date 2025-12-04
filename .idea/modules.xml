@@ -2,8 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/flutter_starter.iml" filepath="$PROJECT_DIR$/flutter_starter.iml" />
-      <module fileurl="file://$PROJECT_DIR$/android/flutter_starter_android.iml" filepath="$PROJECT_DIR$/android/flutter_starter_android.iml" />
+      <module fileurl="file://$PROJECT_DIR$/packages/mtds/melos_mtds.iml" filepath="$PROJECT_DIR$/packages/mtds/melos_mtds.iml" />
+      <module fileurl="file://$PROJECT_DIR$/apps/xdoc/melos_xdoc.iml" filepath="$PROJECT_DIR$/apps/xdoc/melos_xdoc.iml" />
+      <module fileurl="file://$PROJECT_DIR$/melos_xdoc_workspace.iml" filepath="$PROJECT_DIR$/melos_xdoc_workspace.iml" />
     </modules>
   </component>
 </project>

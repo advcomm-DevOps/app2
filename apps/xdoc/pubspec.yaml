@@ -1,0 +1,92 @@
+name: xdoc
+description: 'XDoc - Document Management System'
+publish_to: 'none'
+version: 1.0.0+1059
+resolution: workspace
+
+environment:
+  sdk: '>=3.9.2 <4.0.0'
+  flutter: '>=3.7.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  #================================= Starter dependencies =================================
+  cupertino_icons: ^1.0.8
+  responsive_builder: ^0.7.1
+  go_router: ^14.8.1
+  dio: ^5.7.0
+  url_strategy: ^0.2.0
+  flutter_secure_storage: ^9.2.4
+  signals: ^6.0.2
+  flutter_inappwebview: ^6.1.5
+  uids_io_sdk_flutter: ^0.0.6
+  # MTDS package - automatically resolved via workspace during development
+  # When publishing/installing xdoc outside this workspace, uncomment:
+  # mtds:
+  #   git:
+  #     url: https://github.com/canonicalapp/mtds_dart.git
+  #     ref: main
+  # Drift ORM dependencies (required for mtds)
+  drift: ^2.13.0
+  sqlite3_flutter_libs: ^0.5.19
+  sqflite_common_ffi: ^2.3.3
+  sqflite_common_ffi_web: ^1.0.0
+  easy_localization: ^3.0.7+1
+  intl: ^0.20.2
+  # firebase_core: ^3.12.1
+  # firebase_messaging: ^15.2.4
+  # firebase_analytics: ^11.4.4
+  flutter_local_notifications: 18.0.1
+  app_links: ^6.4.0
+  change_app_package_name: ^1.5.0
+  qr_flutter: ^4.1.0
+  window_manager: ^0.5.1
+  #================================= Custom Dependencies =================================
+  file_picker: ^10.1.9
+  desktop_drop: ^0.6.0
+  jwt_decoder: ^2.0.1
+  liquid_engine: ^0.2.2
+  cryptography: ^2.7.0
+  encrypt: ^5.0.1
+  pointycastle: ^3.7.3
+  basic_utils: ^5.5.4
+  flutter_svg: ^2.0.9
+  # flutter_datetime_picker_plus: ^2.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.0.0
+  drift_dev: ^2.29.0 # Required for Drift code generation
+  flutter_launcher_icons: ^0.14.3
+  msix: ^3.16.12
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/fonts/
+    - assets/images/
+    - lib/custom/lang/
+    - lib/html/
+    - lib/bootstrap.bundle.min.js
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: 'assets/images/xdoc_logo.png'
+
+msix_config:
+  display_name: XDoc Test
+  msix_version: 0.0.0.11
+  publisher_display_name: XDoc Testing
+  identity_name: com.xdocapp.test
+  publisher: CN=XDoc Test
+  logo_path: assets/images/xdoc_logo.png
+  certificate_path: certs/xdoc_test_cert.pfx
+  certificate_password: P@ssw0rd
+  install_certificate: false
+  capabilities: 'internetClient,privateNetworkClientServer,removableStorage'
+  file_extension: '.xdoc'
+  protocol_activation: 'xdoc'

@@ -1,3 +1,3 @@
-[submodule "tenant_replication"]
-	path = tenant_replication
-	url = https://github.com/canonicalapp/tenant_replication.git
+[submodule "packages/mtds"]
+	path = packages/mtds
+	url = https://github.com/canonicalapp/mtds_dart.git
