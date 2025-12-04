@@ -1,30 +1,30 @@
-  # Fastfile for XDoc Android
+  # Fastfile for XDoc Android (Monorepo with Melos)
 
   default_platform(:android)
 
   platform :android do
-    # Before all lanes
-    before_all do
-      # Ensure we're in the android directory
-      Dir.chdir("../..") do
-        # Get Flutter dependencies
-        sh("flutter pub get")
+      # Before all lanes
+      before_all do
+        # Monorepo: Bootstrap melos workspace
+        Dir.chdir("../..") do
+          sh("melos bootstrap")
+        end
       end
-    end
 
     # Internal testing lane (for internal testers)
     desc "Deploy a new version to Google Play Internal Testing"
     lane :internal do
-      # Build the app bundle (version comes from pubspec.yaml)
-      Dir.chdir("../..") do
-        sh("flutter build appbundle --release")
-      end
+       # Build the app bundle (version comes from pubspec.yaml)
+        Dir.chdir("../../apps/xdoc") do
+          sh("flutter build appbundle --release")
+        end
+
 
       # Upload to Play Store (Internal track)
       json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
       upload_to_play_store(
         track: 'internal',
-        aab: '../build/app/outputs/bundle/release/app-release.aab',
+        aab: '../../apps/xdoc/build/app/outputs/bundle/release/app-release.aab',
         json_key: json_key_file,
         skip_upload_metadata: false,
         release_status: 'draft',
@@ -40,16 +40,16 @@
     # Beta testing lane (closed testing)
     desc "Deploy a new version to Google Play Beta (Closed Testing)"
     lane :beta do
-      # Build the app bundle (version comes from pubspec.yaml)
-      Dir.chdir("../..") do
-        sh("flutter build appbundle --release")
-      end
+    # Build the app bundle (version comes from pubspec.yaml)
+        Dir.chdir("../../apps/xdoc") do
+          sh("flutter build appbundle --release")
+        end
 
       # Upload to Play Store (Beta track)
       json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
       upload_to_play_store(
         track: 'beta',
-        aab: '../build/app/outputs/bundle/release/app-release.aab',
+        aab: '../../apps/xdoc/build/app/outputs/bundle/release/app-release.aab',
         json_key: json_key_file,
         release_status: 'draft',
         skip_upload_metadata: false,
@@ -66,15 +66,15 @@
     desc "Deploy a new version to Google Play Production"
     lane :production do
       # Build the app bundle (version comes from pubspec.yaml)
-      Dir.chdir("../..") do
-        sh("flutter build appbundle --release")
-      end
+        Dir.chdir("../../apps/xdoc") do
+          sh("flutter build appbundle --release")
+        end
 
       # Upload to Play Store (Production track)
       json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
       upload_to_play_store(
         track: 'production',
-        aab: '../build/app/outputs/bundle/release/app-release.aab',
+        aab: '../../apps/xdoc/build/app/outputs/bundle/release/app-release.aab',
         json_key: json_key_file,
         release_status: 'draft',
         skip_upload_metadata: false,
@@ -110,12 +110,12 @@
     # Build APK for testing
     desc "Build APK for direct installation"
     lane :build_apk do
-      Dir.chdir("../..") do
-        sh("flutter build apk --release")
-      end
+     Dir.chdir("../../apps/xdoc") do
+          sh("flutter build apk --release")
+        end
 
       UI.success("APK built successfully! 📦")
-      UI.message("APK location: build/app/outputs/flutter-apk/app-release.apk")
+      UI.message("APK location: apps/xdoc/build/app/outputs/flutter-apk/app-release.apk")
     end
 
     # Generate screenshots (future enhancement)
