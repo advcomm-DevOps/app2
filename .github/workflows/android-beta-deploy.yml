@@ -62,13 +62,23 @@ jobs:
         run: flutter pub get
 
       - name: Run Flutter analyzer
-        run: flutter analyze
+        run: |
+          if [ -d test ]; then
+              flutter test
+            else
+              echo "Skipping flutter test: no test directory found"
+            fi
         continue-on-error: true
 
       - name: Run Flutter tests
-        run: flutter test
+        run: |
+          if [ -d test ]; then
+              flutter test
+            else
+              echo "Skipping flutter test: no test directory found"
+            fi
         continue-on-error: true
-
+        
       - name: Decode Android keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks

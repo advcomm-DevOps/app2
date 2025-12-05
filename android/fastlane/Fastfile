@@ -5,8 +5,17 @@
   platform :android do
       # Before all lanes
       before_all do
-        # Monorepo: Bootstrap melos workspace
+        # Monorepo: Ensure melos is installed and available
         Dir.chdir("../..") do
+          # Check if melos is installed, install if missing
+          unless system("command -v melos >/dev/null 2>&1")
+            sh("dart pub global activate melos")
+          end
+
+          # Ensure the current Ruby process sees pub-cache bin in PATH
+          ENV['PATH'] = "#{ENV['HOME']}/.pub-cache/bin:#{ENV['PATH']}"
+
+          # Now run melos bootstrap
           sh("melos bootstrap")
         end
       end
