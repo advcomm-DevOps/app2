@@ -41,6 +41,11 @@ jobs:
           flutter-version: '3.35.7'
           channel: 'stable'
 
+      - name: Install Melos
+        run: |
+          dart pub global activate melos
+          echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
@@ -49,14 +54,16 @@ jobs:
       - name: Enable Linux desktop
         run: flutter config --enable-linux-desktop
 
-      - name: Get dependencies
-        run: flutter pub get
+      - name: Bootstrap monorepo with Melos
+        run: melos bootstrap
 
       - name: Run tests
+        working-directory: apps/xdoc
         run: flutter test
         continue-on-error: true
 
       - name: Build Linux app
+        working-directory: apps/xdoc
         run: flutter build linux --release
 
       - name: Install AppImage dependencies
@@ -74,7 +81,7 @@ jobs:
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
 
           # Copy Flutter bundle
-          cp -r build/linux/x64/release/bundle/* AppDir/usr/bin/
+          cp -r apps/xdoc/build/linux/x64/release/bundle/* AppDir/usr/bin/
 
           # Desktop entry (needs to be in both root and usr/share/applications)
           cat > AppDir/xdoc.desktop << EOF
@@ -88,9 +95,9 @@ jobs:
           cp AppDir/xdoc.desktop AppDir/usr/share/applications/
 
           # Icon (needs to be in both root and usr/share/icons)
-          if [ -f "assets/images/xdoc_logo.png" ]; then
-            cp assets/images/xdoc_logo.png AppDir/xdoc.png
-            cp assets/images/xdoc_logo.png AppDir/usr/share/icons/hicolor/256x256/apps/xdoc.png
+          if [ -f "apps/xdoc/assets/images/xdoc_logo.png" ]; then
+            cp apps/xdoc/assets/images/xdoc_logo.png AppDir/xdoc.png
+            cp apps/xdoc/assets/images/xdoc_logo.png AppDir/usr/share/icons/hicolor/256x256/apps/xdoc.png
           else
             convert -size 256x256 xc:blue AppDir/xdoc.png || true
             cp AppDir/xdoc.png AppDir/usr/share/icons/hicolor/256x256/apps/xdoc.png || true
