@@ -46,6 +46,9 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: install melos
+        run: dart pub global activate melos
+
       - name: Set up Ruby (for Fastlane)
         uses: ruby/setup-ruby@v1
         with:
