@@ -33,7 +33,7 @@
       json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
       upload_to_play_store(
         track: 'internal',
-        aab: '../../apps/xdoc/build/app/outputs/bundle/release/app-release.aab',
+        aab: '../apps/xdoc/build/app/outputs/bundle/release/app-release.aab',
         json_key: json_key_file,
         skip_upload_metadata: false,
         release_status: 'draft',
@@ -58,7 +58,7 @@
       json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
       upload_to_play_store(
         track: 'beta',
-        aab: '../../apps/xdoc/build/app/outputs/bundle/release/app-release.aab',
+        aab: '../apps/xdoc/build/app/outputs/bundle/release/app-release.aab',
         json_key: json_key_file,
         release_status: 'draft',
         skip_upload_metadata: false,
@@ -83,7 +83,7 @@
       json_key_file = ENV["PLAY_STORE_JSON_KEY_PATH"] || "service_account.json"
       upload_to_play_store(
         track: 'production',
-        aab: '../../apps/xdoc/build/app/outputs/bundle/release/app-release.aab',
+        aab: '../apps/xdoc/build/app/outputs/bundle/release/app-release.aab',
         json_key: json_key_file,
         release_status: 'draft',
         skip_upload_metadata: false,
